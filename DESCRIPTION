@@ -1,0 +1,21 @@
+Package: correlationAnalyzeR
+Type: Package
+Title: Generate Novel Insights from Gene Correlation Data
+Date: 2019-04-24
+Version: 0.0.0.9000
+Authors@R: person("Henry", "Miller", email = "millerh1@livemail.uthscsa.edu",
+    role = c("aut", "cre"))
+Maintainer@R: person("Henry", "Miller", email = "millerh1@livemail.uthscsa.edu",
+    role = c("aut", "cre"))
+Description: Correlation AnalyzeR is a powerful tool for understanding how genes
+    relate to eachother based on the 	world's largest repository of standardized
+    RNA-Seq data, ARCHS4 [https://amp.pharm.mssm.edu/archs4/index.html]. In 
+    'single-analysis' mode, correlation data for genes of interest are used to
+    return correlated pathways by GSEA. In 'paired-analysis' mode, a user can
+    examine how a primary gene of interest correlates with a defined list of
+    other genes. Finally, 'group-analysis' mode examines correlation data for a
+    defined gene group to generate a robust gene-level topology.
+Depends: R (>= 3.5.2)
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
