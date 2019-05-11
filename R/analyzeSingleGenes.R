@@ -1,3 +1,33 @@
+#' Analyze Single Genes
+#'
+#' Obtains correlation info and GSEA results for each gene of interest
+#'
+#' @param genesOfInterest A vector of genes to analyze.
+#'
+#' @param Species Species to obtain gene names for.
+#'     Either 'hsapiens' or 'mmusculus'
+#'
+#' @param GSEA_Type Whether GSEA should consider all msigdb annotations,
+#'     or just those in the most popular categories. Should be one of either
+#'     'simple' or 'complex'.
+#'
+#' @param Sample_Type Type of RNA Seq samples used to create correlation data.
+#'     Either "All", "Normal_Tissues", or "Tumor_Tissues".
+#'
+#' @param outputPrefix Prefix for saved files. Should include directory info.
+#'
+#' @param runGSEA If TRUE will run GSEA using gene correlation values.
+#'
+#' @return A dataframe of correlation values for each gene of interest.
+#'
+#' @examples
+#' genesOfInterest <- c("ATM", "SLC7A11")
+#' Result <- analyzeSingleGenes(genesOfInterest = genesOfInterest,
+#'                               Species = "hsapiens",
+#'                               GSEA_Type = "simple",
+#'                               Sample_Type = "Normal_Tissues")
+#'
+#' @export
 analyzeSingleGenes <- function(genesOfInterest,
                                Species = c("hsapiens", "mmusculus"),
                                GSEA_Type = c("simple", "complex"),
@@ -8,12 +38,12 @@ analyzeSingleGenes <- function(genesOfInterest,
                                runGSEA = T) {
 
   # # Debug/Test
-  # genesOfInterest <- "ATM"
+  # genesOfInterest <- c("ATM", "SLC3A2", "SON", "BRCA1")
   # GSEA_Type = "simple"
   # runGSEA = T
   # outputPrefix = "tests/CorrelationAnalyzeR_Output"
   # Species = "hsapiens"
-  # Sample_Type = "All"
+  # Sample_Type = "Normal_Tissues"
 
   # Parse arguments
   genesOfInterest <- unique(genesOfInterest)
@@ -27,14 +57,23 @@ analyzeSingleGenes <- function(genesOfInterest,
     if (runGSEA) {
       if (! GSEA_Type %in% c("simple", "complex")) {
         stop("\nPlease enter either 'simple' or 'complex' for GSEA_Type\n")
+      } else if (GSEA_Type[1] == "simple") {
+        if (Species[1] == "hsapiens") {
+          data("hsapiens_simple_TERM2GENE")
+          TERM2GENE <- hsapiens_simple_TERM2GENE
+        } else {
+          data("mmusculus_simple_TERM2GENE")
+          TERM2GENE <- mmusculus_simple_TERM2GENE
+        }
+      } else {
+        if (Species[1] == "hsapiens") {
+          data("hsapiens_complex_TERM2GENE")
+          TERM2GENE <- hsapiens_complex_TERM2GENE
+        } else {
+          data("mmusculus_complex_TERM2GENE")
+          TERM2GENE <- mmusculus_complex_TERM2GENE
+        }
       }
-      GSEA_dataDir <- system.file("data/GSEA_Data",
-                                  package = "correlationAnalyzeR")
-      GSEA_dataFile <- file.path(GSEA_dataDir,
-                                Species,
-                                GSEA_Type,
-                                "TERM2GENE.RData")
-      load(GSEA_dataFile)
     }
   } else {
     stop("\ncorrelationAnalyzeR currently supports only Human and Mouse data.
@@ -44,8 +83,7 @@ analyzeSingleGenes <- function(genesOfInterest,
   # Check genes to make sure they exist
   avGenes <- getAvailableGenes(Species = Species)
   avGenes <- as.character(avGenes$geneName)
-  intGenes <- names(genesOfInterest)
-  badGenes <- intGenes[which(! intGenes %in% avGenes)]
+  badGenes <- genesOfInterest[which(! genesOfInterest %in% avGenes)]
   if (length(badGenes) > 0) {
     stop(paste0("\n\t\t\t'", paste(badGenes, collapse = ", "), "' not found
                 in correlation data.
@@ -55,12 +93,12 @@ analyzeSingleGenes <- function(genesOfInterest,
   }
   cat("\nRetrieving any missing correlation data...\n")
   # Call downloadData to get all required files
-  downloadData(Species = Species,
-               Sample_Type = Sample_Type,
-               geneList = intGenes)
+  downloadData(Species = Species[1],
+               Sample_Type = Sample_Type[1],
+               geneList = genesOfInterest)
   downloadFolder <- system.file("data", package = "correlationAnalyzeR")
   dataDir <- file.path(downloadFolder, "Correlation_Data",
-                              Species, Sample_Type)
+                              Species[1], Sample_Type[1])
   # Main code
   for (i in 1:length(genesOfInterest)) {
     gene <- genesOfInterest[i]
