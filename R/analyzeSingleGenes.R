@@ -18,6 +18,9 @@
 #'
 #' @param runGSEA If TRUE will run GSEA using gene correlation values.
 #'
+#' @param returnDataOnly if TRUE will return only a dataframe of correlation
+#'    values and will not generate any folders or files.
+#'
 #' @return A dataframe of correlation values for each gene of interest.
 #'
 #' @examples
@@ -31,25 +34,26 @@
 analyzeSingleGenes <- function(genesOfInterest,
                                Species = c("hsapiens", "mmusculus"),
                                GSEA_Type = c("simple", "complex"),
-                               Sample_Type = c("All",
+                               Sample_Type = c(#"All",
                                           "Normal_Tissues",
                                           "Tumor_Tissues"),
                                outputPrefix = "CorrelationAnalyzeR_Output",
-                               runGSEA = T) {
+                               runGSEA = T, returnDataOnly = F) {
 
   # # Debug/Test
   # genesOfInterest <- c("ATM", "SLC3A2", "SON", "BRCA1")
   # GSEA_Type = "simple"
-  # runGSEA = T
+  # runGSEA = F
   # outputPrefix = "tests/CorrelationAnalyzeR_Output"
   # Species = "hsapiens"
   # Sample_Type = "Normal_Tissues"
+  # returnDataOnly = F
 
   # Parse arguments
   genesOfInterest <- unique(genesOfInterest)
   geneString <- paste(genesOfInterest, collapse = ", ")
   # Create output folder
-  if (! dir.exists(outputPrefix)) {
+  if (! dir.exists(outputPrefix) & ! returnDataOnly) {
     dir.create(outputPrefix)
   }
   # Load appropriate TERM2GENE file built from msigdbr()
@@ -109,7 +113,7 @@ analyzeSingleGenes <- function(genesOfInterest,
     load(file)
     # Create output folder for gene
     geneOutDir <- file.path(outputPrefix, gene)
-    if (! dir.exists(geneOutDir)) {
+    if (! dir.exists(geneOutDir) & ! returnDataOnly) {
       dir.create(geneOutDir)
     }
     # Initialize results frame
@@ -123,32 +127,36 @@ analyzeSingleGenes <- function(genesOfInterest,
     # Add correlation data to final dataframe
     resultsFrame <- merge(x = resultsFrame, y = corrdf, by = "geneName")
     corrdf <- corrdf[,c(2, 1)]
-    write.csv(corrdf, file = file.path(geneOutDir, paste0(gene, ".csv")),
-              row.names = F)
-    # Remove gene from correlation values to build normal distribution
-    vec <- vec[order(vec, decreasing = T)]
-    vec <- vec[c(-1)]
-    # Make a histogram of gene correlations
-    png(file.path(geneOutDir, paste0(gene, ".png")))
-    hist(vec,
-         main = paste0(gene, " gene correlations"),
-         breaks = 100, xlab = "Correlation Value")
-    dev.off()
-    if (runGSEA) {
-      # Perform GSEA
-      cat("\nGSEA\n")
-      resGSEA <- suppressWarnings(myGSEA(ranks = vec, TERM2GENE = TERM2GENE,
-                        plotFile = paste0(gene, ".corrPathways"),
-                        outDir = geneOutDir,
-                        Condition = paste0(gene, " Correlated Genes")))
+    if (! returnDataOnly) {
+      write.csv(corrdf, file = file.path(geneOutDir, paste0(gene, ".csv")),
+                row.names = F)
+      # Remove gene from correlation values to build normal distribution
+      vec <- vec[order(vec, decreasing = T)]
+      vec <- vec[c(-1)]
+      # Make a histogram of gene correlations
+      png(file.path(geneOutDir, paste0(gene, ".png")))
+      hist(vec,
+           main = paste0(gene, " gene correlations"),
+           breaks = 100, xlab = "Correlation Value")
+      dev.off()
+      if (runGSEA) {
+        # Perform GSEA
+        cat("\nGSEA\n")
+        resGSEA <- suppressWarnings(myGSEA(ranks = vec, TERM2GENE = TERM2GENE,
+                                           plotFile = paste0(gene, ".corrPathways"),
+                                           outDir = geneOutDir,
+                                           Condition = paste0(gene, " Correlated Genes")))
+      }
     }
   }
-  # Save results from all queried genes
-  if (length(genesOfInterest) < 25 & length(genesOfInterest) > 1) {
-    write.csv(resultsFrame, file = file.path(outputPrefix, "geneCorrelationData.csv"), row.names = F)
-    save(resultsFrame, file = file.path(outputPrefix, "geneCorrelationData.RData"))
-  } else if (length(genesOfInterest) > 1) {
-    save(resultsFrame, file = file.path(outputPrefix, "geneCorrelationData.RData"))
+  if (! returnDataOnly) {
+    # Save results from all queried genes
+    if (length(genesOfInterest) < 25 & length(genesOfInterest) > 1) {
+      write.csv(resultsFrame, file = file.path(outputPrefix, "geneCorrelationData.csv"), row.names = F)
+      save(resultsFrame, file = file.path(outputPrefix, "geneCorrelationData.RData"))
+    } else if (length(genesOfInterest) > 1) {
+      save(resultsFrame, file = file.path(outputPrefix, "geneCorrelationData.RData"))
+    }
   }
   # Return results
   return(resultsFrame)
