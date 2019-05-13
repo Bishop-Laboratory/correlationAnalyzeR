@@ -52,6 +52,11 @@ analyzeSingleGenes <- function(genesOfInterest,
   # Parse arguments
   genesOfInterest <- unique(genesOfInterest)
   geneString <- paste(genesOfInterest, collapse = ", ")
+  # Fix possible parameter conflict
+  if (returnDataOnly) {
+    runGSEA <- F
+  }
+
   # Create output folder
   if (! dir.exists(outputPrefix) & ! returnDataOnly) {
     dir.create(outputPrefix)
