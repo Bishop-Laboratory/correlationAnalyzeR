@@ -63,32 +63,33 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
                                 autoRug = T,
                                 returnDataOnly = F) {
 
-  # load("data/hsapiens_complex_TERM2GENE.rda")
-  # load("data/mmusculus_complex_TERM2GENE.rda")
-  # hs_names <- unique(hsapiens_complex_TERM2GENE$gs_name)
-  # mm_names <- unique(mmusculus_complex_TERM2GENE$gs_name)
-  # MSIGDB_Geneset_Names <- hs_names[order(hs_names)]
-  # # devtools::use_data(MSIGDB_Geneset_Names)
-  # load("data/MSIGDB_Geneset_Names.rda")
-  #
-  # # Bug checking
-  # Species = c("hsapiens", "mmusculus")
-  # Sample_Type = "Normal_Tissues"
-  # returnDataOnly <- F
-  # outputPrefix = "tests/pairedOut"
-  # # pairedGenesList <- list("ATM" = "MIYAGAWA_TARGETS_OF_EWSR1_ETS_FUSIONS_UP",
-  # #                         "SON" = "TORCHIA_TARGETS_OF_EWSR1_FLI1_FUSION_UP",
-  # #                         "BRCA1" = "BILD_E2F3_ONCOGENIC_SIGNATURE")
+  load("data/hsapiens_complex_TERM2GENE.rda")
+  load("data/mmusculus_complex_TERM2GENE.rda")
+  hs_names <- unique(hsapiens_complex_TERM2GENE$gs_name)
+  mm_names <- unique(mmusculus_complex_TERM2GENE$gs_name)
+  MSIGDB_Geneset_Names <- hs_names[order(hs_names)]
+  # devtools::use_data(MSIGDB_Geneset_Names)
+  load("data/MSIGDB_Geneset_Names.rda")
+
+  # Bug checking
+  Species = c("hsapiens", "mmusculus")
+  Sample_Type = "Normal_Tissues"
+  returnDataOnly <- F
+  outputPrefix = "tests/pairedOut"
+  # pairedGenesList <- list("ATM" = "MIYAGAWA_TARGETS_OF_EWSR1_ETS_FUSIONS_UP",
+  #                         "SON" = "TORCHIA_TARGETS_OF_EWSR1_FLI1_FUSION_UP",
+  #                         "BRCA1" = "BILD_E2F3_ONCOGENIC_SIGNATURE")
   # pairedGenesList <- list("ATM" = c("TP53", "NFE2L2", "BRCA2"))
-  # library(correlationAnalyzeR)
-  # onlyTop <- F
-  # topCutoff <- .5
-  # plotLabels <- T
-  # sigTest <- T
-  # autoRug <- T
-  # nPerm <- 2000
-  # outputPrefix = "tests/pairedTestThree"
-  # plotMaxMinCorr <- T
+  pairedGenesList <- list("BRCA1" = "PUJANA_BRCA1_PCC_NETWORK")
+  library(correlationAnalyzeR)
+  onlyTop <- F
+  topCutoff <- .5
+  plotLabels <- T
+  sigTest <- T
+  autoRug <- T
+  nPerm <- 2000
+  outputPrefix = "tests/pairedTestFour"
+  plotMaxMinCorr <- T
 
   # Create output folder
   if (! dir.exists(outputPrefix)) {
@@ -188,6 +189,7 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
     colnames(corrDF)[1] <- "correlationValue"
     # Filter for secondary genes
     secondaryGenes <- pairedGenesList[[i]]
+    secondaryGenes <- secondaryGenes[which(secondaryGenes != gene)]
     corrDF <- corrDF[which(corrDF$geneName != gene),]
     corrDF$secondaryGene <- F
     corrDF$secondaryGene[which(corrDF$geneName %in% secondaryGenes)] <- T
@@ -196,12 +198,13 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
     # Check to make sure secondary genes exist within data
     for (j in 1:length(secondaryGenes)) {
       if (! secondaryGenes[j] %in% corrDF$geneName) {
-        secondaryGenes <- secondaryGenes[c(-j)]
         warning(paste0("\n\t\t\t'", secondaryGenes[j], "' not found
                       in correlation data.
                       Please check available data with getAvailableGenes().
                       Your gene(s) of interest may have an updated name or
                       have a species-specific identifier.\n"))
+        secondaryGenes <- secondaryGenes[c(-j)]
+
       }
     }
 
@@ -259,6 +262,7 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
                         plotLabels = FALSE, or choosing fewer secondary genes to plot.\n"))
     }
 
+
     # Code to analyze how histogram should be formatted
     if (length(secondaryGenes) > 50 & autoRug) {
       warning("Due to large secondary gene size -- plot lines will be implemented as a rug.
@@ -267,19 +271,18 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
       his <- his + ggplot2::geom_rug(data = corrDF[which(corrDF$secondaryGene),], color = "red")
 
     }
+
     for (j in 1:length(secondaryGenes)) {
       secondaryGene <- secondaryGenes[j]
       corrVal <- corrDF$correlationValue[which(
         corrDF$geneName == secondaryGene
         )]
       res[j] <- corrVal
+      if (length(secondaryGenes) > 50 & autoRug) {
+        next
+      }
       if (! plotLabels) {
-        if (length(secondaryGenes) > 50 & autoRug) {
-
-          next
-        } else {
-          his <- his + ggplot2::geom_vline(xintercept = corrVal, linetype = 2, color = "red")
-        }
+        his <- his + ggplot2::geom_vline(xintercept = corrVal, linetype = 2, color = "red")
       } else {
         # List of previous values excluding current one.
         res2 <- res[c(-j)]
