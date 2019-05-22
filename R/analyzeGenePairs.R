@@ -76,17 +76,18 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
   # Sample_Type = "Normal_Tissues"
   # returnDataOnly <- F
   # outputPrefix = "tests/pairedOut"
-  # pairedGenesList <- list("ATM" = "MIYAGAWA_TARGETS_OF_EWSR1_ETS_FUSIONS_UP",
-  #                         "SON" = "TORCHIA_TARGETS_OF_EWSR1_FLI1_FUSION_UP",
-  #                         "BRCA1" = "BILD_E2F3_ONCOGENIC_SIGNATURE")
+  # # pairedGenesList <- list("ATM" = "MIYAGAWA_TARGETS_OF_EWSR1_ETS_FUSIONS_UP",
+  # #                         "SON" = "TORCHIA_TARGETS_OF_EWSR1_FLI1_FUSION_UP",
+  # #                         "BRCA1" = "BILD_E2F3_ONCOGENIC_SIGNATURE")
+  # pairedGenesList <- list("ATM" = c("TP53", "NFE2L2", "BRCA2"))
   # library(correlationAnalyzeR)
   # onlyTop <- F
   # topCutoff <- .5
-  # plotLabels <- F
+  # plotLabels <- T
   # sigTest <- T
   # autoRug <- T
   # nPerm <- 2000
-  # outputPrefix = "tests/pairedTestTwo"
+  # outputPrefix = "tests/pairedTestThree"
   # plotMaxMinCorr <- T
 
   # Create output folder
@@ -271,16 +272,19 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
       corrVal <- corrDF$correlationValue[which(
         corrDF$geneName == secondaryGene
         )]
-
+      res[j] <- corrVal
       if (! plotLabels) {
         if (length(secondaryGenes) > 50 & autoRug) {
-          res[j] <- corrVal
+
           next
         } else {
           his <- his + ggplot2::geom_vline(xintercept = corrVal, linetype = 2, color = "red")
         }
       } else {
-        corrPrev <- which(abs(round(corrVal,2) - round(res, 2)) < .02)
+        # List of previous values excluding current one.
+        res2 <- res[c(-j)]
+        # Are any previous values similar to the current one?
+        corrPrev <- which(abs(round(res2, 2) - round(corrVal,2)) < .02)
         if (length(corrPrev) == 1) {
           corrPrevVal <- res[corrPrev]
           if (corrPrevVal < corrVal ) {
@@ -316,21 +320,18 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
           his <- his +
             ggplot2::geom_vline(xintercept = corrVal, linetype = 3) +
             ggplot2::annotate(geom = "text", x = corrVal,
-                              y = sample(c(4000:6500), 1),
+                              y = sample(c(1800:2600), 1),
                               label = label,
                               color = "red", angle = 90, size = 2)
         } else {
           his <- his +
             ggplot2::geom_vline(xintercept = corrVal, linetype = 3) +
             ggplot2::annotate(geom = "text", x = corrVal,
-                              y = sample(c(1500:2700), 1),
+                              y = sample(c(1500:2200), 1),
                               label = label,
                               color = "red", angle = 90, size = 2)
         }
       }
-
-      # Return correlation values
-      res[j] <- corrVal
     }
     # Finalizes histogram
     his <- his + ggplot2::theme(text = ggplot2::element_text(size = 10))
