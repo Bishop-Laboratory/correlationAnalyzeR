@@ -396,7 +396,7 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
         ggplot2::geom_vline(ggplot2::aes(xintercept = Mean, color = "Selected Genes Median")) +
         ggplot2::scale_colour_manual("",
                                      breaks = c("Selected Genes Median"),
-                                     values = c("red"))
+                                     values = c("blue"))
 
       # TTest pVals
       Threshold <- .05
