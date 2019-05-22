@@ -43,12 +43,12 @@ getAvailableGenes <- function(Species = c("hsapiens", "mmusculus")) {
   geneNamesDF <- as.data.frame(geneNames)
   colnames(geneNamesDF)[1] <- "geneName"
   if (Species[1] == "hsapiens") {
-    data("humanGenes")
+    data("humanGenes", package = "correlationAnalyzeR")
     colnames(humanGenes)[1] <- "geneName"
     geneNamesDF <- merge(x = humanGenes, y = geneNamesDF, by = "geneName",
                          all.y = T)
   } else if (Species[1] == "mmusculus") {
-    data("mouseGenes")
+    data("mouseGenes", package = "correlationAnalyzeR")
     colnames(MouseGenes)[1] <- "geneName"
     geneNamesDF <- merge(x = MouseGenes, y = geneNamesDF, by = "geneName",
                          all.y = T)
