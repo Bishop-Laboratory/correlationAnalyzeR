@@ -23,7 +23,7 @@ gene symbols.}
 \item{padjustedCutoff}{Value to use as a cutoff for returned gene sets.}
 }
 \value{
-None. Output is saved to selected folder.
+Output of GSEA function in clusterProfiler.
 }
 \description{
 Run's the GSEA function from clusterProfiler and creates useful
