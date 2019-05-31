@@ -70,26 +70,26 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
   # MSIGDB_Geneset_Names <- hs_names[order(hs_names)]
   # # devtools::use_data(MSIGDB_Geneset_Names)
   # load("data/MSIGDB_Geneset_Names.rda")
-  #
-  # # Bug checking
-  # Species = c("hsapiens", "mmusculus")
-  # Sample_Type = "Normal_Tissues"
-  # returnDataOnly <- F
-  # outputPrefix = "tests/pairedOut"
-  # # pairedGenesList <- list("ATM" = "MIYAGAWA_TARGETS_OF_EWSR1_ETS_FUSIONS_UP",
-  # #                         "SON" = "TORCHIA_TARGETS_OF_EWSR1_FLI1_FUSION_UP",
-  # #                         "BRCA1" = "BILD_E2F3_ONCOGENIC_SIGNATURE")
-  # # pairedGenesList <- list("ATM" = c("TP53", "NFE2L2", "BRCA2"))
-  # pairedGenesList <- list("BRCA1" = "PUJANA_BRCA1_PCC_NETWORK")
-  # library(correlationAnalyzeR)
-  # onlyTop <- F
-  # topCutoff <- .5
-  # plotLabels <- T
-  # sigTest <- T
-  # autoRug <- T
-  # nPerm <- 2000
-  # outputPrefix = "tests/pairedTestFour"
-  # plotMaxMinCorr <- T
+
+  # Bug checking
+  Species = c("hsapiens", "mmusculus")
+  Sample_Type = "Normal_Tissues"
+  returnDataOnly <- F
+  outputPrefix = "tests/pairedOut"
+  pairedGenesList <- list("ATM" = "MIYAGAWA_TARGETS_OF_EWSR1_ETS_FUSIONS_UP",
+                          "SON" = "TORCHIA_TARGETS_OF_EWSR1_FLI1_FUSION_UP",
+                          "BRCA1" = "BILD_E2F3_ONCOGENIC_SIGNATURE")
+  pairedGenesList <- list("ATM" = c("TP53", "NFE2L2", "BRCA2"))
+  pairedGenesList <- list("BRCA1" = "PUJANA_BRCA1_PCC_NETWORK")
+  library(correlationAnalyzeR)
+  onlyTop <- F
+  topCutoff <- .5
+  plotLabels <- T
+  sigTest <- T
+  autoRug <- T
+  nPerm <- 2000
+  outputPrefix = "tests/pairedTestFIVE"
+  plotMaxMinCorr <- T
 
   # Create output folder
   if (! dir.exists(outputPrefix)) {
@@ -129,7 +129,7 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
                                                    ! intGenes_secondary %in% MSIGDB_Geneset_Names)]
 
   if (length(badGenes_secondary) > 0) {
-    warning(paste0("\n\t\t\t'", paste(badGenes, collapse = ", "), "'
+    warning(paste0("\n\t\t\t'", paste(badGenes_secondary, collapse = ", "), "'
                       not found in correlation data and is not an official MSIGDB name.
                       Please check available gene data with getAvailableGenes().
                       Your gene(s) of interest may have an updated name or
@@ -158,38 +158,24 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
   }
 
 
-  cat("\nRetrieving any missing correlation data...\n")
-  # Call downloadData to get all required files
-  downloadData(Species = Species[1],
-               Sample_Type = Sample_Type[1],
-               geneList = intGenes)
-  downloadFolder <- system.file("data", package = "correlationAnalyzeR")
-  downloadFolder <- file.path(downloadFolder, "Correlation_Data",
-                              Species[1], Sample_Type[1])
+  # Call getCorrelationData to get all required files
+  corrDFFull <- getCorrelationData(Species = Species[1],
+                               Sample_Type = Sample_Type[1],
+                               geneList = intGenes)
+
   # Main code
-  for (i in 1:length(pairedGenesList)) {
-    gene <- names(pairedGenesList)[i]
+  for (i in 1:length(colnames(corrDFFull))) {
+    gene <- colnames(corrDFFull)[i]
     cat(paste0("\n", gene))
-    # Load gene data
-    geneFile <- paste0(gene, ".RData")
-    file <- file.path(downloadFolder, geneFile)
-    load(file)
     # Create output folder for gene
     geneOutDir <- file.path(outputPrefix, gene)
     if (! dir.exists(geneOutDir)) {
       dir.create(geneOutDir)
     }
-    # Initialize results frame
-    if (i == 1) {
-      resultsFrame <- data.frame(geneName = names(vec))
-    }
-    # Create correlation dataframe object
-    corrDF <- as.data.frame(vec)
-    corrDF$geneName <- names(vec)
-    colnames(corrDF)[1] <- "correlationValue"
     # Filter for secondary genes
-    secondaryGenes <- pairedGenesList[[i]]
-    secondaryGenes <- secondaryGenes[which(secondaryGenes != gene)]
+    secondaryGenes <- pairedGenesList[[gene]]
+    secondaryGenes <- secondaryGenes[which(secondaryGenes != gene)] # Incase they added the original gene in
+    corrDF <- data.frame(geneName = rownames(corrDFFull), correlationValue = corrDFFull[,gene])
     corrDF <- corrDF[which(corrDF$geneName != gene),]
     corrDF$secondaryGene <- F
     corrDF$secondaryGene[which(corrDF$geneName %in% secondaryGenes)] <- T
