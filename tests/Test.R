@@ -25,7 +25,9 @@ analyzeSingleGenes(genesOfInterest = genesOfInterest,
                    Species = "hsapiens",
                    Sample_Type = "Normal_Tissues")
 
-
+# load('data/hsapiens_corrSmall_geneNames.rda')
+# mmusculus_corrSmall_geneNames <- geneNames
+# usethis::use_data(mmusculus_corrSmall_geneNames)
 
 #  # Test whether pairedGenesAnalyzeR is working
 # pairedGenesList <- list("SF3B1" = c("THOC6", "DNASE1L1", "COG6", "PCYOX1L", "DRP2"),
