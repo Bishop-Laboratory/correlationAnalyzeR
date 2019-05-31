@@ -5,9 +5,9 @@
 \title{Analyze Single Genes}
 \usage{
 analyzeSingleGenes(genesOfInterest, Species = c("hsapiens", "mmusculus"),
-  GSEA_Type = c("simple", "complex"), Sample_Type = c("All",
-  "Normal_Tissues", "Tumor_Tissues"),
-  outputPrefix = "CorrelationAnalyzeR_Output", runGSEA = T)
+  GSEA_Type = c("simple", "complex"), Sample_Type = c("Normal_Tissues",
+  "Tumor_Tissues"), outputPrefix = "CorrelationAnalyzeR_Output",
+  runGSEA = T, returnDataOnly = F)
 }
 \arguments{
 \item{genesOfInterest}{A vector of genes to analyze.}
@@ -25,6 +25,9 @@ Either "All", "Normal_Tissues", or "Tumor_Tissues".}
 \item{outputPrefix}{Prefix for saved files. Should include directory info.}
 
 \item{runGSEA}{If TRUE will run GSEA using gene correlation values.}
+
+\item{returnDataOnly}{if TRUE will return only a dataframe of correlation
+values and will not generate any folders or files.}
 }
 \value{
 A dataframe of correlation values for each gene of interest.

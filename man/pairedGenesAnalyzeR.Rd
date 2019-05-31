@@ -5,13 +5,15 @@
 \title{Analyze Gene Pairs}
 \usage{
 pairedGenesAnalyzeR(pairedGenesList, Species = c("hsapiens",
-  "mmusculus"), Sample_Type = c("All", "Normal_Tissues",
-  "Tumor_Tissues"), outputPrefix = "CorrelationAnalyzeR_Output",
-  sigTest = T, plotMaxMinCorr = T, onlyTop = F, topCutoff = 0.5)
+  "mmusculus"), Sample_Type = c("Normal_Tissues", "Tumor_Tissues"),
+  outputPrefix = "CorrelationAnalyzeR_Output", plotLabels = T,
+  sigTest = T, nPerm = 2000, plotMaxMinCorr = T, onlyTop = F,
+  topCutoff = 0.5, autoRug = T, returnDataOnly = F)
 }
 \arguments{
 \item{pairedGenesList}{A list, named with primary genes of interest with
-vectors of secondary genes to test against.}
+vectors of secondary genes to test against OR a string containing the
+official MSIGDB name for a gene set of interest.}
 
 \item{Species}{Species to obtain gene names for.
 Either 'hsapiens' or 'mmusculus'}
@@ -21,15 +23,28 @@ Either "All", "Normal_Tissues", or "Tumor_Tissues".}
 
 \item{outputPrefix}{Prefix for saved files. Should include directory info.}
 
+\item{plotLabels}{If TRUE, correlation histograms will contain labeled lines showing
+secondary genes and their correlation values.
+If list of secondary genes is large, set this to FALSE or onlyTop to TRUE
+to avoid cluttering the plot.}
+
 \item{sigTest}{Should the results be compared against random genes?}
+
+\item{nPerm}{Number of bootstrap sampling events to run during sigTest.}
 
 \item{plotMaxMinCorr}{If TRUE, the top correlated and anti-correlated genes
 will be plotted alongside the selected secondary genes.}
 
 \item{onlyTop}{For larger secondary gene lists -- This will filter the
-number of secondary genes which are plotted to avoid clutter.}
+number of secondary genes which are plotted to avoid clutter if plotLabels = TRUE.}
 
 \item{topCutoff}{The value used for filtering if 'onlyTop' is 'TRUE'}
+
+\item{autoRug}{If the size of a secondary gene list > 50, plot lines will be replaced
+by an auto-generated rug. To disable this behavior, set to FALSE.}
+
+\item{returnDataOnly}{if TRUE will only return a list containing correlations
+and significance testing results if applicable.}
 }
 \value{
 A list containing correlation values and signficance testing results
@@ -40,6 +55,9 @@ Explores how a list of secondary genes relates to a primary gene of interest
 \examples{
 pairedGenesList <- list("TP53" = c("BRCA1", "CDK12", "PARP1"),
                         "SON" = c("AURKB", "SFPQ", "DHX9"))
+
+pairedGenesList <- list("ATM" = "PUJANA_BRCA1_PCC_NETWORK")
+
 Result <- pairedGenesAnalyzeR(pairedGenesList = pairedGenesList,
                               Species = "hsapiens",
                               Sample_Type = "Normal_Tissues")
