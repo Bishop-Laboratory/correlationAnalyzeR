@@ -102,40 +102,22 @@ analyzeSingleGenes <- function(genesOfInterest,
   }
   cat("\nRetrieving any missing correlation data...\n")
   # Call downloadData to get all required files
-  downloadData(Species = Species[1],
-               Sample_Type = Sample_Type[1],
-               geneList = genesOfInterest)
-  downloadFolder <- system.file("data", package = "correlationAnalyzeR")
-  dataDir <- file.path(downloadFolder, "Correlation_Data",
-                              Species[1], Sample_Type[1])
+  corrDF <- getCorrelationData(Species = Species[1],
+                               Sample_Type = Sample_Type[1],
+                               geneList = genesOfInterest)
   # Main code
-  for (i in 1:length(genesOfInterest)) {
-    gene <- genesOfInterest[i]
+  for (i in 1:length(colnames(corrDF))) {
+    gene <- colnames(corrDF)[i]
     cat(paste0("\n", gene))
-    # Get the data files for genesOfInterest
-    geneFile <- paste0(gene, ".RData")
-    file <- file.path(dataDir, geneFile)
-    load(file)
     # Create output folder for gene
     geneOutDir <- file.path(outputPrefix, gene)
     if (! dir.exists(geneOutDir) & ! returnDataOnly) {
       dir.create(geneOutDir)
     }
-    # Initialize results frame
-    if (i == 1) {
-      resultsFrame <- data.frame(geneName = names(vec))
-    }
-    # Build dataframe object from correlation data
-    corrdf <- as.data.frame(vec)
-    colnames(corrdf)[1] <- gene
-    corrdf$geneName <- rownames(corrdf)
-    # Add correlation data to final dataframe
-    resultsFrame <- merge(x = resultsFrame, y = corrdf, by = "geneName")
-    corrdf <- corrdf[,c(2, 1)]
     if (! returnDataOnly) {
-      write.csv(corrdf, file = file.path(geneOutDir, paste0(gene, ".csv")),
-                row.names = F)
       # Remove gene from correlation values to build normal distribution
+      vec <- corrDF[,i]
+      names(vec) <- rownames(corrDF)
       vec <- vec[order(vec, decreasing = T)]
       vec <- vec[c(-1)]
       # Make a histogram of gene correlations
@@ -156,13 +138,15 @@ analyzeSingleGenes <- function(genesOfInterest,
   }
   if (! returnDataOnly) {
     # Save results from all queried genes
-    if (length(genesOfInterest) < 25 & length(genesOfInterest) > 1) {
-      write.csv(resultsFrame, file = file.path(outputPrefix, "geneCorrelationData.csv"), row.names = F)
-      save(resultsFrame, file = file.path(outputPrefix, "geneCorrelationData.RData"))
-    } else if (length(genesOfInterest) > 1) {
-      save(resultsFrame, file = file.path(outputPrefix, "geneCorrelationData.RData"))
+    if (length(colnames(corrDF)) < 25 & length(colnames(corrDF)) > 1) {
+      corrDF <- cbind(rownames(corrDF), corrDF)
+      colnames(corrDF)[1] <- "geneName"
+      write.csv(corrDF, file = file.path(outputPrefix, "geneCorrelationData.csv"), row.names = F)
+      save(corrDF, file = file.path(outputPrefix, "geneCorrelationData.RData"))
+    } else if (length(colnames(corrDF)) > 1) {
+      save(corrDF, file = file.path(outputPrefix, "geneCorrelationData.RData"))
     }
   }
   # Return results
-  return(resultsFrame)
+  return(corrDF)
 }

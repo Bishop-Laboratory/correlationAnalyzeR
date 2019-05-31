@@ -13,17 +13,14 @@
 #' @export
 getAvailableGenes <- function(Species = c("hsapiens", "mmusculus")) {
 
-  # # # Bug testing
-  # Species <- "hsapiens"
+  # # Bug testing
+  Species <- "hsapiens"
 
   # Specify information about the download location and species type
-  downloadFolder <- system.file("data", package = "correlationAnalyzeR")
   if (Species[1] == "hsapiens") {
     gene <- "A1BG"
-    geneFile <- "A1BG.RData"
   } else if (Species[1] == "mmusculus") {
     gene <- "A1bg"
-    geneFile <- "A1bg.RData"
   } else {
     stop("\ncorrelationAnalyzeR currently supports only Human and Mouse data.
          Please select either 'hsapiens' or 'mmusculus' for Species parameter.
@@ -31,16 +28,10 @@ getAvailableGenes <- function(Species = c("hsapiens", "mmusculus")) {
   }
   Sample_Type = "Normal_Tissues" # This is default behavior
   # Download a sample file which contains all gene identifiers
-  downloadData(Species = Species[1],
-               Sample_Type = Sample_Type,
-               geneList = gene)
-  # Construct file for sample data
-  file <- file.path(downloadFolder, "Correlation_Data",
-                    Species[1], Sample_Type, geneFile)
-  # load sample data
-  load(file)
-  geneNames <- names(vec)
-  geneNamesDF <- as.data.frame(geneNames)
+  geneNamesDF <- getCorrelationData(Species = Species[1],
+                                    Sample_Type = Sample_Type,
+                                    geneList = gene)
+  geneNamesDF <- as.data.frame(rownames(geneNamesDF))
   colnames(geneNamesDF)[1] <- "geneName"
   if (Species[1] == "hsapiens") {
     data("humanGenes", package = "correlationAnalyzeR")
