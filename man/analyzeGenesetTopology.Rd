@@ -7,6 +7,8 @@
 analyzeGenesetTopology(genesOfInterest, Species = c("hsapiens",
   "mmusculus"), Sample_Type = c("Normal_Tissues", "Tumor_Tissues"),
   crossComparisonType = c("variantGenes", "coCorrelativeGenes", "PCA"),
+  setComparisonCutoff = "Auto", numTopGenesToPlot = "Auto",
+  alternativeTSNE = T, numClusters = "Auto",
   outputPrefix = "CorrelationAnalyzeR_Output", returnDataOnly = F)
 }
 \arguments{
@@ -19,6 +21,17 @@ Either 'hsapiens' or 'mmusculus'}
 Either "All", "Normal_Tissues", or "Tumor_Tissues".}
 
 \item{crossComparisonType}{The type of topology tests to run. (see details)}
+
+\item{setComparisonCutoff}{Only relevant for cocorrelation analysis -- the number of genes which
+must aggree for a gene to be considered co-correlative within the input gene list.}
+
+\item{numTopGenesToPlot}{When creating a heatmap of the top co-correlative or top variant genes,
+how many genes should be plotted on the y axis?}
+
+\item{alternativeTSNE}{Logical. If TRUE, then a TSNE will be run as an alternative to PCA for visualizing
+large input gene lists. This is highly recommended as 100+ member gene lists cannot be visualized otherwise.}
+
+\item{numClusters}{The number of clusters to create with hclust or TSNE analysis.}
 
 \item{outputPrefix}{Prefix for saved files. Should include directory info.}
 
