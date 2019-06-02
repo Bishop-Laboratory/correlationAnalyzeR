@@ -18,6 +18,11 @@ pairedGenesAnalyzeR(pairedGenesList = pairedGeneList,
                     outputPrefix = "tests/pairedOut")
 
 
+geneList <- c("TORCHIA_TARGETS_OF_EWSR1_FLI1_FUSION_UP")
+result <- analyzeGenesetTopology(genesOfInterest = geneList, Species = "hsapiens",
+                                 crossComparisonType = "variantGenes", outputPrefix = "topology_test1")
+
+
 genesOfInterest <- "F2"
 analyzeSingleGenes(genesOfInterest = genesOfInterest,
                    Sample_Type = "Normal_Tissues", outputPrefix = "tests/newTest")
