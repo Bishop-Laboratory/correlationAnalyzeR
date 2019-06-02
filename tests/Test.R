@@ -1,3 +1,4 @@
+# devtools::install_github("millerh1/correlationAnalyzeR")
 library(correlationAnalyzeR)
 
 
@@ -10,7 +11,6 @@ analyzeSingleGenes(genesOfInterest = genesOfInterest[1],
                                         Sample_Type = "Normal_Tissues")
 
 
-# devtools::install_github("millerh1/correlationAnalyzeR")
 # Check the paired genes
 pairedGeneList <- list("REST" = c("NCOR1", "HSPB1", "BRCA1", "ATM"))
 pairedGenesAnalyzeR(pairedGenesList = pairedGeneList,
