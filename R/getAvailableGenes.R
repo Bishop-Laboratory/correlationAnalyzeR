@@ -13,8 +13,8 @@
 #' @export
 getAvailableGenes <- function(Species = c("hsapiens", "mmusculus")) {
 
-  # # Bug testing
-  Species <- "hsapiens"
+  # # # Bug testing
+  # Species <- "hsapiens"
 
   # Specify information about the download location and species type
   if (Species[1] == "hsapiens") {
