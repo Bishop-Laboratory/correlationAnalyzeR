@@ -22,6 +22,9 @@
 #'
 #' @param numClusters The number of clusters to create with hclust or TSNE analysis.
 #'
+#' @param alternativeTSNE Logical. If TRUE, then a TSNE will be run as an alternative to PCA for visualizing
+#'      large input gene lists. This is highly recommended as 100+ member gene lists cannot be visualized otherwise.
+#'
 #' @param crossComparisonType The type of topology tests to run. (see details)
 #'
 #' @return A list of analysis results and plotting data.
@@ -56,6 +59,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
                                                             "PCA"),
                                     setComparisonCutoff = "Auto",
                                     numTopGenesToPlot = "Auto",
+                                    alternativeTSNE = T,
                                     numClusters = "Auto",
                                     outputPrefix = "CorrelationAnalyzeR_Output",
                                     returnDataOnly = F) {
@@ -463,7 +467,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
     }
 
 
-  } else if (length(intGenes) > 100 & alternativeTSNE) {
+  } else if (length(intGenes) > 100 & alternativeTSNE & "PCA" %in% crossComparisonType) {
     cat("\nUsing TSNE instead of PCA for large sample sizes.
 To disable this behavior, set 'alternativeTSNE' to FALSE")
     rv <- metaMA::rowVars(resultsMat)
@@ -500,7 +504,7 @@ To disable this behavior, set 'alternativeTSNE' to FALSE")
 
     }
 
-  } else {
+  } else if ("PCA" %in% crossComparisonType) {
     warning("Cannot perform PCA -- List too large. Please allow for TSNE to substitute.")
   }
 
