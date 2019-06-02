@@ -16,7 +16,9 @@
 #'
 #' @param setComparisonCutoff Only relevant for cocorrelation analysis -- the number of genes which
 #'      must aggree for a gene to be considered co-correlative within the input gene list.
-#'      If "Auto", it will be automatically determined the numb
+#'
+#' @param numTopGenesToPlot When creating a heatmap of the top co-correlative or top variant genes,
+#'      how many genes should be plotted on the y axis?
 #'
 #' @param crossComparisonType The type of topology tests to run. (see details)
 #'
@@ -51,6 +53,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
                                                             # "hierarchicalClustering",
                                                             "PCA"),
                                     setComparisonCutoff = "Auto",
+                                    numTopGenesToPlot = "Auto",
                                     outputPrefix = "CorrelationAnalyzeR_Output",
                                     returnDataOnly = F) {
 
