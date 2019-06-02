@@ -27,12 +27,13 @@ getCorrelationData <- function(Species, Sample_Type, geneList) {
   # hsapiens_corrSmall_geneNames <- geneNames
   # usethis::use_data(hsapiens_corrSmall_geneNames)
 
+
+
   if (Species == "hsapiens") {
     geneNames <- hsapiens_corrSmall_geneNames
   } else {
     geneNames <- mmusculus_corrSmall_geneNames
   }
-
 
   con <- DBI::dbConnect(RMySQL::MySQL(), user = "public-rds-user", port = 3306, dbname="bishoplabdb",
                         password='public-user-password', host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com")
