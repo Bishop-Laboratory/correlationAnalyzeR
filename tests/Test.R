@@ -1,4 +1,4 @@
-# devtools::install_github("millerh1/correlationAnalyzeR")
+devtools::install_github("millerh1/correlationAnalyzeR")
 library(correlationAnalyzeR)
 
 
