@@ -1,14 +1,16 @@
+library(correlationAnalyzeR)
+
+
 genesOfInterest <- c("ATM", "AKT1", "HIF1A", "PRKAA2", "SLC3A2", "MTOR",
                      "SLC7A11", "SLC7A5", "G6PD", "HSPB1")
 # Run the function with desired parameters
-analyzeSingleGenes(genesOfInterest = genesOfInterest,
+analyzeSingleGenes(genesOfInterest = genesOfInterest[1],
                                         outputPrefix = "tests/singleGeneTesting",
                                         Species = "hsapiens",
                                         Sample_Type = "Normal_Tissues")
 
 
 # devtools::install_github("millerh1/correlationAnalyzeR")
-library(correlationAnalyzeR)
 # Check the paired genes
 pairedGeneList <- list("REST" = c("NCOR1", "HSPB1", "BRCA1", "ATM"))
 pairedGenesAnalyzeR(pairedGenesList = pairedGeneList,
