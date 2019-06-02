@@ -169,7 +169,7 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
     cat(paste0("\n", gene))
     # Create output folder for gene
     geneOutDir <- file.path(outputPrefix, gene)
-    if (! dir.exists(geneOutDir)) {
+    if (! dir.exists(geneOutDir) & ! returnDataOnly) {
       dir.create(geneOutDir)
     }
     # Filter for secondary genes
@@ -334,8 +334,10 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
     # Significance testing
     if (sigTest) {
       # Get correlation values for selected genes
-      origSamples <- c(pairedGenesList[[i]])
-      selectVec <- vec[origSamples]
+      vec <- corrDF$correlationValue
+      names(vec) <- corrDF$geneName
+      vec <- vec[which(! is.na(vec))]
+      selectVec <- vec[secondaryGenes]
 
       # Construct distribution for random at same input size
       n <- length(selectVec)
@@ -356,8 +358,8 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
                             R=nPerm)
 
       # Get value for input data
-      Mean <- mean(selectVec)
-      Median <- median(selectVec)
+      Mean <- mean(selectVec, na.rm = T)
+      Median <- median(selectVec, na.rm = T)
 
       # Get bootstrapped values
       meanVec <- results$t[,1]
