@@ -14,6 +14,10 @@
 #'
 #' @param returnDataOnly if TRUE will return only a list of analysis results.
 #'
+#' @param setComparisonCutoff Only relevant for cocorrelation analysis -- the number of genes which
+#'      must aggree for a gene to be considered co-correlative within the input gene list.
+#'      If "Auto", it will be automatically determined the numb
+#'
 #' @param crossComparisonType The type of topology tests to run. (see details)
 #'
 #' @return A list of analysis results and plotting data.
@@ -46,6 +50,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
                                                             "coCorrelativeGenes",
                                                             # "hierarchicalClustering",
                                                             "PCA"),
+                                    setComparisonCutoff = "Auto",
                                     outputPrefix = "CorrelationAnalyzeR_Output",
                                     returnDataOnly = F) {
 
