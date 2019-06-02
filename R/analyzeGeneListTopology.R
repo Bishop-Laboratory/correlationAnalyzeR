@@ -20,6 +20,8 @@
 #' @param numTopGenesToPlot When creating a heatmap of the top co-correlative or top variant genes,
 #'      how many genes should be plotted on the y axis?
 #'
+#' @param numClusters The number of clusters to create with hclust or TSNE analysis.
+#'
 #' @param crossComparisonType The type of topology tests to run. (see details)
 #'
 #' @return A list of analysis results and plotting data.
@@ -54,6 +56,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
                                                             "PCA"),
                                     setComparisonCutoff = "Auto",
                                     numTopGenesToPlot = "Auto",
+                                    numClusters = "Auto",
                                     outputPrefix = "CorrelationAnalyzeR_Output",
                                     returnDataOnly = F) {
 
