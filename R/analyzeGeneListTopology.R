@@ -397,8 +397,8 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   if (numClusters == "Auto") {
     numClusters <- ceiling(length(intGenes) / 10)
   }
-  if (numClusters > 20) {
-    numClusters <- 20
+  if (numClusters > 15) {
+    numClusters <- 15
   }
   if (numClusters < 3) {
     numClusters <- 3
@@ -440,7 +440,11 @@ analyzeGenesetTopology <-  function(genesOfInterest,
 
     # HClust
     require(dplyr)
-    hc.norm <- hclust(dist(pca$rotation), method = "ward.D2")
+
+    sdat <- t(scale(t(resultsMat)))
+    pr.dis <- dist(t(sdat), method = "euclidean")
+    hc.norm <- hclust(pr.dis)
+
     info.norm <- data.frame(geneNames = rownames(pca$rotation))
     info.norm <- info.norm %>% mutate(PC1 = pca$rotation[, 1], PC2 = pca$rotation[,2])
     info.norm$clusters <- factor(cutree(hc.norm, numClusters))
