@@ -25,6 +25,9 @@
 #' @param alternativeTSNE Logical. If TRUE, then a TSNE will be run as an alternative to PCA for visualizing
 #'      large input gene lists. This is highly recommended as 100+ member gene lists cannot be visualized otherwise.
 #'
+#' @param pathwayEnrichment Logic. If TRUE, pathway enrichment will be performed on variant genes -- if 'variantGenes'
+#'      selected -- and/or on co-correlative genes -- if "coCorrelativeGenes" selected.
+#'
 #' @param crossComparisonType The type of topology tests to run. (see details)
 #'
 #' @return A list of analysis results and plotting data.
@@ -53,11 +56,11 @@ analyzeGenesetTopology <-  function(genesOfInterest,
                                     Species = c("hsapiens", "mmusculus"),
                                     Sample_Type = c("Normal_Tissues",
                                                     "Tumor_Tissues"),
-                                    crossComparisonType = c("variantGenes",
-                                                            "coCorrelativeGenes",
-                                                            # "hierarchicalClustering",
-                                                            "PCA"),
+                                    crossComparisonType = c("PCA",
+                                                            "variantGenes",
+                                                            "coCorrelativeGenes"),
                                     setComparisonCutoff = "Auto",
+                                    pathwayEnrichment = F,
                                     numTopGenesToPlot = "Auto",
                                     alternativeTSNE = T,
                                     numClusters = "Auto",
@@ -112,12 +115,14 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   termlist <- intGenes[which(! intGenes %in% avGenes$geneName &
                                intGenes %in% MSIGDB_Geneset_Names)]
 
+  if (Species[1] == "hsapiens") {
+    TERM2GENE <- hsapiens_complex_TERM2GENE
+  } else {
+    TERM2GENE <- mmusculus_complex_TERM2GENE
+  }
+
   if (length(termlist > 0)) {
-    if (Species[1] == "hsapiens") {
-      TERM2GENE <- hsapiens_complex_TERM2GENE
-    } else {
-      TERM2GENE <- mmusculus_complex_TERM2GENE
-    }
+
     for(i in 1:length(termlist)) {
       term <- termlist[i]
       print(term)
@@ -200,15 +205,16 @@ analyzeGenesetTopology <-  function(genesOfInterest,
 
     varGenes <- rownames(topVarMat)
     # Perform pathway enrichment with Co-Correlative genes
-    VarGenesEGMT <- clusterProfiler::enricher(gene = varGenes, TERM2GENE = TERM2GENE)
-    eres <- as.data.frame(VarGenesEGMT)
-    resList[["variantGenes_pathways"]] <- VarGenesEGMT
-
-    # Modify gene set names to fit plotting window
-    VarGenesEGMT@result$Description[which(nchar(VarGenesEGMT@result$Description) > 40)] <- paste0(substr(VarGenesEGMT@result$Description[which(nchar(VarGenesEGMT@result$Description) > 40)], 1, 40), "...")
-    dp <- enrichplot::dotplot(VarGenesEGMT)
-    dp <- dp + ggplot2::labs(title = "Variant Genes Pathway Enrichment")
-    resList[["variantGenes_pathways_dotplot"]] <- dp
+    if (pathwayEnrichment) {
+      VarGenesEGMT <- clusterProfiler::enricher(gene = varGenes, TERM2GENE = TERM2GENE)
+      eres <- as.data.frame(VarGenesEGMT)
+      resList[["variantGenes_pathways"]] <- VarGenesEGMT
+      # Modify gene set names to fit plotting window
+      VarGenesEGMT@result$Description[which(nchar(VarGenesEGMT@result$Description) > 40)] <- paste0(substr(VarGenesEGMT@result$Description[which(nchar(VarGenesEGMT@result$Description) > 40)], 1, 40), "...")
+      dp <- enrichplot::dotplot(VarGenesEGMT)
+      dp <- dp + ggplot2::labs(title = "Variant Genes Pathway Enrichment")
+      resList[["variantGenes_pathways_dotplot"]] <- dp
+    }
 
     if (numTopGenesToPlot == "Auto") {
       numTopGenesToPlot <- 50
@@ -232,17 +238,17 @@ analyzeGenesetTopology <-  function(genesOfInterest,
           height = height, width = width, units = "in", res = 300)
       print(topVarHeattop)
       dev.off()
+      if (pathwayEnrichment) {
+        write.csv(eres,
+                  file = file.path(outputPrefix, "variantGenes.Pathway.Analysis.csv"),
+                  row.names = F)
+        ggplot2::ggsave(plot = dp,
+                        filename = file.path(outputPrefix, "variantGenes.Pathway.Analysis.png"),
+                        height = 7, width = 10)
+      }
 
-      write.csv(eres,
-                file = file.path(outputPrefix, "variantGenes.Pathway.Analysis.csv"),
-                row.names = F)
-      ggplot2::ggsave(plot = dp,
-                      filename = file.path(outputPrefix, "variantGenes.Pathway.Analysis.png"),
-                      height = 7, width = 10)
 
     }
-
-
   }
 
 
@@ -364,25 +370,29 @@ analyzeGenesetTopology <-  function(genesOfInterest,
     #          width = width, height = height)
 
 
+    if (pathwayEnrichment) {
+      # Perform pathway enrichment with Co-Correlative genes
+      CCGenesEGMT <- clusterProfiler::enricher(gene = olGenes, TERM2GENE = TERM2GENE)
+      eres <- as.data.frame(CCGenesEGMT)
+      resList[["coCorrelativeGenes_pathways"]] <- eres
 
-    # Perform pathway enrichment with Co-Correlative genes
-    CCGenesEGMT <- clusterProfiler::enricher(gene = olGenes, TERM2GENE = TERM2GENE)
-    eres <- as.data.frame(CCGenesEGMT)
-    resList[["coCorrelativeGenes_pathways"]] <- eres
+      # Modify gene set names to fit plotting window
+      CCGenesEGMT@result$Description[which(nchar(CCGenesEGMT@result$Description) > 40)] <- paste0(substr(CCGenesEGMT@result$Description[which(nchar(CCGenesEGMT@result$Description) > 40)], 1, 40), "...")
+      dp <- enrichplot::dotplot(CCGenesEGMT)
+      dp <- dp + ggplot2::labs(title = "Co-Correlated Genes Pathway Enrichment")
+      resList[["coCorrelativeGenes_pathways_dotplot"]] <- dp
+    }
 
-    # Modify gene set names to fit plotting window
-    CCGenesEGMT@result$Description[which(nchar(CCGenesEGMT@result$Description) > 40)] <- paste0(substr(CCGenesEGMT@result$Description[which(nchar(CCGenesEGMT@result$Description) > 40)], 1, 40), "...")
-    dp <- enrichplot::dotplot(CCGenesEGMT)
-    dp <- dp + ggplot2::labs(title = "Co-Correlated Genes Pathway Enrichment")
-    resList[["coCorrelativeGenes_pathways_dotplot"]] <- dp
 
     if (! returnDataOnly) {
-      write.csv(eres,
-                file = file.path(outputPrefix, "coCorrelativeGenes.Pathway.Analysis.csv"),
-                row.names = F)
-      ggplot2::ggsave(plot = dp,
-             filename = file.path(outputPrefix, "coCorrelativeGenes.Pathway.Analysis.png"),
-             height = 7, width = 10)
+      if (pathwayEnrichment) {
+        write.csv(eres,
+                  file = file.path(outputPrefix, "coCorrelativeGenes.Pathway.Analysis.csv"),
+                  row.names = F)
+        ggplot2::ggsave(plot = dp,
+                        filename = file.path(outputPrefix, "coCorrelativeGenes.Pathway.Analysis.png"),
+                        height = 7, width = 10)
+      }
 
       png(filename = file.path(outputPrefix, "coCorrelativeGeneHeatmap.png"),
           height = height, width = width, units = "in", res = 300)
