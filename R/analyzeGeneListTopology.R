@@ -68,7 +68,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   # genesOfInterest <- c("CDK12", "AURKB", "SFPQ", "PARP1", "BRCC3", "BRCA2", "PARP1",
   #                      "DHX9", "SON", "AURKA", "SETX", "BRCA1", "ATMIN")
   # genesOfInterest <- "PUJANA_BRCA1_PCC_NETWORK"
-  # outputPrefix = "tests/topologyOutput1"
+  # outputPrefix = "tests/topologyOutput2"
   # setComparisonCutoff = "Auto"
   # numTopGenesToPlot = "Auto"
   # Species = "hsapiens"
@@ -76,6 +76,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   # alternativeTSNE <- T
   # numClusters = "Auto"
   # returnDataOnly <- F
+  # crossComparisonType <- "PCA"
   # crossComparisonType = c("variantGenes",
   #                         "coCorrelativeGenes",
   #                         "hierarchicalClustering",
@@ -394,13 +395,13 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   }
   # Set up for topological distance analysis
   if (numClusters == "Auto") {
-    numClusters <- ceiling(length(intGenes) / 25)
+    numClusters <- ceiling(length(intGenes) / 10)
   }
   if (numClusters > 20) {
     numClusters <- 20
   }
-  if (numClusters < 2) {
-    numClusters <- 2
+  if (numClusters < 3) {
+    numClusters <- 3
   }
   # Begin topological distance analysis
   if ("PCA" %in% crossComparisonType & length(intGenes) <= 10) {
@@ -420,6 +421,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
 
     resList[["PCA_plot"]] <- plt1
     resList[["PCA_data"]] <- pcaData
+    resList[["clustered"]] <- F
 
     if (! returnDataOnly) {
       ggplot2::ggsave(plt1, file = file.path(outputPrefix, "geneCorrelationData.PCA.png"),
@@ -433,8 +435,17 @@ analyzeGenesetTopology <-  function(genesOfInterest,
     percentVar <- as.numeric(round(100 * dd[2,]))
     percentVar <- percentVar[1:2]
     pcaData <- as.data.frame(pca$rotation)
-    pcaData <- pcaData[,c(1:2)]
-    pcaData$Gene <- rownames(pcaData)
+    pcaDataSmall <- pcaData[,c(1:2)]
+    pcaData$Gene <- rownames(pcaDataSmall)
+
+    # HClust
+    require(dplyr)
+    hc.norm <- hclust(dist(pca$rotation), method = "ward.D2")
+    info.norm <- data.frame(geneNames = rownames(pca$rotation))
+    info.norm <- info.norm %>% mutate(PC1 = pca$rotation[, 1], PC2 = pca$rotation[,2])
+    info.norm$clusters <- factor(cutree(hc.norm, numClusters))
+
+
     lenPCA <- 5 + (length(genesOfInterest) - 5)/10
     pointSize <- 2
     if (lenPCA > 12) {
@@ -448,9 +459,9 @@ analyzeGenesetTopology <-  function(genesOfInterest,
       cexPCA <- 3
       pointsize <- 4
     }
-    plt1 <- ggplot2::ggplot(pcaData, ggplot2::aes(PC1, PC2)) +
-      ggplot2::geom_point(size = pointSize, color = "red") +
-      ggrepel::geom_text_repel(ggplot2::aes(label=Gene),
+    plt1 <- ggplot2::ggplot(info.norm, ggplot2::aes(PC1, PC2)) +
+      ggplot2::geom_point(size = pointSize, color = info.norm$clusters) +
+      ggrepel::geom_text_repel(ggplot2::aes(label=geneNames),
                       size = cexPCA, color = "black",
                       min.segment.length = 0.02, segment.alpha = 1,
                       box.padding = 0.1) +
@@ -459,7 +470,8 @@ analyzeGenesetTopology <-  function(genesOfInterest,
       ggplot2::labs(title = "PCA of Gene Correlation Values") + ggplot2::theme_classic()
 
     resList[["PCA_plot"]] <- plt1
-    resList[["PCA_data"]] <- pcaData
+    resList[["PCA_data"]] <- info.norm
+    resList[["clustered"]] <- T
 
     if (! returnDataOnly) {
       ggplot2::ggsave(plt1, file = file.path(outputPrefix, "geneCorrelationData.PCA.png"),
