@@ -37,6 +37,7 @@ getCorrelationData <- function(Species, Sample_Type, geneList) {
 
   con <- DBI::dbConnect(RMySQL::MySQL(), user = "public-rds-user", port = 3306, dbname="bishoplabdb",
                         password='public-user-password', host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com")
+  # DBI::dbListTables(con)
   sql <- paste0("SELECT * FROM ",
                 Species, "_",
                 tolower(Sample_Type),
