@@ -28,6 +28,8 @@
 #' @param pathwayEnrichment Logic. If TRUE, pathway enrichment will be performed on variant genes -- if 'variantGenes'
 #'      selected -- and/or on co-correlative genes -- if "coCorrelativeGenes" selected.
 #'
+#' @param pValueCutoff Numeric. The p value cutoff applied when running all pathway enrichment tests.
+#'
 #' @param crossComparisonType The type of topology tests to run. (see details)
 #'
 #' @return A list of analysis results and plotting data.
@@ -50,6 +52,7 @@
 #' - PCA: This is a dimensionality reduction technique for exploring the topology of a gene list.
 #'        The PCA analyses here employes hclust to divide the gene list into functional clusters.
 #'        If the input list is > 100 genes, RTsne will be used for visualization.
+#' - pathwayEnrich: Cluster profiler's enricher function will be run on the input gene list.
 #'
 #' @export
 analyzeGenesetTopology <-  function(genesOfInterest,
@@ -58,9 +61,11 @@ analyzeGenesetTopology <-  function(genesOfInterest,
                                                     "Tumor_Tissues"),
                                     crossComparisonType = c("PCA",
                                                             "variantGenes",
-                                                            "coCorrelativeGenes"),
+                                                            "coCorrelativeGenes",
+                                                            "pathwayEnrich"),
                                     setComparisonCutoff = "Auto",
                                     pathwayEnrichment = F,
+                                    pValueCutoff = .05,
                                     numTopGenesToPlot = "Auto",
                                     alternativeTSNE = T,
                                     numClusters = "Auto",
@@ -71,7 +76,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   # genesOfInterest <- c("CDK12", "AURKB", "SFPQ", "PARP1", "BRCC3", "BRCA2", "PARP1",
   #                      "DHX9", "SON", "AURKA", "SETX", "BRCA1", "ATMIN")
   # genesOfInterest <- "PUJANA_BRCA1_PCC_NETWORK"
-  # outputPrefix = "tests/topologyOutput2"
+  # outputPrefix = "tests/topologyOutput3"
   # setComparisonCutoff = "Auto"
   # numTopGenesToPlot = "Auto"
   # Species = "hsapiens"
@@ -84,6 +89,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   #                         "coCorrelativeGenes",
   #                         "hierarchicalClustering",
   #                         "PCA")
+  # crossComparisonType <- "pathwayEnrich"
   # setComparisonCutoff = "Auto"
 
   # Create output folder
@@ -206,7 +212,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
     varGenes <- rownames(topVarMat)
     # Perform pathway enrichment with Co-Correlative genes
     if (pathwayEnrichment) {
-      VarGenesEGMT <- clusterProfiler::enricher(gene = varGenes, TERM2GENE = TERM2GENE)
+      VarGenesEGMT <- clusterProfiler::enricher(gene = varGenes, TERM2GENE = TERM2GENE, pvalueCutoff = pValueCutoff)
       eres <- as.data.frame(VarGenesEGMT)
       resList[["variantGenes_pathways"]] <- VarGenesEGMT
       # Modify gene set names to fit plotting window
@@ -372,7 +378,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
 
     if (pathwayEnrichment) {
       # Perform pathway enrichment with Co-Correlative genes
-      CCGenesEGMT <- clusterProfiler::enricher(gene = olGenes, TERM2GENE = TERM2GENE)
+      CCGenesEGMT <- clusterProfiler::enricher(gene = olGenes, TERM2GENE = TERM2GENE, pvalueCutoff = pValueCutoff)
       eres <- as.data.frame(CCGenesEGMT)
       resList[["coCorrelativeGenes_pathways"]] <- eres
 
@@ -534,7 +540,7 @@ To disable this behavior, set 'alternativeTSNE' to FALSE")
     warning("Cannot perform PCA -- List too large. Please allow for TSNE to substitute.")
   }
 
-  return(resList)
+
 
 #   # Hierarchical clustering for distance-based analysis
 #   if (! file.exists()) {
@@ -633,5 +639,32 @@ To disable this behavior, set 'alternativeTSNE' to FALSE")
 #   dev.off()
 #   cat("\n\nDONE\n")
 #   timestamp()
+  if ("pathwayEnrich" %in% crossComparisonType) {
+    if (length(intGenes) < 10) {
+      warning("\nPathway enrichment is recommended with at least 10 genes, otherwise results may not be informative.\n")
+    }
+    EGMT <- clusterProfiler::enricher(gene = intGenes, TERM2GENE = TERM2GENE, pvalueCutoff = pValueCutoff)
+    eres <- as.data.frame(EGMT)
+    resList[["inputGenes_pathwayEnrich"]] <- EGMT
+    resList[["inputGenes_pathwayEnrich_data"]] <- eres
+    # Modify gene set names to fit plotting window
+    EGMT@result$Description[which(nchar(EGMT@result$Description) > 40)] <- paste0(substr(EGMT@result$Description[which(nchar(EGMT@result$Description) > 40)], 1, 40), "...")
+    dp <- enrichplot::dotplot(EGMT)
+    dp <- dp + ggplot2::labs(title = "Input Genes Pathway Enrichment")
+    resList[["inputGenes_pathwayEnrich_dotplot"]] <- dp
+
+    if (! returnDataOnly) {
+
+      write.csv(eres,
+                file = file.path(outputPrefix, "inputGenes.Pathway.Analysis.csv"),
+                row.names = F)
+      ggplot2::ggsave(plot = dp,
+                      filename = file.path(outputPrefix, "inputGenes.Pathway.Analysis.png"),
+                      height = 7, width = 10)
+
+
+    }
+  }
+  return(resList)
 }
 
