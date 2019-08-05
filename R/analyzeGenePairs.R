@@ -61,6 +61,7 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
                                 onlyTop = F,
                                 topCutoff = .5,
                                 autoRug = T,
+                                plotTitle = T,
                                 returnDataOnly = F) {
 
   # load("data/hsapiens_complex_TERM2GENE.rda")
@@ -72,19 +73,20 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
   # load("data/MSIGDB_Geneset_Names.rda")
 
   # # Bug checking
-  # Species = c("hsapiens", "mmusculus")
-  # Sample_Type = "Normal_Tissues"
-  # returnDataOnly <- F
+  # Species = c( "mmusculus")
+  # Sample_Type = "Tumor_Tissues"
+  # returnDataOnly <- T
   # outputPrefix = "tests/pairedOut"
-  # pairedGenesList <- list("ATM" = "MIYAGAWA_TARGETS_OF_EWSR1_ETS_FUSIONS_UP",
-  #                         "SON" = "TORCHIA_TARGETS_OF_EWSR1_FLI1_FUSION_UP",
-  #                         "BRCA1" = "BILD_E2F3_ONCOGENIC_SIGNATURE")
-  # pairedGenesList <- list("ATM" = c("TP53", "NFE2L2", "BRCA2"))
-  # pairedGenesList <- list("BRCA1" = "PUJANA_BRCA1_PCC_NETWORK")
+  # # pairedGenesList <- list("ATM" = "MIYAGAWA_TARGETS_OF_EWSR1_ETS_FUSIONS_UP",
+  # #                         "SON" = "TORCHIA_TARGETS_OF_EWSR1_FLI1_FUSION_UP",
+  # #                         "BRCA1" = "BILD_E2F3_ONCOGENIC_SIGNATURE")
+  # # pairedGenesList <- list("ATM" = c("TP53", "NFE2L2", "BRCA2"))
+  # # pairedGenesList <- list("BRCA1" = "PUJANA_BRCA1_PCC_NETWORK")
+  # pairedGenesList <- list("Akt1" = "RIGGI_EWING_SARCOMA_PROGENITOR_UP")
   # library(correlationAnalyzeR)
   # onlyTop <- F
   # topCutoff <- .5
-  # plotLabels <- T
+  # plotLabels <- F
   # sigTest <- T
   # autoRug <- T
   # nPerm <- 2000
@@ -92,7 +94,7 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
   # plotMaxMinCorr <- T
 
   # Create output folder
-  if (! dir.exists(outputPrefix)) {
+  if (! dir.exists(outputPrefix) & ! returnDataOnly) {
     dir.create(outputPrefix)
   }
   # Ensure input data is correct
@@ -111,7 +113,7 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
   resList <- list()
 
   # Check primary genes to make sure they exist
-  avGenes <- getAvailableGenes(Species = Species)
+  avGenes <- correlationAnalyzeR::getAvailableGenes(Species = Species)
   avGenes <- as.character(avGenes$geneName)
   intGenes <- names(pairedGenesList)
   badGenes <- intGenes[which(! intGenes %in% avGenes)]
@@ -125,8 +127,10 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
 
   # Check secondary genes to make sure they exist -- only a warning
   intGenes_secondary <- unlist(pairedGenesList, use.names = T)
-  badGenes_secondary <- intGenes_secondary[which(! intGenes_secondary %in% avGenes &
-                                                   ! intGenes_secondary %in% MSIGDB_Geneset_Names)]
+  badGenes_secondary <- intGenes_secondary[
+    which(! intGenes_secondary %in% avGenes &
+          ! intGenes_secondary %in% correlationAnalyzeR::MSIGDB_Geneset_Names)
+    ]
 
   if (length(badGenes_secondary) > 0) {
     warning(paste0("\n\t\t\t'", paste(badGenes_secondary, collapse = ", "), "'
@@ -139,19 +143,22 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
   }
 
   # Make list of terms inputted by the user
-  termGenes_secondary <- intGenes_secondary[which(! intGenes_secondary %in% avGenes &
-                                                    intGenes_secondary %in% MSIGDB_Geneset_Names)]
+  termGenes_secondary <- intGenes_secondary[
+    which(! intGenes_secondary %in% avGenes &
+            intGenes_secondary %in% correlationAnalyzeR::MSIGDB_Geneset_Names)
+    ]
   if (length(termGenes_secondary > 0)) {
     if (Species[1] == "hsapiens") {
-      TERM2GENE <- hsapiens_complex_TERM2GENE
+      TERM2GENE <- correlationAnalyzeR::hsapiens_complex_TERM2GENE
+      colnames(TERM2GENE)[2] <- "gene_symbol"
     } else {
-      TERM2GENE <- mmusculus_complex_TERM2GENE
+      TERM2GENE <- correlationAnalyzeR::mmusculus_complex_TERM2GENE
     }
     for(i in 1:length(termGenes_secondary)) {
       term <- termGenes_secondary[i]
       print(term)
       nameStr <- names(term)
-      termGenes <- TERM2GENE$human_gene_symbol[which(TERM2GENE$gs_name == term)]
+      termGenes <- TERM2GENE$gene_symbol[which(TERM2GENE$gs_name == term)]
       termGenes <- termGenes[which(termGenes %in% avGenes)] # Ensure actionable genes
       pairedGenesList[[nameStr]] <- termGenes
     }
@@ -159,9 +166,9 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
 
 
   # Call getCorrelationData to get all required files
-  corrDFFull <- getCorrelationData(Species = Species[1],
-                               Sample_Type = Sample_Type[1],
-                               geneList = intGenes)
+  corrDFFull <- correlationAnalyzeR::getCorrelationData(Species = Species[1],
+                                                        Sample_Type = Sample_Type[1],
+                                                        geneList = intGenes)
 
   # Main code
   for (i in 1:length(colnames(corrDFFull))) {
@@ -175,7 +182,9 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
     # Filter for secondary genes
     secondaryGenes <- pairedGenesList[[gene]]
     secondaryGenes <- secondaryGenes[which(secondaryGenes != gene)] # Incase they added the original gene in
-    corrDF <- data.frame(geneName = rownames(corrDFFull), correlationValue = corrDFFull[,gene])
+    corrDF <- data.frame(geneName = rownames(corrDFFull),
+                         correlationValue = corrDFFull[,gene],
+                         stringsAsFactors = F)
     corrDF <- corrDF[which(corrDF$geneName != gene),]
     corrDF$secondaryGene <- F
     corrDF$secondaryGene[which(corrDF$geneName %in% secondaryGenes)] <- T
@@ -198,12 +207,14 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
     his <- ggplot2::ggplot(data = corrDF,
                            mapping = ggplot2::aes(x = correlationValue)) +
       ggplot2::geom_histogram(bins = 100, color = "black", fill = "white") +
-      ggplot2::labs(title = paste0("Histogram of ",
-                                   gene,
-                                   " correlations")) +
-      ggplot2::ylab("Frequency") +
+      ggplot2::ylab("Frequency\n") +
       ggplot2::scale_y_continuous(limits = c(0, 3500), expand = c(0,0)) +
       ggplot2::theme_classic()
+    if (plotTitle) {
+      his <- his + ggplot2::labs(title = paste0("Histogram of ",
+                                                gene,
+                                                " correlations\n"))
+    }
     # Add min-max vals
     if (plotMaxMinCorr) {
       maxGene <- corrDF$geneName[which.max(corrDF$correlationValue)]
@@ -229,8 +240,8 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
       }
     }
 
-    # Harmonize original corrDF frame
-    corrDF_small <- corrDF[which(corrDF$geneName %in% secondaryGenes),]
+    # Cut the corrDF frame to show only the secondary genes
+    corrDF_small <- corrDF[which(corrDF$secondaryGene),]
     # Choose top genes
     if (onlyTop) {
       corrDF_small <- corrDF_small[order(abs(corrDF_small$correlationValue), decreasing = T),]
@@ -345,21 +356,35 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
       meanBoot <- function(data, indices) {
         d <- data[indices] # allows boot to select sample
         d <- sample(d, size = n)
-        ttest <- t.test(x = selectVec, y = d)
-
+        ttest <- t.test(x = abs(selectVec), y = abs(d)) # Considers absolute value comparison
         c(mean(d), median(d), ttest$p.value)
       }
-
+      # Function to give significance stars
+      getSigStars <- function(pVal) {
+        pMap <- c(.05, .01, .001, .0001)
+        names(pMap) <- c("*", "**", "***", "****")
+        sig <- ifelse(test = pVal < pMap[4],
+                      yes = names(pMap)[4],
+                      no = ifelse(test = pVal < pMap[3],
+                                  yes = names(pMap)[3],
+                                  no = ifelse(pVal < pMap[2],
+                                              yes = names(pMap)[2],
+                                              no = ifelse(test = pVal < pMap[1],
+                                                          yes = names(pMap)[1],
+                                                          no = "n.s."))))
+      }
       # Reproducibility
       set.seed(1)
 
-      # bootstrapping with 1000 replications
+      # bootstrapping with # replications
       results <- boot::boot(data=vec, statistic=meanBoot,
                             R=nPerm)
 
       # Get value for input data
-      Mean <- mean(selectVec, na.rm = T)
-      Median <- median(selectVec, na.rm = T)
+      Meanabs <- mean(abs(selectVec), na.rm = T) # For pvalue calc
+      Medianabs <- median(abs(selectVec), na.rm = T) # For pvalue calc
+      Mean <- mean((selectVec), na.rm = T) # For plotting
+      Median <- median((selectVec), na.rm = T) # For plotting
 
       # Get bootstrapped values
       meanVec <- results$t[,1]
@@ -370,31 +395,49 @@ pairedGenesAnalyzeR <- function(pairedGenesList,
       tdf <- as.data.frame(results$t)
       colnames(tdf) <- c("Means", "Medians", "TTest_pVals")
       # Means
-      pMeans <- ggpubr::gghistogram(data = tdf, bins = 40,
-                                    x = "Means", xlab = "Bootstrapped means",
-                                    title = paste0(gene, " correlation means distribution")) +
-        ggplot2::geom_vline(ggplot2::aes(xintercept = Mean, color = "Selected Genes Mean")) +
+
+      # Determine if the abs mean of selected genes
+      pValMeans <- sum(abs(tdf$Means) > Meanabs)/sum(! is.na(tdf$Means))
+      meanStr <- paste0("Selected Genes Mean, p = ", pValMeans, " [", getSigStars(pValMeans), "]")
+      pMeans <- ggpubr::gghistogram(data = tdf, bins = 60, ylab = "Frequency\n",
+                                    title = switch(plotTitle + 1, NULL,
+                                                   paste0(gene, " correlation means distribution")),
+                                    x = "Means", xlab = "Bootstrapped means") +
+        ggplot2::geom_vline(ggplot2::aes(xintercept = Mean, color = meanStr)) +
         ggplot2::scale_colour_manual("",
-                                     breaks = c("Selected Genes Mean"),
-                                     values = c("red"))
+                                     breaks = meanStr,
+                                     values = c("red")) +
+        ggplot2::scale_y_continuous(expand = c(0,0))
+
       # Means
-      pMedians <- ggpubr::gghistogram(data = tdf, bins = 40,
+      pValMedians <- sum(abs(tdf$Medians) > Medianabs)/sum(! is.na(tdf$Medians))
+      medianStr <- paste0("Selected Genes Median, p = ", pValMedians, " [", getSigStars(pValMedians), "]")
+      pMedians <- ggpubr::gghistogram(data = tdf, bins = 60, ylab = "Frequency\n",
                                     x = "Medians", xlab = "Bootstrapped medians",
-                                    title = paste0(gene, " correlation medians distribution")) +
-        ggplot2::geom_vline(ggplot2::aes(xintercept = Mean, color = "Selected Genes Median")) +
+                                    title = switch(plotTitle + 1, NULL,
+                                                   paste0(gene, " correlation medians distribution"))) +
+        ggplot2::geom_vline(ggplot2::aes(xintercept = Mean, color = medianStr)) +
         ggplot2::scale_colour_manual("",
-                                     breaks = c("Selected Genes Median"),
-                                     values = c("blue"))
+                                     breaks = medianStr,
+                                     values = c("blue")) +
+        ggplot2::scale_y_continuous(expand = c(0,0))
 
       # TTest pVals
-      Threshold <- .05
-      pTtest <- ggpubr::gghistogram(data = tdf, bins = 40,
-                                      x = "TTest_pVals", xlab = "Bootstrapped T-Test pVals (selected vs random)",
-                                      title = paste0(gene, " correlations (selected vs random) pval distribution")) +
-        ggplot2::geom_vline(ggplot2::aes(xintercept = Threshold, color = "Threshold (p < .05)")) +
+      title = paste0(gene, " correlations (selected vs random) pval distribution")
+      density(tdf$TTest_pVals)
+      denY <- which.max(density(tdf$TTest_pVals)$y)
+      pValTTest <- density(tdf$TTest_pVals)$x[denY]
+      pValStr <- paste0("P(summit) = ", round(pValTTest, digits = 3), " [", getSigStars(pValTTest), "]")
+      pTtest <- ggpubr::ggdensity(data = tdf, ylab = "P value density\n",
+                                      x = "TTest_pVals",
+                                  xlab = "Bootstrapped T-Test pVals (selected vs random)",
+                                  title = switch(plotTitle + 1, NULL,
+                                                 paste0(gene, " permutation t-test p-val distribution"))) +
+        ggplot2::geom_vline(ggplot2::aes(xintercept = pValTTest, color = pValStr)) +
         ggplot2::scale_colour_manual("",
-                            breaks = c("Threshold (p < .05)"),
-                            values = c("grey"))
+                            breaks = pValStr,
+                            values = c("grey")) +
+        ggplot2::scale_y_continuous(expand = c(0,0))
 
       # Plot if not returnDataOnly
       if (! returnDataOnly) {

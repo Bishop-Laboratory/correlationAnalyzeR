@@ -509,6 +509,8 @@ To disable this behavior, set 'alternativeTSNE' to FALSE")
     # TSNE after PCA
     pcaData <- as.data.frame(pca$rotation)
     pcaData <- as.matrix(pcaData)
+    # library(umap)
+    # umap::umap(pcaData)
     tsne_out <- Rtsne::Rtsne(X = pcaData, pca = F,
                       verbose = T, max_iter = 5000, perplexity = 30, exaggeration_factor = 16)
     # Cluster by TSNE distance
