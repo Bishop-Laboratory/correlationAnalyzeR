@@ -18,21 +18,23 @@
 getCorrelationData <- function(Species, Sample_Type, geneList) {
   # # Bug Testing
   # Species <- "hsapiens"
-  # Sample_Type <- "Normal_Tissues"
-  # geneList <- c("BRCA1", "EZH2", "PARP1", "TOP2A", "NFE2L2")
-  # geneList <- intGenes
+  # Sample_Type <- "Tumor_Tissues"
+  # geneList <- c("BRCA1", "NFE2L2", "ATM", "PARP1", "TOP2A", "BRCC3", "ATMIN")
+  # Species <- "mmusculus"
+  # Sample_Type <- "Tumor_Tissues"
+  # geneList <- c("Brca1", "Slc3a2", "Slc7a11", "Atm")
 
   # # Got this part from the Server
   # load("data/hsapiens_corrSmall_geneNames.RData")
   # hsapiens_corrSmall_geneNames <- geneNames
   # usethis::use_data(hsapiens_corrSmall_geneNames)
-
+  # load("data/mmusculus_corrSmall_geneNames.rda")
 
 
   if (Species == "hsapiens") {
-    geneNames <- hsapiens_corrSmall_geneNames
+    geneNames <- correlationAnalyzeR::hsapiens_corrSmall_geneNames
   } else {
-    geneNames <- mmusculus_corrSmall_geneNames
+    geneNames <- correlationAnalyzeR::mmusculus_corrSmall_geneNames
   }
 
   con <- DBI::dbConnect(RMySQL::MySQL(), user = "public-rds-user", port = 3306, dbname="bishoplabdb",

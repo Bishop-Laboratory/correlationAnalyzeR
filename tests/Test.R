@@ -1,6 +1,9 @@
 devtools::install_github("millerh1/correlationAnalyzeR")
 library(correlationAnalyzeR)
 
+genesOfInterest <- "Atm"
+corr <- getCorrelationData(Species = "mmusculus", Sample_Type = "Tumor_Tissues", geneList = genesOfInterest)
+
 
 genesOfInterest <- c("ATM", "AKT1", "HIF1A", "PRKAA2", "SLC3A2", "MTOR",
                      "SLC7A11", "SLC7A5", "G6PD", "HSPB1")
@@ -18,10 +21,15 @@ pairedGenesAnalyzeR(pairedGenesList = pairedGeneList,
                     outputPrefix = "tests/pairedOut")
 
 
+
 # Check topology analysis methods
 geneList <- c("TORCHIA_TARGETS_OF_EWSR1_FLI1_FUSION_UP")
-result <- analyzeGenesetTopology(genesOfInterest = geneList, Species = "hsapiens",
-                                 crossComparisonType = "PCA", outputPrefix = "tests/topology_test1")
+genesOfInterest <- c("ATM", "AKT1", "HIF1A", "PRKAA2", "SLC3A2", "MTOR",
+                     "SLC7A11", "SLC7A5", "G6PD", "HSPB1")
+genesOfInterest <- c("Atm", "Atmin", "Brca1", "Ewsr1", "Slc7a11", "Slc3a2")
+result <- analyzeGenesetTopology(genesOfInterest = genesOfInterest,
+                                 Species = "hsapiens", Sample_Type = "Tumor_Tissues",
+                                 outputPrefix = "tests/topology_test5")
 
 
 genesOfInterest <- "F2"
