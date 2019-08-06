@@ -106,7 +106,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   # Check genes to make sure they exist -- only a warning
   intGenes <- genesOfInterest
   badGenes <- intGenes[which(! intGenes %in% avGenes$geneName &
-                                                   ! intGenes %in% MSIGDB_Geneset_Names)]
+                                                   ! intGenes %in% correlationAnalyzeR::MSIGDB_Geneset_Names)]
   if (length(badGenes) > 0) {
     warning(paste0("\n\t\t\t'", paste(badGenes, collapse = ", "), "'
                       not found in correlation data and is not an official MSIGDB name.
@@ -119,12 +119,12 @@ analyzeGenesetTopology <-  function(genesOfInterest,
 
   # Make list of terms inputted by the user
   termlist <- intGenes[which(! intGenes %in% avGenes$geneName &
-                               intGenes %in% MSIGDB_Geneset_Names)]
+                               intGenes %in% correlationAnalyzeR::MSIGDB_Geneset_Names)]
 
   if (Species[1] == "hsapiens") {
-    TERM2GENE <- hsapiens_complex_TERM2GENE
+    TERM2GENE <- correlationAnalyzeR::hsapiens_complex_TERM2GENE
   } else {
-    TERM2GENE <- mmusculus_complex_TERM2GENE
+    TERM2GENE <- correlationAnalyzeR::mmusculus_complex_TERM2GENE
   }
 
   if (length(termlist > 0)) {
