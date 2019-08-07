@@ -69,18 +69,18 @@ analyzeSingleGenes <- function(genesOfInterest,
       } else if (GSEA_Type[1] == "simple") {
         if (Species[1] == "hsapiens") {
           data("hsapiens_simple_TERM2GENE")
-          TERM2GENE <- hsapiens_simple_TERM2GENE
+          TERM2GENE <- correlationAnalyzeR::hsapiens_simple_TERM2GENE
         } else {
           data("mmusculus_simple_TERM2GENE")
-          TERM2GENE <- mmusculus_simple_TERM2GENE
+          TERM2GENE <- correlationAnalyzeR::mmusculus_simple_TERM2GENE
         }
       } else {
         if (Species[1] == "hsapiens") {
           data("hsapiens_complex_TERM2GENE")
-          TERM2GENE <- hsapiens_complex_TERM2GENE
+          TERM2GENE <- correlationAnalyzeR::hsapiens_complex_TERM2GENE
         } else {
           data("mmusculus_complex_TERM2GENE")
-          TERM2GENE <- mmusculus_complex_TERM2GENE
+          TERM2GENE <- correlationAnalyzeR::mmusculus_complex_TERM2GENE
         }
       }
     }
