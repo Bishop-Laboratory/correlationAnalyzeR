@@ -7,6 +7,10 @@
 #' @param Species Species to obtain gene names for.
 #'     Either 'hsapiens' or 'mmusculus'
 #'
+#' @param pathwayType Whether pathway enrichment should consider all msigdb annotations
+#'     or just those in the most popular categories. Should be one of either
+#'     'simple' or 'complex'.
+#'
 #' @param Sample_Type Type of RNA Seq samples used to create correlation data.
 #'     Either "All", "Normal_Tissues", or "Tumor_Tissues".
 #'
@@ -63,6 +67,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
                                                             "variantGenes",
                                                             "coCorrelativeGenes",
                                                             "pathwayEnrich"),
+                                    pathwayType = c("simple", "complex"),
                                     setComparisonCutoff = "Auto",
                                     pathwayEnrichment = F,
                                     pValueCutoff = .05,
@@ -121,6 +126,32 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   termlist <- intGenes[which(! intGenes %in% avGenes$geneName &
                                intGenes %in% correlationAnalyzeR::MSIGDB_Geneset_Names)]
 
+  # Load appropriate TERM2GENE file built from msigdbr()
+  if (Species[1] %in% c("hsapiens", "mmusculus")) {
+    if (! pathwayType %in% c("simple", "complex")) {
+      stop("\nPlease enter either 'simple' or 'complex' for GSEA_Type\n")
+    } else if (pathwayType[1] == "simple") {
+      if (Species[1] == "hsapiens") {
+        data("hsapiens_simple_TERM2GENE")
+        TERM2GENE <- correlationAnalyzeR::hsapiens_simple_TERM2GENE
+      } else {
+        data("mmusculus_simple_TERM2GENE")
+        TERM2GENE <- correlationAnalyzeR::mmusculus_simple_TERM2GENE
+      }
+    } else {
+      if (Species[1] == "hsapiens") {
+        data("hsapiens_complex_TERM2GENE")
+        TERM2GENE <- correlationAnalyzeR::hsapiens_complex_TERM2GENE
+      } else {
+        data("mmusculus_complex_TERM2GENE")
+        TERM2GENE <- correlationAnalyzeR::mmusculus_complex_TERM2GENE
+      }
+    }
+  } else {
+    stop("\ncorrelationAnalyzeR currently supports only Human and Mouse data.
+         Please select either 'hsapiens' or 'mmusculus' for Species parameter.
+         \n")
+  }
   if (Species[1] == "hsapiens") {
     TERM2GENE <- correlationAnalyzeR::hsapiens_complex_TERM2GENE
   } else {
