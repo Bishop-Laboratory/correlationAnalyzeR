@@ -1,476 +1,256 @@
 #' Analyze Gene Pairs
 #'
-#' Explores how a list of secondary genes relates to a primary gene of interest
+#' Comaprison of two genes of interest using correlation values.
+#' This can be 2 different genes in the same tissue or sample type. Or
+#' the same gene accross two sample or tissue types.
 #'
-#' @param pairedGenesList A list, named with primary genes of interest with
-#'     vectors of secondary genes to test against OR a string containing the
-#'     official MSIGDB name for a gene set of interest.
+#' @param genesOfInterest A vector with two genes to compare.
+#'
+#' @param Sample_Type A vector of length-2 corresponding to the genesOfInterest.
+#' Indicates the type of sample for each; "all", "normal", or "cancer".
+#' Default: c("normal", "normal")
+#'
+#' @param Tissue A vector of length-2 corresponding to the genesOfInterest.
+#' Indicates the type of tissue for each; Run getTissueTypes() to see available list.
+#' Default: c("all", "all")
 #'
 #' @param Species Species to obtain gene names for.
-#'     Either 'hsapiens' or 'mmusculus'
+#'     Either 'hsapiens' or 'mmusculus'. Default: "hsapiens".
 #'
-#' @param Sample_Type Type of RNA Seq samples used to create correlation data.
-#'     Either "All", "Normal_Tissues", or "Tumor_Tissues".
+#' @param GSEA_Type Whether GSEA should consider all msigdb annotations,
+#'     or just those in the most popular categories. Should be one of either
+#'     'simple' or 'complex'.
 #'
 #' @param outputPrefix Prefix for saved files. Should include directory info.
 #'
-#' @param sigTest Should the results be compared against random genes?
+#' @param runGSEA If TRUE will run GSEA using gene correlation values.
 #'
-#' @param nPerm Number of bootstrap sampling events to run during sigTest.
+#' @param returnDataOnly if TRUE will return only a dataframe of correlation
+#'    values and will not generate any folders or files.
 #'
-#' @param plotMaxMinCorr If TRUE, the top correlated and anti-correlated genes
-#'     will be plotted alongside the selected secondary genes.
-#'
-#' @param plotLabels If TRUE, correlation histograms will contain labeled lines showing
-#'     secondary genes and their correlation values.
-#'     If list of secondary genes is large, set this to FALSE or onlyTop to TRUE
-#'     to avoid cluttering the plot.
-#'
-#' @param onlyTop For larger secondary gene lists -- This will filter the
-#'     number of secondary genes which are plotted to avoid clutter if plotLabels = TRUE.
-#'
-#' @param topCutoff The value used for filtering if 'onlyTop' is 'TRUE'
-#'
-#' @param autoRug If the size of a secondary gene list > 50, plot lines will be replaced
-#'     by an auto-generated rug. To disable this behavior, set to FALSE.
-#'
-#' @param returnDataOnly if TRUE will only return a list containing correlations
-#'     and significance testing results if applicable.
-#'
-#' @return A list containing correlation values and signficance testing results
+#' @return A dataframe of correlation values for each gene of interest.
 #'
 #' @examples
-#' pairedGenesList <- list("TP53" = c("BRCA1", "CDK12", "PARP1"),
-#'                         "SON" = c("AURKB", "SFPQ", "DHX9"))
-#'
-#' pairedGenesList <- list("ATM" = "PUJANA_BRCA1_PCC_NETWORK")
-#'
-#' Result <- pairedGenesAnalyzeR(pairedGenesList = pairedGenesList,
+#' genesOfInterest <- c("ATM", "SLC7A11")
+#' Result <- analyzeSingleGenes(genesOfInterest = genesOfInterest,
 #'                               Species = "hsapiens",
+#'                               GSEA_Type = "simple",
 #'                               Sample_Type = "Normal_Tissues")
 #'
 #' @export
-pairedGenesAnalyzeR <- function(pairedGenesList,
-                                Species = c("hsapiens", "mmusculus"),
-                                Sample_Type = c("Normal_Tissues",
-                                                "Tumor_Tissues"),
-                                outputPrefix = "CorrelationAnalyzeR_Output",
-                                plotLabels = T,
-                                sigTest = T, nPerm = 2000,
-                                plotMaxMinCorr = T,
-                                onlyTop = F,
-                                topCutoff = .5,
-                                autoRug = T,
-                                plotTitle = T,
-                                returnDataOnly = F) {
+analyzeGenePairs <- function(genesOfInterest,
+                             Sample_Type = c("normal", "normal"),
+                             Tissue = c("all", "all"),
+                             Species = c("hsapiens", "mmusculus"),
+                             GSEA_Type = c("simple", "complex"),
+                             outputPrefix = "CorrelationAnalyzeR_Output_Paired",
+                             runGSEA = T, topPlots = F, returnDataOnly = F) {
+  # # Debug/Test
+  # genesOfInterest <- c("ATM", "SLC3A2")
+  # GSEA_Type = "simple"
+  # # set.seed(1)
+  # runGSEA = T
+  # outputPrefix = "tests/CorrelationAnalyzeR_Output_paired"
+  # Species = "hsapiens"
+  # Sample_Type = c("normal", "normal")
+  # Tissue = c("brain", "brain")
+  # returnDataOnly = T
+  # topPlots=F
 
-  # load("data/hsapiens_complex_TERM2GENE.rda")
-  # load("data/mmusculus_complex_TERM2GENE.rda")
-  # hs_names <- unique(hsapiens_complex_TERM2GENE$gs_name)
-  # mm_names <- unique(mmusculus_complex_TERM2GENE$gs_name)
-  # MSIGDB_Geneset_Names <- hs_names[order(hs_names)]
-  # # devtools::use_data(MSIGDB_Geneset_Names)
-  # load("data/MSIGDB_Geneset_Names.rda")
 
-  # # Bug checking
-  # Species = c( "mmusculus")
-  # Sample_Type = "Tumor_Tissues"
-  # returnDataOnly <- T
-  # outputPrefix = "tests/pairedOut"
-  # # pairedGenesList <- list("ATM" = "MIYAGAWA_TARGETS_OF_EWSR1_ETS_FUSIONS_UP",
-  # #                         "SON" = "TORCHIA_TARGETS_OF_EWSR1_FLI1_FUSION_UP",
-  # #                         "BRCA1" = "BILD_E2F3_ONCOGENIC_SIGNATURE")
-  # # pairedGenesList <- list("ATM" = c("TP53", "NFE2L2", "BRCA2"))
-  # # pairedGenesList <- list("BRCA1" = "PUJANA_BRCA1_PCC_NETWORK")
-  # pairedGenesList <- list("Akt1" = "RIGGI_EWING_SARCOMA_PROGENITOR_UP")
-  # library(correlationAnalyzeR)
-  # onlyTop <- F
-  # topCutoff <- .5
-  # plotLabels <- F
-  # sigTest <- T
-  # autoRug <- T
-  # nPerm <- 2000
-  # outputPrefix = "tests/pairedTestFIVE"
-  # plotMaxMinCorr <- T
+  require(dplyr)
+  require(tibble)
 
-  # Create output folder
-  if (! dir.exists(outputPrefix) & ! returnDataOnly) {
-    dir.create(outputPrefix)
-  }
-  # Ensure input data is correct
-  if (typeof(pairedGenesList) != "list" | is.null(names(pairedGenesList))) {
-    stop("\tFormat pairedGenesList as a named list in which:
+  if (length(genesOfInterest) == 2 ) {
+    pairRes <- correlationAnalyzeR::analyzeSingleGenes(
+      genesOfInterest = genesOfInterest,
+      returnDataOnly = returnDataOnly, topPlots = topPlots,
+      outputPrefix = outputPrefix, runGSEA = runGSEA,
+      Sample_Type = Sample_Type, Tissue = Tissue,
+      Species = Species, GSEA_Type = GSEA_Type
+    )
 
-        1) Names are the primary genes of interest.
-        2) List values contain vectors of secondary genes to compare against -- OR
-           a string with the official MSIGDB name of a geneset to compare against.\n
-        e.g. pairedGenesList = list('TP53' = c('BRCA1', 'CDK12', 'PARP1'),
-                                    'SON' = c('DHX9'),
-                                    'MCM2' = c('PCNA', 'STAG2'))  \n")
+  } else {
+    stop("Please enter only 2 genes to compare")
   }
 
-  # Initialize results object
-  resList <- list()
+  # Compare correlations -- scatter plot
+  correlations <- pairRes$correlations
+  geneOne <- genesOfInterest[1]
+  tissueOne <- Tissue[1]
+  sampleOne <- Sample_Type[1]
+  geneOneTitle <- paste0(geneOne, ", ",
+                         tools::toTitleCase(tissueOne),
+                         " - ",
+                         tools::toTitleCase(sampleOne))
+  geneTwo <- genesOfInterest[2]
+  tissueTwo <- Tissue[2]
+  sampleTwo <- Sample_Type[2]
+  geneTwoTitle <- paste0(geneTwo, ", ",
+                         tools::toTitleCase(tissueTwo),
+                         " - ",
+                         tools::toTitleCase(sampleTwo))
+  longName <- ifelse((tissueOne != tissueTwo | sampleOne != sampleTwo),
+                     yes = T, no = F)
 
-  # Check primary genes to make sure they exist
-  avGenes <- correlationAnalyzeR::getAvailableGenes(Species = Species)
-  avGenes <- as.character(avGenes$geneName)
-  intGenes <- names(pairedGenesList)
-  badGenes <- intGenes[which(! intGenes %in% avGenes)]
-  if (length(badGenes) > 0) {
-    stop(paste0("\n\t\t\t'", paste(badGenes, collapse = ", "), "' not found
-                      in correlation data.
-                      Please check available data with getAvailableGenes().
-                      Your gene(s) of interest may have an updated name or
-                      have a species-specific identifier.\n"))
+
+  pairRes[["compared"]] <- list()
+  # Variance heat map
+  correlations$average <- rowMeans(correlations)
+  correlations$variance <- matrixStats::rowVars(as.matrix(correlations[,c(1,2)]))
+  correlations <- correlations[order(correlations$variance,
+                                     decreasing = T),]
+  pairRes[["compared"]][["correlations"]] <- correlations
+  cn <- colnames(correlations)
+  correlations2 <- correlations[which(! rownames(correlations) %in%
+                                        colnames(correlations)),]
+
+  corHeatOne <- correlations2 %>%
+    rownames_to_column('gene') %>%
+    dplyr::filter(eval(parse(text = cn[1])) > 0) %>%
+    top_n(15, variance) %>%
+    column_to_rownames('gene')
+  corHeatTwo <- correlations2 %>%
+    rownames_to_column('gene') %>%
+    dplyr::filter(eval(parse(text = cn[1])) < 0) %>%
+    top_n(15, variance) %>%
+    column_to_rownames('gene')
+  corHeat <- rbind(corHeatOne, corHeatTwo)
+  corHeat <- corHeat[, c(1, 2)]
+
+  # GSEA compare -- heatmap
+  compPaths <- merge( x= pairRes[[geneOneTitle]][["GSEA"]][["eres"]],
+                      y = pairRes[[geneTwoTitle]][["GSEA"]][["eres"]],
+                      by = c("ID", "Description"))
+  compPaths <- compPaths[,c(1, 5, 6, 7, 11, 14, 15, 16, 20)]
+  if(longName) {
+    colnames(compPaths) <- gsub(x = colnames(compPaths),pattern =  ".x",
+                                replacement =  paste0("_", geneOne,
+                                                      "_", tissueOne,
+                                                      "_", sampleOne))
+    colnames(compPaths) <- gsub(x = colnames(compPaths),pattern =  ".y",
+                                replacement =  paste0("_", geneTwo,
+                                                      "_", tissueTwo,
+                                                      "_", sampleTwo))
+  } else {
+    colnames(compPaths) <- gsub(x = colnames(compPaths),pattern =  ".x",
+                                replacement =  paste0("_", geneOne))
+    colnames(compPaths) <- gsub(x = colnames(compPaths),pattern =  ".y",
+                                replacement =  paste0("_", geneTwo))
   }
 
-  # Check secondary genes to make sure they exist -- only a warning
-  intGenes_secondary <- unlist(pairedGenesList, use.names = T)
-  badGenes_secondary <- intGenes_secondary[
-    which(! intGenes_secondary %in% avGenes &
-          ! intGenes_secondary %in% correlationAnalyzeR::MSIGDB_Geneset_Names)
-    ]
+  compPaths$NES_average <- rowMeans(compPaths[,c(2, 6)])
+  compPaths$NES_variance <- matrixStats::rowVars(as.matrix(compPaths[,c(2, 6)]))
+  compPaths <- compPaths[order(compPaths$NES_variance, decreasing = T),]
 
-  if (length(badGenes_secondary) > 0) {
-    warning(paste0("\n\t\t\t'", paste(badGenes_secondary, collapse = ", "), "'
-                      not found in correlation data and is not an official MSIGDB name.
-                      Please check available gene data with getAvailableGenes().
-                      Your gene(s) of interest may have an updated name or
-                      have a species-specific identifier. Find offical MSIGDB
-                      names by examining the MSIGDB_Geneset_Names object.\n
-                      Continuing without this/these gene(s)..."))
+  cn <- colnames(compPaths)
+  cnes <- cn[grep(x = cn, pattern = "NES")]
+  compHeatOne <- compPaths %>%
+    dplyr::filter(eval(parse(text = cnes[1])) > 0) %>%
+    top_n(15, NES_variance)  %>% slice(1:15)
+  compHeatTwo <- compPaths %>%
+    dplyr::filter(eval(parse(text = cnes[2])) > 0) %>%
+    top_n(15, NES_variance) %>% slice(1:15)
+  compHeat <- rbind(compHeatOne, compHeatTwo)
+
+  titleID <- compHeat$ID
+  titleID <- gsub(x= titleID, pattern = "_",replacement = " ")
+  titleID <- tools::toTitleCase(tolower(titleID))
+  titleID[which(nchar(titleID) > 40)] <- paste0(substr(titleID[which(nchar(titleID) > 40)],
+                                                       1, 40), "...")
+  dups <- which(duplicated(titleID))
+  if (length(dups)) {
+    ends <- substr(compPaths$ID[dups],
+                   nchar(compPaths$ID[dups])-3,
+                   nchar(compPaths$ID[dups]))
+    titleID[dups] <- paste0(substr(titleID[dups], 1, 34), "...", tolower(ends) )
   }
 
-  # Make list of terms inputted by the user
-  termGenes_secondary <- intGenes_secondary[
-    which(! intGenes_secondary %in% avGenes &
-            intGenes_secondary %in% correlationAnalyzeR::MSIGDB_Geneset_Names)
-    ]
-  if (length(termGenes_secondary > 0)) {
-    if (Species[1] == "hsapiens") {
-      TERM2GENE <- correlationAnalyzeR::hsapiens_complex_TERM2GENE
-      colnames(TERM2GENE)[2] <- "gene_symbol"
-    } else {
-      TERM2GENE <- correlationAnalyzeR::mmusculus_complex_TERM2GENE
-    }
-    for(i in 1:length(termGenes_secondary)) {
-      term <- termGenes_secondary[i]
-      print(term)
-      nameStr <- names(term)
-      termGenes <- TERM2GENE$gene_symbol[which(TERM2GENE$gs_name == term)]
-      termGenes <- termGenes[which(termGenes %in% avGenes)] # Ensure actionable genes
-      pairedGenesList[[nameStr]] <- termGenes
-    }
+  dups <- which(duplicated(titleID))
+  if (length(dups)) {
+    titleID[dups] <- paste0(substr(titleID[dups], 1, 34),
+                            "...", replicate(expr = paste0(sample(letters, 3),
+                                                           collapse = ""),
+                                             n = length(dups)))
   }
+  compHeat <- compHeat[,c(2, 6)]
+
+  rownames(compHeat) <- titleID[1:30]
 
 
-  # Call getCorrelationData to get all required files
-  corrDFFull <- correlationAnalyzeR::getCorrelationData(Species = Species[1],
-                                                        Sample_Type = Sample_Type[1],
-                                                        geneList = intGenes)
+  if (longName) {
+    correlationsScatter <- correlations
+    colnames(correlationsScatter)[c(1, 2)] <- c("x", "y")
+    gs <- ggpubr::ggscatter(correlationsScatter,
+                            title = paste0(geneOne, " vs. ",
+                                           geneTwo, " Correlations"),
+                            x = "x", y = "y",
+                            ylab = geneTwoTitle,
+                            xlab = geneOneTitle,
+                            add = "reg.line", size = .1,
+                            # cor.method = "spearman",
+                            cor.coef = T, conf.int = T)
+    pairRes[["compared"]][["correlationPlot"]] <- gs
 
-  # Main code
-  for (i in 1:length(colnames(corrDFFull))) {
-    gene <- colnames(corrDFFull)[i]
-    cat(paste0("\n", gene))
-    # Create output folder for gene
-    geneOutDir <- file.path(outputPrefix, gene)
-    if (! dir.exists(geneOutDir) & ! returnDataOnly) {
-      dir.create(geneOutDir)
-    }
-    # Filter for secondary genes
-    secondaryGenes <- pairedGenesList[[gene]]
-    secondaryGenes <- secondaryGenes[which(secondaryGenes != gene)] # Incase they added the original gene in
-    corrDF <- data.frame(geneName = rownames(corrDFFull),
-                         correlationValue = corrDFFull[,gene],
-                         stringsAsFactors = F)
-    corrDF <- corrDF[which(corrDF$geneName != gene),]
-    corrDF$secondaryGene <- F
-    corrDF$secondaryGene[which(corrDF$geneName %in% secondaryGenes)] <- T
-    res <- numeric()
-
-    # Check to make sure secondary genes exist within data
-    for (j in 1:length(secondaryGenes)) {
-      if (! secondaryGenes[j] %in% corrDF$geneName) {
-        warning(paste0("\n\t\t\t'", secondaryGenes[j], "' not found
-                      in correlation data.
-                      Please check available data with getAvailableGenes().
-                      Your gene(s) of interest may have an updated name or
-                      have a species-specific identifier.\n"))
-        secondaryGenes <- secondaryGenes[c(-j)]
-
-      }
-    }
-
-    # Create histogram of gene correlations
-    his <- ggplot2::ggplot(data = corrDF,
-                           mapping = ggplot2::aes(x = correlationValue)) +
-      ggplot2::geom_histogram(bins = 100, color = "black", fill = "white") +
-      ggplot2::ylab("Frequency\n") +
-      ggplot2::scale_y_continuous(limits = c(0, 3500), expand = c(0,0)) +
-      ggplot2::theme_classic()
-    if (plotTitle) {
-      his <- his + ggplot2::labs(title = paste0("Histogram of ",
-                                                gene,
-                                                " correlations\n"))
-    }
-    # Add min-max vals
-    if (plotMaxMinCorr) {
-      maxGene <- corrDF$geneName[which.max(corrDF$correlationValue)]
-      maxVal <- max(corrDF$correlationValue)
-      minGene <- corrDF$geneName[which.min(corrDF$correlationValue)]
-      minVal <- min(corrDF$correlationValue)
-      maxLab <- paste0(maxGene, " (", round(maxVal, 2), ")\n")
-      minLab <- paste0("\n", minGene, " (", round(minVal, 2), ")")
-      # Add in max line
-      his <- his + ggplot2::geom_vline(xintercept = maxVal, linetype = 3)
-      if (plotLabels) {
-        his <- his + ggplot2::annotate(geom = "text", x = maxVal, y = 2000,
-                                       label = maxLab,
-                                       color = "black", angle = 90, size = 2)
-      }
-      # Add in min line
-      his <- his + ggplot2::geom_vline(xintercept = minVal, linetype = 3)
-
-      if (plotLabels) {
-        his <- his + ggplot2::annotate(geom = "text", x = minVal, y = 2000,
-                                       label = minLab,
-                                       color = "black", angle = 90, size = 2)
-      }
-    }
-
-    # Cut the corrDF frame to show only the secondary genes
-    corrDF_small <- corrDF[which(corrDF$secondaryGene),]
-    # Choose top genes
-    if (onlyTop) {
-      corrDF_small <- corrDF_small[order(abs(corrDF_small$correlationValue), decreasing = T),]
-      takeNum <- round(length(corrDF_small$geneName) * (1-topCutoff))
-      corrDF_small <- corrDF_small[c(1:takeNum),]
-    }
-    secondaryGenes <- corrDF_small$geneName
-    errorCounter <- 0
-
-    # Warn if plot is going to be cluttered
-    if (! onlyTop & plotLabels & length(secondaryGenes) > 8) {
-      warning(paste0("\n\t\t\tAttempting to plot '", length(secondaryGenes), "' secondary genes, along with
-                        text labels on one histogram. This will probably
-                        produce a cluttered plot. Consider setting onlyTop = TRUE,
-                        plotLabels = FALSE, or choosing fewer secondary genes to plot.\n"))
-    }
-
-
-    # Code to analyze how histogram should be formatted
-    if (length(secondaryGenes) > 50 & autoRug) {
-      warning("Due to large secondary gene size -- plot lines will be implemented as a rug.
-              You may disable this behavior by setting autoRug = F.")
-      # Create rug by subsetting original data
-      his <- his + ggplot2::geom_rug(data = corrDF[which(corrDF$secondaryGene),], color = "red")
-
-    }
-
-    for (j in 1:length(secondaryGenes)) {
-      secondaryGene <- secondaryGenes[j]
-      corrVal <- corrDF$correlationValue[which(
-        corrDF$geneName == secondaryGene
-        )]
-      res[j] <- corrVal
-      if (length(secondaryGenes) > 50 & autoRug) {
-        next
-      }
-      if (! plotLabels) {
-        his <- his + ggplot2::geom_vline(xintercept = corrVal, linetype = 2, color = "red")
-      } else {
-        # List of previous values excluding current one.
-        res2 <- res[c(-j)]
-        # Are any previous values similar to the current one?
-        corrPrev <- which(abs(round(res2, 2) - round(corrVal,2)) < .02)
-        if (length(corrPrev) == 1) {
-          corrPrevVal <- res[corrPrev]
-          if (corrPrevVal < corrVal ) {
-            # Code to change direction of label if new corr val is greater
-            ind <- (corrPrev-errorCounter)*2 + 1
-            his$layers[[ind]]$aes_params$label <- paste0(
-              substr(his$layers[[ind]]$aes_params$label, 2, 100
-              ), "\n")
-            label <- paste0("\n", secondaryGene, " (", round(corrVal, 2), ")")
-          } else {
-            label <- paste0(secondaryGene, " (", round(corrVal, 2), ")\n")
-          }
-        } else if (length(corrPrev) > 1) {
-          warning(paste0("Difficulty plotting with labels for ", gene,
-                         " -- more than two values are similar"))
-          corrPrevVal <- res[corrPrev[1]]
-          if (corrPrevVal < corrVal ) {
-            # Code to change direction of label if new corr val is greater
-            ind <- corrPrev*2 + 1
-            ind <- ind[1]
-            his$layers[[ind]]$aes_params$label <- paste0(
-              substr(his$layers[[ind]]$aes_params$label, 2, 100
-              ), "\n")
-            label <- paste0("\n", secondaryGene, " (", round(corrVal, 2), ")")
-          } else {
-            label <- paste0(secondaryGene, " (", round(corrVal, 2), ")\n")
-          }
-          label <- paste0("\n", secondaryGene, " (", round(corrVal, 2), ")")
-        } else {
-          label <- paste0("\n", secondaryGene, " (", round(corrVal, 2), ")")
-        }
-        if (abs(corrVal) < .15) {
-          his <- his +
-            ggplot2::geom_vline(xintercept = corrVal, linetype = 3) +
-            ggplot2::annotate(geom = "text", x = corrVal,
-                              y = sample(c(1800:2600), 1),
-                              label = label,
-                              color = "red", angle = 90, size = 2)
-        } else {
-          his <- his +
-            ggplot2::geom_vline(xintercept = corrVal, linetype = 3) +
-            ggplot2::annotate(geom = "text", x = corrVal,
-                              y = sample(c(1500:2200), 1),
-                              label = label,
-                              color = "red", angle = 90, size = 2)
-        }
-      }
-    }
-    # Finalizes histogram
-    his <- his + ggplot2::theme(text = ggplot2::element_text(size = 10))
+    phCor <- pheatmap::pheatmap(corHeat, silent = T, angle_col = 0,
+                                labels_col = c(geneOneTitle, geneTwoTitle),
+                                cluster_rows = T, cluster_cols = F)
+    pairRes[["compared"]][["correlationVarianceHeatmap"]] <- phCor
+    phGSEA <- pheatmap::pheatmap(compHeat, silent = T, angle_col = 0,
+                                 labels_col = c(geneOneTitle, geneTwoTitle),
+                                 cluster_rows = T,
+                                 cluster_cols = F)
+    pairRes[["compared"]][["correlatedPathwaysHeatmap"]] <- phGSEA
     if (! returnDataOnly) {
-      ggplot2::ggsave(plot = his, width = 8, height = 5, filename = file.path(geneOutDir,
-                                                       paste0(gene, ".png")))
+      ggplot2::ggsave(phGSEA, height = 7.5, width = 6,
+                      filename = file.path(outputPrefix,
+                                           "GSEA_compared_heatmap.png"))
+      ggplot2::ggsave(phCor, height = 7.5, width = 4.5,
+                      filename = file.path(outputPrefix,
+                                           "correlations_compared_heatmap.png"))
+      ggplot2::ggsave(gs, filename = file.path(outputPrefix,
+                                               "correlationScatterCompare.png"))
     }
 
-    names(res) <- secondaryGenes
+  } else {
+    gs <- ggpubr::ggscatter(correlations,
+                            title = paste0(geneOne, " vs. ",
+                                           geneTwo, " Correlations"),
+                            caption = paste0(tissueOne, " - ", sampleOne),
+                            x = geneOne, y = geneTwo,
+                            ylab = geneTwo,
+                            xlab = geneOne,
+                            add = "reg.line", size = .1,
+                            cor.coef = T, conf.int = T)
+    pairRes[["compared"]][["correlationPlot"]] <- gs
 
-    # Significance testing
-    if (sigTest) {
-      # Get correlation values for selected genes
-      vec <- corrDF$correlationValue
-      names(vec) <- corrDF$geneName
-      vec <- vec[which(! is.na(vec))]
-      selectVec <- vec[secondaryGenes]
-
-      # Construct distribution for random at same input size
-      n <- length(selectVec)
-      # Function to boot
-      meanBoot <- function(data, indices) {
-        d <- data[indices] # allows boot to select sample
-        d <- sample(d, size = n)
-        ttest <- t.test(x = abs(selectVec), y = abs(d)) # Considers absolute value comparison
-        c(mean(d), median(d), ttest$p.value)
-      }
-      # Function to give significance stars
-      getSigStars <- function(pVal) {
-        pMap <- c(.05, .01, .001, .0001)
-        names(pMap) <- c("*", "**", "***", "****")
-        sig <- ifelse(test = pVal < pMap[4],
-                      yes = names(pMap)[4],
-                      no = ifelse(test = pVal < pMap[3],
-                                  yes = names(pMap)[3],
-                                  no = ifelse(pVal < pMap[2],
-                                              yes = names(pMap)[2],
-                                              no = ifelse(test = pVal < pMap[1],
-                                                          yes = names(pMap)[1],
-                                                          no = "n.s."))))
-      }
-      # Reproducibility
-      set.seed(1)
-
-      # bootstrapping with # replications
-      results <- boot::boot(data=vec, statistic=meanBoot,
-                            R=nPerm)
-
-      # Get value for input data
-      Meanabs <- mean(abs(selectVec), na.rm = T) # For pvalue calc
-      Medianabs <- median(abs(selectVec), na.rm = T) # For pvalue calc
-      Mean <- mean((selectVec), na.rm = T) # For plotting
-      Median <- median((selectVec), na.rm = T) # For plotting
-
-      # Get bootstrapped values
-      meanVec <- results$t[,1]
-      medianVec <- results$t[,2]
-      ttestVec <- results$t[,3]
-
-      # Build plots
-      tdf <- as.data.frame(results$t)
-      colnames(tdf) <- c("Means", "Medians", "TTest_pVals")
-      # Means
-
-      # Determine if the abs mean of selected genes
-      pValMeans <- sum(abs(tdf$Means) > Meanabs)/sum(! is.na(tdf$Means))
-      meanStr <- paste0("Selected Genes Mean, p = ", pValMeans, " [", getSigStars(pValMeans), "]")
-      pMeans <- ggpubr::gghistogram(data = tdf, bins = 60, ylab = "Frequency\n",
-                                    title = switch(plotTitle + 1, NULL,
-                                                   paste0(gene, " correlation means distribution")),
-                                    x = "Means", xlab = "Bootstrapped means") +
-        ggplot2::geom_vline(ggplot2::aes(xintercept = Mean, color = meanStr)) +
-        ggplot2::scale_colour_manual("",
-                                     breaks = meanStr,
-                                     values = c("red")) +
-        ggplot2::scale_y_continuous(expand = c(0,0))
-
-      # Means
-      pValMedians <- sum(abs(tdf$Medians) > Medianabs)/sum(! is.na(tdf$Medians))
-      medianStr <- paste0("Selected Genes Median, p = ", pValMedians, " [", getSigStars(pValMedians), "]")
-      pMedians <- ggpubr::gghistogram(data = tdf, bins = 60, ylab = "Frequency\n",
-                                    x = "Medians", xlab = "Bootstrapped medians",
-                                    title = switch(plotTitle + 1, NULL,
-                                                   paste0(gene, " correlation medians distribution"))) +
-        ggplot2::geom_vline(ggplot2::aes(xintercept = Mean, color = medianStr)) +
-        ggplot2::scale_colour_manual("",
-                                     breaks = medianStr,
-                                     values = c("blue")) +
-        ggplot2::scale_y_continuous(expand = c(0,0))
-
-      # TTest pVals
-      title = paste0(gene, " correlations (selected vs random) pval distribution")
-      density(tdf$TTest_pVals)
-      denY <- which.max(density(tdf$TTest_pVals)$y)
-      pValTTest <- density(tdf$TTest_pVals)$x[denY]
-      pValStr <- paste0("P(summit) = ", round(pValTTest, digits = 3), " [", getSigStars(pValTTest), "]")
-      pTtest <- ggpubr::ggdensity(data = tdf, ylab = "P value density\n",
-                                      x = "TTest_pVals",
-                                  xlab = "Bootstrapped T-Test pVals (selected vs random)",
-                                  title = switch(plotTitle + 1, NULL,
-                                                 paste0(gene, " permutation t-test p-val distribution"))) +
-        ggplot2::geom_vline(ggplot2::aes(xintercept = pValTTest, color = pValStr)) +
-        ggplot2::scale_colour_manual("",
-                            breaks = pValStr,
-                            values = c("grey")) +
-        ggplot2::scale_y_continuous(expand = c(0,0))
-
-      # Plot if not returnDataOnly
-      if (! returnDataOnly) {
-        ggplot2::ggsave(plot = pMeans, filename = file.path(geneOutDir,
-                                                      paste0(gene, ".bootstrapped_means.png")),
-                        width = 8, height = 5)
-        ggplot2::ggsave(plot = pMedians, filename = file.path(geneOutDir,
-                                                            paste0(gene, ".bootstrapped_medians.png")),
-                        width =8, height = 5)
-        ggplot2::ggsave(plot = pTtest, filename = file.path(geneOutDir,
-                                                            paste0(gene, ".bootstrapped_TTest_PVals.png")),
-                        width = 8, height = 5)
-      }
+    phCor <- pheatmap::pheatmap(corHeat,angle_col = 0,
+                                silent = T,
+                                cluster_rows = T, cluster_cols = F)
+    pairRes[["compared"]][["correlationVarianceHeatmap"]] <- phCor
+    phGSEA <- pheatmap::pheatmap(compHeat, silent = T,
+                                 cluster_rows = T, angle_col = 0,
+                                 labels_col = c(geneOne, geneTwo),
+                                 cluster_cols = F)
+    pairRes[["compared"]][["correlatedPathwaysHeatmap"]] <- phGSEA
+    if (! returnDataOnly) {
+      ggplot2::ggsave(phGSEA, 7.5, width = 6,
+                      filename = file.path(outputPrefix,
+                                           "GSEA_compared_heatmap.png"))
+      ggplot2::ggsave(phCor, 7.5, width = 4.5,
+                      filename = file.path(outputPrefix,
+                                           "correlations_compared_heatmap.png"))
+      ggplot2::ggsave(gs, filename = file.path(outputPrefix,
+                                               "correlationScatterCompare.png"))
     }
-
-    # Return results based on whether sigTest is true
-    if (! sigTest) {
-      resList[[i]] <- list("Correlation_Values" = res,
-                           "Correlation_histogram" = his)
-    } else {
-      resList[[i]] <- list("Correlation_Values" = res,
-                           "Correlation_histogram" = his,
-                           "sigTest" =  list("means" = meanVec,
-                                             "meansPlot" = pMeans,
-                                             "medians" = medianVec,
-                                             "mediansPlot" = pMedians,
-                                             "tTest_pvals" = ttestVec,
-                                             "tTest_pvalsPlot" = pTtest))
-    }
-    names(resList)[i] <- gene
-
   }
-  return(resList)
+  pairRes[["compared"]][["correlatedPathwaysDataFrame"]] <- compPaths
+  # Return results
+  return(pairRes)
+
 }
+
+
+
 
 

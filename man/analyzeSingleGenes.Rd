@@ -5,9 +5,10 @@
 \title{Analyze Single Genes}
 \usage{
 analyzeSingleGenes(genesOfInterest, Species = c("hsapiens", "mmusculus"),
-  GSEA_Type = c("simple", "complex"), Sample_Type = c("Normal_Tissues",
-  "Tumor_Tissues"), outputPrefix = "CorrelationAnalyzeR_Output",
-  runGSEA = T, returnDataOnly = F)
+  GSEA_Type = c("simple", "complex"), Sample_Type = c("normal",
+  "cancer"), Tissue = "all",
+  outputPrefix = "CorrelationAnalyzeR_Output", runGSEA = T,
+  topPlots = T, returnDataOnly = F)
 }
 \arguments{
 \item{genesOfInterest}{A vector of genes to analyze.}
@@ -20,7 +21,13 @@ or just those in the most popular categories. Should be one of either
 'simple' or 'complex'.}
 
 \item{Sample_Type}{Type of RNA Seq samples used to create correlation data.
-Either "All", "Normal_Tissues", or "Tumor_Tissues".}
+Either "all", "normal", or "cancer". Can be a single value for all genes,
+or a vector where each entry corresponds to a gene of interest.}
+
+\item{Tissue}{Which tissue type should gene correlations be derived from?
+Default = "all". Can be a single value for all genes, or a vector where each
+entry corresponds to a gene of interest.
+ Run getTissueTypes() to see available tissue list.}
 
 \item{outputPrefix}{Prefix for saved files. Should include directory info.}
 

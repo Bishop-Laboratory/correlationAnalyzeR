@@ -9,7 +9,7 @@
 #'     gene symbols.
 #' @param plotFile prefix to use for naming output files.
 #' @param outDir output directory.
-#' @param Condition Name to use for titles of plots.
+#' @param Condition Name to use for titles of plots. Default = "GSEA Results".
 #' @param padjustedCutoff Value to use as a cutoff for returned gene sets.
 #' @param returnDataOnly Should GSEA data/plots be saved to file? Default: FALSE
 #' @param topPlots Should top GSEA pathways be plotted? Default: TRUE
@@ -23,7 +23,8 @@
 #' @export
 # Helper for GSEA
 myGSEA <- function(ranks, TERM2GENE, plotFile,
-                   outDir, Condition = Condition,
+                   outDir,
+                   Condition = "GSEA Results",
                    padjustedCutoff = .05,
                    returnDataOnly = FALSE,
                    topPlots = TRUE) {

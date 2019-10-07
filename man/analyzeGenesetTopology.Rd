@@ -5,9 +5,11 @@
 \title{Analyze Gene List Topology}
 \usage{
 analyzeGenesetTopology(genesOfInterest, Species = c("hsapiens",
-  "mmusculus"), Sample_Type = c("Normal_Tissues", "Tumor_Tissues"),
-  crossComparisonType = c("variantGenes", "coCorrelativeGenes", "PCA"),
-  setComparisonCutoff = "Auto", numTopGenesToPlot = "Auto",
+  "mmusculus"), Sample_Type = c("normal", "cancer"), Tissue = "all",
+  crossComparisonType = c("PCA", "variantGenes", "coCorrelativeGenes",
+  "pathwayEnrich"), pathwayType = c("simple", "complex"),
+  setComparisonCutoff = "Auto", pathwayEnrichment = F,
+  pValueCutoff = 0.05, numTopGenesToPlot = "Auto",
   alternativeTSNE = T, numClusters = "Auto",
   outputPrefix = "CorrelationAnalyzeR_Output", returnDataOnly = F)
 }
@@ -18,12 +20,27 @@ analyzeGenesetTopology(genesOfInterest, Species = c("hsapiens",
 Either 'hsapiens' or 'mmusculus'}
 
 \item{Sample_Type}{Type of RNA Seq samples used to create correlation data.
-Either "All", "Normal_Tissues", or "Tumor_Tissues".}
+Either "all", "normal", or "cancer". Can be a single value for all genes,
+or a vector where each entry corresponds to a gene of interest.}
+
+\item{Tissue}{Which tissue type should gene correlations be derived from?
+Default = "all". Can be a single value for all genes, or a vector where each
+entry corresponds to a gene of interest.
+ Run getTissueTypes() to see available tissue list.}
 
 \item{crossComparisonType}{The type of topology tests to run. (see details)}
 
+\item{pathwayType}{Whether pathway enrichment should consider all msigdb annotations
+or just those in the most popular categories. Should be one of either
+'simple' or 'complex'.}
+
 \item{setComparisonCutoff}{Only relevant for cocorrelation analysis -- the number of genes which
 must aggree for a gene to be considered co-correlative within the input gene list.}
+
+\item{pathwayEnrichment}{Logic. If TRUE, pathway enrichment will be performed on variant genes -- if 'variantGenes'
+selected -- and/or on co-correlative genes -- if "coCorrelativeGenes" selected.}
+
+\item{pValueCutoff}{Numeric. The p value cutoff applied when running all pathway enrichment tests.}
 
 \item{numTopGenesToPlot}{When creating a heatmap of the top co-correlative or top variant genes,
 how many genes should be plotted on the y axis?}
@@ -52,6 +69,7 @@ Cross Comparison Types:
 - PCA: This is a dimensionality reduction technique for exploring the topology of a gene list.
        The PCA analyses here employes hclust to divide the gene list into functional clusters.
        If the input list is > 100 genes, RTsne will be used for visualization.
+- pathwayEnrich: Cluster profiler's enricher function will be run on the input gene list.
 }
 \examples{
 genesOfInterest <- c("CDK12", "AURKB", "SFPQ", "PARP1", "BRCC3", "BRCA2", "PARP1",
