@@ -1,17 +1,26 @@
 devtools::install_github("millerh1/correlationAnalyzeR")
 library(correlationAnalyzeR)
 
-genesOfInterest <- "Atm"
-corr <- getCorrelationData(Species = "mmusculus", Sample_Type = "Tumor_Tissues", geneList = genesOfInterest)
+genesOfInterest <- "ATM"
+corr <- getCorrelationData(Species = "hsapiens",
+                           Sample_Type = "normal",
+                           Tissue = "blood",
+                           geneList = genesOfInterest)
 
 
 genesOfInterest <- c("ATM", "AKT1", "HIF1A", "PRKAA2", "SLC3A2", "MTOR",
                      "SLC7A11", "SLC7A5", "G6PD", "HSPB1")
 # Run the function with desired parameters
-analyzeSingleGenes(genesOfInterest = genesOfInterest[1],
-                                        outputPrefix = "tests/singleGeneTesting",
-                                        Species = "hsapiens",
-                                        Sample_Type = "Normal_Tissues")
+res <- analyzeSingleGenes(genesOfInterest = genesOfInterest,
+                          outputPrefix = "tests/singleGeneTesting",
+                          Species = "hsapiens", Tissue = "pancreas",
+                          topPlots = F,
+                          Sample_Type = "cancer")
+corrDF <- res$correlations
+res <- correlationAnalyzeR::analyzeGenePairs(genesOfInterest = c("ATM", "SLC3A2"),
+                                             Tissue = c("pancreas", "pancreas"))
+
+
 
 
 # Check the paired genes

@@ -4,7 +4,7 @@
 \alias{getCorrelationData}
 \title{Get Gene Correlation Data}
 \usage{
-getCorrelationData(Species, Sample_Type, geneList)
+getCorrelationData(Species, Sample_Type, Tissue, geneList)
 }
 \arguments{
 \item{Species}{Species to obtain gene names for.
@@ -12,6 +12,8 @@ Either 'hsapiens' or 'mmusculus'}
 
 \item{Sample_Type}{Type of RNA Seq samples used to create correlation data.
 Either "All", "Normal_Tissues", or "Tumor_Tissues".}
+
+\item{Tissue}{Type of tissue to extract correlations from. e.g. brain, lung, all.}
 
 \item{geneList}{Vector of genes for which data will be extracted.}
 }

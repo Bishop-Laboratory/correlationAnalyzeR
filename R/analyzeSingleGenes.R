@@ -12,7 +12,13 @@
 #'     'simple' or 'complex'.
 #'
 #' @param Sample_Type Type of RNA Seq samples used to create correlation data.
-#'     Either "All", "Normal_Tissues", or "Tumor_Tissues".
+#' Either "all", "normal", or "cancer". Can be a single value for all genes,
+#' or a vector where each entry corresponds to a gene of interest.
+#'
+#' @param Tissue Which tissue type should gene correlations be derived from?
+#' Default = "all". Can be a single value for all genes, or a vector where each
+#' entry corresponds to a gene of interest.
+#'  Run getTissueTypes() to see available tissue list.
 #'
 #' @param outputPrefix Prefix for saved files. Should include directory info.
 #'
@@ -35,27 +41,25 @@ analyzeSingleGenes <- function(genesOfInterest,
                                Species = c("hsapiens", "mmusculus"),
                                GSEA_Type = c("simple", "complex"),
                                Sample_Type = c(#"All",
-                                          "Normal_Tissues",
-                                          "Tumor_Tissues"),
+                                          "normal",
+                                          "cancer"),
+                               Tissue = "all",
                                outputPrefix = "CorrelationAnalyzeR_Output",
-                               runGSEA = T, returnDataOnly = F) {
+                               runGSEA = T, topPlots = T, returnDataOnly = F) {
 
   # # Debug/Test
-  # genesOfInterest <- c("ATM", "SLC3A2", "SON", "BRCA1")
+  # genesOfInterest <- c("BRCA1", "ATM", "PARP1")
   # GSEA_Type = "simple"
-  # runGSEA = F
+  # runGSEA = T
+  # topPlots = F
   # outputPrefix = "tests/CorrelationAnalyzeR_Output"
   # Species = "hsapiens"
-  # Sample_Type = "Normal_Tissues"
+  # Sample_Type = c("cancer", "normal", "cancer")
+  # Tissue = "brain"
   # returnDataOnly = F
 
   # Parse arguments
-  genesOfInterest <- unique(genesOfInterest)
   geneString <- paste(genesOfInterest, collapse = ", ")
-  # Fix possible parameter conflict
-  if (returnDataOnly) {
-    runGSEA <- F
-  }
 
   # Create output folder
   if (! dir.exists(outputPrefix) & ! returnDataOnly) {
@@ -90,7 +94,7 @@ analyzeSingleGenes <- function(genesOfInterest,
          \n")
   }
   # Check genes to make sure they exist
-  avGenes <- getAvailableGenes(Species = Species)
+  avGenes <- correlationAnalyzeR::getAvailableGenes(Species = Species)
   avGenes <- as.character(avGenes$geneName)
   badGenes <- genesOfInterest[which(! genesOfInterest %in% avGenes)]
   if (length(badGenes) > 0) {
@@ -101,10 +105,33 @@ analyzeSingleGenes <- function(genesOfInterest,
                 have a species-specific identifier.\n"))
   }
   cat("\nRetrieving any missing correlation data...\n")
+
+  if (length(Tissue) == 1) {
+    Tissue <- rep(Tissue, length(genesOfInterest))
+  } else if (length(Tissue) > 1) {
+    if (length(Tissue) != length(genesOfInterest)) {
+      stop("Number of valid genes not equal
+           to length of supplied Tissue vector.
+           Tissue vector should include 1 entry or the number of
+           entries equal to the number of genesOfInterest.")
+    }
+  }
+  if (length(Sample_Type) == 1) {
+    Sample_Type <- rep(Sample_Type, length(genesOfInterest))
+  } else if (length(Sample_Type) > 1) {
+    if (length(Sample_Type) != length(genesOfInterest)) {
+      stop("Number of valid genes not equal
+           to length of supplied Sample_Type vector.
+           Sample_Type vector should include 1 entry or the number of
+           entries equal to the number of genesOfInterest.")
+    }
+  }
   # Call downloadData to get all required files
-  corrDF <- getCorrelationData(Species = Species[1],
-                               Sample_Type = Sample_Type[1],
-                               geneList = genesOfInterest)
+  corrDF <- correlationAnalyzeR::getCorrelationData(Species = Species,
+                                                    Tissue = Tissue,
+                                                    Sample_Type = Sample_Type,
+                                                    geneList = genesOfInterest)
+  resList <- list()
   # Main code
   for (i in 1:length(colnames(corrDF))) {
     gene <- colnames(corrDF)[i]
@@ -114,39 +141,59 @@ analyzeSingleGenes <- function(genesOfInterest,
     if (! dir.exists(geneOutDir) & ! returnDataOnly) {
       dir.create(geneOutDir)
     }
+    # Remove gene from correlation values to build normal distribution
+    vec <- corrDF[,i]
+    names(vec) <- rownames(corrDF)
+    vec <- vec[order(vec, decreasing = T)]
+    vec <- vec[c(-1)]
+    # Make a histogram of gene correlations
+    corrDF2 <- corrDF[which(rownames(corrDF) != gene),i, drop = F]
+    geneOne <- genesOfInterest[i]
+    tissueOne <- Tissue[i]
+    sampleOne <- Sample_Type[i]
+    geneOneTitle <- paste0(geneOne, ", ",
+                           tools::toTitleCase(tissueOne),
+                           " - ",
+                           tools::toTitleCase(sampleOne))
+
+    p <- ggpubr::gghistogram(data = corrDF2, x = gene, y = "..count..",
+                             bins = 100, ylab = "Frequency\n",
+                             title = gene,
+                             caption = paste0(tools::toTitleCase(tissueOne),
+                                              " - ",
+                                              tools::toTitleCase(sampleOne)),
+                             xlab = paste0(gene, " correlation values"))
+
+    resList[[i]] <- list()
+    names(resList)[i] <- geneOneTitle
+    geneOneTitleFile <- gsub(pattern = ",| |-", replacement = "", x = geneOneTitle)
+    resList[[geneOneTitle]][["corrHist"]] <- p
     if (! returnDataOnly) {
-      # Remove gene from correlation values to build normal distribution
-      vec <- corrDF[,i]
-      names(vec) <- rownames(corrDF)
-      vec <- vec[order(vec, decreasing = T)]
-      vec <- vec[c(-1)]
-      # Make a histogram of gene correlations
-      png(file.path(geneOutDir, paste0(gene, ".png")))
-      hist(vec,
-           main = paste0(gene, " gene correlations"),
-           breaks = 100, xlab = "Correlation Value")
-      dev.off()
-      if (runGSEA) {
-        # Perform GSEA
-        cat("\nGSEA\n")
-        resGSEA <- suppressWarnings(myGSEA(ranks = vec, TERM2GENE = TERM2GENE,
-                                           plotFile = paste0(gene, ".corrPathways"),
-                                           outDir = geneOutDir,
-                                           Condition = paste0(gene, " Correlated Genes")))
-      }
+      ggplot2::ggsave(filename = file.path(geneOutDir,
+                                           paste0(geneOneTitleFile, ".png")),
+                      plot = p)
     }
-  }
-  if (! returnDataOnly) {
-    # Save results from all queried genes
-    if (length(colnames(corrDF)) < 25 & length(colnames(corrDF)) > 1) {
-      corrDF <- cbind(rownames(corrDF), corrDF)
-      colnames(corrDF)[1] <- "geneName"
-      write.csv(corrDF, file = file.path(outputPrefix, "geneCorrelationData.csv"), row.names = F)
-      save(corrDF, file = file.path(outputPrefix, "geneCorrelationData.RData"))
-    } else if (length(colnames(corrDF)) > 1) {
-      save(corrDF, file = file.path(outputPrefix, "geneCorrelationData.RData"))
+
+
+    if (runGSEA) {
+      # Perform GSEA
+      cat("\nGSEA\n")
+
+      resGSEA <- suppressWarnings(
+        correlationAnalyzeR::myGSEA(ranks = vec, TERM2GENE = TERM2GENE,
+                                    plotFile = paste0(geneOneTitleFile,
+                                                      ".corrPathways"),
+                                    outDir = geneOutDir,
+                                    topPlots = topPlots,
+                                    returnDataOnly = returnDataOnly,
+                                    Condition = paste0(geneOneTitle,
+                                                       ": Correlated Genes"))
+      )
+      resList[[geneOneTitle]][["GSEA"]] <- resGSEA
     }
+
   }
+  resList[["correlations"]] <- corrDF
   # Return results
-  return(corrDF)
+  return(resList)
 }

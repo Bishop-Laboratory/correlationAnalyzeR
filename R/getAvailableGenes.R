@@ -13,7 +13,7 @@
 #' @export
 getAvailableGenes <- function(Species = c("hsapiens", "mmusculus")) {
 
-  # # # Bug testing
+  # # # # Bug testing
   # Species <- "hsapiens"
 
   # Specify information about the download location and species type
@@ -26,11 +26,13 @@ getAvailableGenes <- function(Species = c("hsapiens", "mmusculus")) {
          Please select either 'hsapiens' or 'mmusculus' for Species parameter.
          \n")
   }
-  Sample_Type = "Normal_Tissues" # This is default behavior
+  Sample_Type = "normal" # This is default behavior
+  Tissue = "brain"
   # Download a sample file which contains all gene identifiers
-  geneNamesDF <- getCorrelationData(Species = Species[1],
-                                    Sample_Type = Sample_Type,
-                                    geneList = gene)
+  geneNamesDF <- correlationAnalyzeR::getCorrelationData(Species = Species[1],
+                                                         Sample_Type = Sample_Type,
+                                                         Tissue = Tissue,
+                                                         geneList = gene)
   geneNamesDF <- as.data.frame(rownames(geneNamesDF))
   colnames(geneNamesDF)[1] <- "geneName"
   if (Species[1] == "hsapiens") {
