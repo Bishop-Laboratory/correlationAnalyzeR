@@ -3,6 +3,7 @@
 export(analyzeGenePairs)
 export(analyzeGenesetTopology)
 export(analyzeSingleGenes)
+export(fixStrings)
 export(geneVsGeneListAnalyze)
 export(getAvailableGenes)
 export(getCorrelationData)

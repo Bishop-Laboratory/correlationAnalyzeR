@@ -7,7 +7,7 @@
 analyzeGenePairs(genesOfInterest, Sample_Type = c("normal", "normal"),
   Tissue = c("all", "all"), Species = c("hsapiens", "mmusculus"),
   GSEA_Type = c("simple", "complex"),
-  outputPrefix = "CorrelationAnalyzeR_Output", runGSEA = T,
+  outputPrefix = "CorrelationAnalyzeR_Output_Paired", runGSEA = T,
   topPlots = F, returnDataOnly = F)
 }
 \arguments{

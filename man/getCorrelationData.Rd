@@ -11,9 +11,13 @@ getCorrelationData(Species, Sample_Type, Tissue, geneList)
 Either 'hsapiens' or 'mmusculus'}
 
 \item{Sample_Type}{Type of RNA Seq samples used to create correlation data.
-Either "All", "Normal_Tissues", or "Tumor_Tissues".}
+Either "all", "normal", or "cancer". Can be a single value for all genes,
+or a vector where each entry corresponds to a gene of interest.}
 
-\item{Tissue}{Type of tissue to extract correlations from. e.g. brain, lung, all.}
+\item{Tissue}{Which tissue type should gene correlations be derived from?
+Default = "all". Can be a single value for all genes, or a vector where each
+entry corresponds to a gene of interest.
+Run getTissueTypes() to see available tissue list.}
 
 \item{geneList}{Vector of genes for which data will be extracted.}
 }
@@ -24,7 +28,10 @@ A correlation data frame object
 Queries from MySQL the requested gene correlation data
 }
 \examples{
-correlationDF <- getCorrelationData(Species = "hsapiens", Sample_Type = "Normal_Tissues",
+
+correlationDF <- getCorrelationData(Species = "hsapiens",
+                                    Sample_Type = "normal",
+                                    Tissue = "blood",
                                     geneList = c("ATM", "BRCA1"))
 
 }

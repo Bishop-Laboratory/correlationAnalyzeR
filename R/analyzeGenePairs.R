@@ -46,14 +46,14 @@ analyzeGenePairs <- function(genesOfInterest,
                              outputPrefix = "CorrelationAnalyzeR_Output_Paired",
                              runGSEA = T, topPlots = F, returnDataOnly = F) {
   # # Debug/Test
-  # genesOfInterest <- c("ATM", "SLC3A2")
+  # genesOfInterest <- c("BRCA1", "BRCA1")
   # GSEA_Type = "simple"
   # # set.seed(1)
   # runGSEA = T
   # outputPrefix = "tests/CorrelationAnalyzeR_Output_paired"
   # Species = "hsapiens"
   # Sample_Type = c("normal", "normal")
-  # Tissue = c("brain", "brain")
+  # Tissue = c("all", "female0reproductive")
   # returnDataOnly = T
   # topPlots=F
 
@@ -77,19 +77,23 @@ analyzeGenePairs <- function(genesOfInterest,
   # Compare correlations -- scatter plot
   correlations <- pairRes$correlations
   geneOne <- genesOfInterest[1]
-  tissueOne <- Tissue[1]
+  tissueOneRaw <- Tissue[1]
+  tissueOne <- gsub(tissueOneRaw, pattern = "0", replacement = " ")
+
   sampleOne <- Sample_Type[1]
   geneOneTitle <- paste0(geneOne, ", ",
-                         tools::toTitleCase(tissueOne),
+                         stringr::str_to_title(tissueOne),
                          " - ",
-                         tools::toTitleCase(sampleOne))
+                         stringr::str_to_title(sampleOne))
   geneTwo <- genesOfInterest[2]
-  tissueTwo <- Tissue[2]
+  tissueTwoRaw <- Tissue[2]
+  tissueTwo <- gsub(tissueTwoRaw, pattern = "0", replacement = " ")
+
   sampleTwo <- Sample_Type[2]
   geneTwoTitle <- paste0(geneTwo, ", ",
-                         tools::toTitleCase(tissueTwo),
+                         stringr::str_to_title(tissueTwo),
                          " - ",
-                         tools::toTitleCase(sampleTwo))
+                         stringr::str_to_title(sampleTwo))
   longName <- ifelse((tissueOne != tissueTwo | sampleOne != sampleTwo),
                      yes = T, no = F)
 
@@ -117,6 +121,7 @@ analyzeGenePairs <- function(genesOfInterest,
     column_to_rownames('gene')
   corHeat <- rbind(corHeatOne, corHeatTwo)
   corHeat <- corHeat[, c(1, 2)]
+  colnames(corHeat) <- c(geneOne, geneTwo)
 
   # GSEA compare -- heatmap
   compPaths <- merge( x= pairRes[[geneOneTitle]][["GSEA"]][["eres"]],
@@ -126,11 +131,11 @@ analyzeGenePairs <- function(genesOfInterest,
   if(longName) {
     colnames(compPaths) <- gsub(x = colnames(compPaths),pattern =  ".x",
                                 replacement =  paste0("_", geneOne,
-                                                      "_", tissueOne,
+                                                      "_", gsub(tissueOne, pattern = " ", replacement = "_"),
                                                       "_", sampleOne))
     colnames(compPaths) <- gsub(x = colnames(compPaths),pattern =  ".y",
                                 replacement =  paste0("_", geneTwo,
-                                                      "_", tissueTwo,
+                                                      "_", gsub(tissueTwo, pattern = " ", replacement = "_"),
                                                       "_", sampleTwo))
   } else {
     colnames(compPaths) <- gsub(x = colnames(compPaths),pattern =  ".x",
@@ -149,13 +154,11 @@ analyzeGenePairs <- function(genesOfInterest,
     dplyr::filter(eval(parse(text = cnes[1])) > 0) %>%
     top_n(15, NES_variance)  %>% slice(1:15)
   compHeatTwo <- compPaths %>%
-    dplyr::filter(eval(parse(text = cnes[2])) > 0) %>%
+    dplyr::filter(eval(parse(text = cnes[2])) > 0 & ! ID %in% compHeatOne$ID) %>%
     top_n(15, NES_variance) %>% slice(1:15)
-  compHeat <- rbind(compHeatOne, compHeatTwo)
-
+  compHeat <- unique(rbind(compHeatOne, compHeatTwo))
   titleID <- compHeat$ID
-  titleID <- gsub(x= titleID, pattern = "_",replacement = " ")
-  titleID <- tools::toTitleCase(tolower(titleID))
+  titleID <- correlationAnalyzeR::fixStrings(titleID)
   titleID[which(nchar(titleID) > 40)] <- paste0(substr(titleID[which(nchar(titleID) > 40)],
                                                        1, 40), "...")
   dups <- which(duplicated(titleID))
@@ -193,10 +196,12 @@ analyzeGenePairs <- function(genesOfInterest,
     pairRes[["compared"]][["correlationPlot"]] <- gs
 
     phCor <- pheatmap::pheatmap(corHeat, silent = T, angle_col = 0,
+                                main = "Differentially correlated genes",
                                 labels_col = c(geneOneTitle, geneTwoTitle),
                                 cluster_rows = T, cluster_cols = F)
     pairRes[["compared"]][["correlationVarianceHeatmap"]] <- phCor
     phGSEA <- pheatmap::pheatmap(compHeat, silent = T, angle_col = 0,
+                                 main = "Differentially correlated pathways",
                                  labels_col = c(geneOneTitle, geneTwoTitle),
                                  cluster_rows = T,
                                  cluster_cols = F)

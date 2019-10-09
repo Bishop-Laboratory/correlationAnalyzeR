@@ -10,6 +10,7 @@
 #' @param plotFile prefix to use for naming output files.
 #' @param outDir output directory.
 #' @param Condition Name to use for titles of plots. Default = "GSEA Results".
+#' @param nperm Number of permutations to run. Default is 2000
 #' @param padjustedCutoff Value to use as a cutoff for returned gene sets.
 #' @param returnDataOnly Should GSEA data/plots be saved to file? Default: FALSE
 #' @param topPlots Should top GSEA pathways be plotted? Default: TRUE
@@ -27,6 +28,7 @@ myGSEA <- function(ranks, TERM2GENE, plotFile,
                    Condition = "GSEA Results",
                    padjustedCutoff = .05,
                    returnDataOnly = FALSE,
+                   nperm = 2000,
                    topPlots = TRUE) {
 
   # # Bug testing
@@ -48,7 +50,12 @@ myGSEA <- function(ranks, TERM2GENE, plotFile,
   ranks <- ranks[which(! is.na(ranks))]
   ranks <- ranks[order(ranks, decreasing = T)]
   EGMT <- clusterProfiler::GSEA(ranks, TERM2GENE=TERM2GENE,
-                                nPerm = 1000, pvalueCutoff = padjustedCutoff)
+                                maxGSSize = 500, seed = T,
+                                minGSSize = 15, exponent = 2,
+                                nPerm = nperm, pvalueCutoff = padjustedCutoff)
+
+
+
   resGSEA <- as.data.frame(EGMT)
 
   resList[["EGMT"]] <- EGMT
@@ -57,7 +64,9 @@ myGSEA <- function(ranks, TERM2GENE, plotFile,
     warning(paste0("GSEA Failed -- No significant pathways at designated pValue: ",
                    padjustedCutoff, ". Rerunning with higher pValue."))
     EGMT <- clusterProfiler::GSEA(ranks, TERM2GENE=TERM2GENE,
-                                  nPerm = 1000, pvalueCutoff = padjustedCutoff + .2)
+                                  maxGSSize = 500, seed = T,
+                                  minGSSize = 15,
+                                  nPerm = nperm, pvalueCutoff = padjustedCutoff + .2)
     resGSEA <- as.data.frame(EGMT)
     resList[["EGMT"]] <- EGMT
   }
@@ -65,7 +74,9 @@ myGSEA <- function(ranks, TERM2GENE, plotFile,
     warning(paste0("GSEA Failed -- No significant pathways at designated pValue: ",
                    padjustedCutoff, ". Rerunning with higher pValue."))
     EGMT <- clusterProfiler::GSEA(ranks, TERM2GENE=TERM2GENE,
-                                  nPerm = 1000, pvalueCutoff = padjustedCutoff + .45)
+                                  maxGSSize = 500,seed = T,
+                                  minGSSize = 15,
+                                  nPerm = nperm, pvalueCutoff = padjustedCutoff + .45)
     resGSEA <- as.data.frame(EGMT)
     resList[["EGMT"]] <- EGMT
   }
