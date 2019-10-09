@@ -51,7 +51,7 @@ myGSEA <- function(ranks, TERM2GENE, plotFile,
   ranks <- ranks[order(ranks, decreasing = T)]
   EGMT <- clusterProfiler::GSEA(ranks, TERM2GENE=TERM2GENE,
                                 maxGSSize = 500, seed = T,
-                                minGSSize = 15, exponent = 2,
+                                minGSSize = 15,
                                 nPerm = nperm, pvalueCutoff = padjustedCutoff)
 
 
