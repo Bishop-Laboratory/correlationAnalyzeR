@@ -150,18 +150,20 @@ analyzeSingleGenes <- function(genesOfInterest,
     corrDF2 <- corrDF[which(rownames(corrDF) != gene),i, drop = F]
     geneOne <- genesOfInterest[i]
     tissueOne <- Tissue[i]
+    tissueOne <- gsub(tissueOne, pattern = "0", replacement = " ")
+
     sampleOne <- Sample_Type[i]
     geneOneTitle <- paste0(geneOne, ", ",
-                           tools::toTitleCase(tissueOne),
+                           stringr::str_to_title(tissueOne),
                            " - ",
-                           tools::toTitleCase(sampleOne))
+                           stringr::str_to_title(sampleOne))
 
     p <- ggpubr::gghistogram(data = corrDF2, x = gene, y = "..count..",
                              bins = 100, ylab = "Frequency\n",
                              title = gene,
-                             caption = paste0(tools::toTitleCase(tissueOne),
+                             caption = paste0(stringr::str_to_title(tissueOne),
                                               " - ",
-                                              tools::toTitleCase(sampleOne)),
+                                              stringr::str_to_title(sampleOne)),
                              xlab = paste0(gene, " correlation values"))
 
     resList[[i]] <- list()

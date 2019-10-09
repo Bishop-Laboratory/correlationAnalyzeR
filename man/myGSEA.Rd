@@ -5,7 +5,8 @@
 \title{Wrapper for clusterProlifer's GSEA function}
 \usage{
 myGSEA(ranks, TERM2GENE, plotFile, outDir, Condition = "GSEA Results",
-  padjustedCutoff = 0.05, returnDataOnly = FALSE, topPlots = TRUE)
+  padjustedCutoff = 0.05, returnDataOnly = FALSE, nperm = 2000,
+  topPlots = TRUE)
 }
 \arguments{
 \item{ranks}{Numeric of gene 'scores' ordered by decreasing value and
@@ -23,6 +24,8 @@ gene symbols.}
 \item{padjustedCutoff}{Value to use as a cutoff for returned gene sets.}
 
 \item{returnDataOnly}{Should GSEA data/plots be saved to file? Default: FALSE}
+
+\item{nperm}{Number of permutations to run. Default is 2000}
 
 \item{topPlots}{Should top GSEA pathways be plotted? Default: TRUE}
 }

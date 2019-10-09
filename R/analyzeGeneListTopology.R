@@ -262,7 +262,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
       resList[["variantGenes_pathways"]] <- VarGenesEGMT
       # Modify gene set names to fit plotting window
       VarGenesEGMT@result$Description[which(nchar(VarGenesEGMT@result$Description) > 40)] <- paste0(substr(VarGenesEGMT@result$Description[which(nchar(VarGenesEGMT@result$Description) > 40)], 1, 40), "...")
-      dp <- enrichplot::dotplot(VarGenesEGMT)
+      dp <- clusterProfiler::dotplot(VarGenesEGMT)
       dp <- dp + ggplot2::labs(title = "Variant Genes Pathway Enrichment")
       resList[["variantGenes_pathways_dotplot"]] <- dp
     }
@@ -356,7 +356,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
       resList[["coCorrelativeGenes_pathways"]] <- eres
       # Modify gene set names to fit plotting window
       CCGenesEGMT@result$Description[which(nchar(CCGenesEGMT@result$Description) > 40)] <- paste0(substr(CCGenesEGMT@result$Description[which(nchar(CCGenesEGMT@result$Description) > 40)], 1, 40), "...")
-      dp <- enrichplot::dotplot(CCGenesEGMT)
+      dp <- clusterProfiler::dotplot(CCGenesEGMT)
       dp <- dp + ggplot2::labs(title = "Co-Correlated Genes Pathway Enrichment")
       resList[["coCorrelativeGenes_pathways_dotplot"]] <- dp
     }
