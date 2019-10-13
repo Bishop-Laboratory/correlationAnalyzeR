@@ -1,44 +1,28 @@
 #' Get Gene Correlation Data
 #'
-#' Queries from MySQL the requested gene correlation data
+#' Obtain correlation data by querying MySQL database
 #'
 #' @param Species Species to obtain gene names for.
 #'     Either 'hsapiens' or 'mmusculus'
 #' @param Sample_Type Type of RNA Seq samples used to create correlation data.
 #' Either "all", "normal", or "cancer". Can be a single value for all genes,
-#' or a vector where each entry corresponds to a gene of interest.
+#' or a vector corresponding to geneList.
 #' @param Tissue Which tissue type should gene correlations be derived from?
-#' Default = "all". Can be a single value for all genes, or a vector where each
-#' entry corresponds to a gene of interest.
+#' Default = "all". Can be a single value for all genes,
+#' or a vector corresponding to geneList.
 #' Run getTissueTypes() to see available tissue list.
 #' @param geneList Vector of genes for which data will be extracted.
 #'
 #' @return A correlation data frame object
 #'
 #' @examples
-#'
-#' correlationDF <- getCorrelationData(Species = "hsapiens",
+#'correlationAnalyzeR::getCorrelationData(Species = "hsapiens",
 #'                                     Sample_Type = "normal",
 #'                                     Tissue = "blood",
 #'                                     geneList = c("ATM", "BRCA1"))
 #'
 #' @export
 getCorrelationData <- function(Species, Sample_Type, Tissue, geneList) {
-  # # Bug Testing
-  # Species <- "hsapiens"
-  # Sample_Type <- "normal"
-  # tissue <- "brain"
-  # geneList <- c("BRCA1", "NFE2L2", "ATM", "PARP1")
-  # Tissue <- c("brain", "thyroid", "brain", "blood")
-  # Sample_Type <- c("normal", "cancer", "cancer", "normal")
-  # dbListTables(con)
-  # # Got this part from the Server
-  # load("data/hsapiens_geneNames.RData")
-  # hsapiens_corrSmall_geneNames <- geneNames
-  # usethis::use_data(hsapiens_corrSmall_geneNames, overwrite = T)
-  # load("data/mmusculus_geneNames.RData")
-  # mmusculus_corrSmall_geneNames <- geneNames
-  # usethis::use_data(mmusculus_corrSmall_geneNames, overwrite = T)
 
   if (Species == "hsapiens") {
     geneNames <- correlationAnalyzeR::hsapiens_corrSmall_geneNames
@@ -72,10 +56,15 @@ getCorrelationData <- function(Species, Sample_Type, Tissue, geneList) {
                         password='public-user-password',
                         host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com")
   if (length(unique(Tissue)) == 1 & length(unique(Sample_Type)) == 1) {
+    if (Tissue == "respiratory") {
+      TissueNow <- "repiratory"
+    } else {
+      TissueNow <- Tissue
+    }
     sql <- paste0("SELECT * FROM correlations_",
                   Species, "_",
                   tolower(unique(Sample_Type)), "_",
-                  tolower(unique(Tissue)),
+                  tolower(unique(TissueNow)),
                   " WHERE row_names IN ('",
                   paste(geneList, collapse = "','"), "')")
     res <- DBI::dbSendQuery(conn = con, statement = sql)
@@ -91,10 +80,15 @@ getCorrelationData <- function(Species, Sample_Type, Tissue, geneList) {
     for ( i in 1:length(geneList) ) {
       geneName <- geneList[i]
       TissueNow <- Tissue[i]
+      if (TissueNow == "respiratory") {
+        TissueNow2 <- "repiratory"
+      } else {
+        TissueNow2 <- TissueNow
+      }
       Sample_TypeNow <- Sample_Type[i]
       sql <- paste0("SELECT * FROM correlations_",
                     Species, "_",
-                    tolower(Sample_TypeNow), "_", tolower(TissueNow),
+                    tolower(Sample_TypeNow), "_", tolower(TissueNow2),
                     " WHERE row_names IN ('",
                     geneName, "')")
       res <- DBI::dbSendQuery(conn = con, statement = sql)

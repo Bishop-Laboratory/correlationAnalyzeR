@@ -17,6 +17,6 @@ Dataframe containing available genes and NCBI descriptions.
 Finds available genes within correlation data
 }
 \examples{
-getAvailableGenes("hsapiens")
+correlationAnalyzeR::getAvailableGenes("hsapiens")
 
 }

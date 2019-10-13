@@ -1,12 +1,12 @@
-#' Wrapper for clusterProlifer's GSEA function
+#' Wrapper for clusterProlifer's GSEA()
 #'
-#' Run's the GSEA function from clusterProfiler and creates useful
-#'     visualizations. It also outputs GSEA results to csv.
+#' Runs GSEA() from clusterProfiler and creates useful
+#' visualizations.
 #'
 #' @param ranks Numeric of gene 'scores' ordered by decreasing value and
 #'     named with gene symbols.
 #' @param TERM2GENE Data frame with two columns: gene set identifiers and
-#'     gene symbols.
+#' gene symbols. Can be generated using msigdbr::msigdbr().
 #' @param plotFile prefix to use for naming output files.
 #' @param outDir output directory.
 #' @param Condition Name to use for titles of plots. Default = "GSEA Results".
@@ -15,42 +15,37 @@
 #' @param returnDataOnly Should GSEA data/plots be saved to file? Default: FALSE
 #' @param topPlots Should top GSEA pathways be plotted? Default: TRUE
 #'
-#' @return Output of GSEA function in clusterProfiler.
+#' @return Named list containing GSEA() output, GSEA data frame, and visualizations.
 #'
 #' @examples
-#' myGSEA(ranks = DGE_results$GSEA, TERM2GENE = msigdbr()[,c(1,5)],
-#'        plotFile = "GSEA_out", outDir = getwd(), Condition = "GSEA Results")
+#' corrDF <- correlationAnalyzeR::analyzeSingleGenes(genesOfInterest = c("BRCA1"),
+#'  returnDataOnly = TRUE, runGSEA = FALSE, Sample_Type = "normal")
+#' ranks <- corrDF$correlations[,1]
+#' names(ranks) <- rownames(corrDF$correlations)
+#' correlationAnalyzeR::myGSEA(ranks = ranks,
+#' TERM2GENE = correlationAnalyzeR::hsapiens_simple_TERM2GENE,
+#'        plotFile = "GSEA_out", outDir = getwd(),
+#'        topPlots = FALSE, returnDataOnly=TRUE, Condition = "GSEA Results")
 #'
 #' @export
 # Helper for GSEA
-myGSEA <- function(ranks, TERM2GENE, plotFile,
-                   outDir,
-                   Condition = "GSEA Results",
+myGSEA <- function(ranks,
+                   TERM2GENE,
                    padjustedCutoff = .05,
                    returnDataOnly = FALSE,
                    nperm = 2000,
-                   topPlots = TRUE) {
+                   topPlots = TRUE,
+                   outDir,
+                   Condition = "GSEA Results",
+                   plotFile = "GSEA_results") {
 
-  # # Bug testing
-  # TERM2GENE <- hsapiens_simple_TERM2GENE
-  # padjustedCutoff <- .05
-  # data <- correlationAnalyzeR::getCorrelationData(geneList = "BRCA1", Species = "hsapiens",
-  #                                                  Sample_Type = "Normal_Tissues")
-  # data <- cbind(rownames(data), data)
-  # colnames(data)[1] <- "geneName"
-  # data <- data[which(data[,1] != "BRCA1"),]
-  # rownames(data) <- NULL
-  # load("../Shiny_Apps/correlationAnalyzeR/data/geneInfo/HS_basicGeneInfo.RData")
-  # data <- merge(x = HS_basicGeneInfo, y = data, by = "geneName")
-  # ranks <- data[,4]
-  # names(ranks) <- data[,1]
 
   resList <- list()
   ranks <- ranks[which(! duplicated(names(ranks)))]
   ranks <- ranks[which(! is.na(ranks))]
-  ranks <- ranks[order(ranks, decreasing = T)]
+  ranks <- ranks[order(ranks, decreasing = TRUE)]
   EGMT <- clusterProfiler::GSEA(ranks, TERM2GENE=TERM2GENE,
-                                maxGSSize = 500, seed = T,
+                                maxGSSize = 500, seed = TRUE,
                                 minGSSize = 15,
                                 nPerm = nperm, pvalueCutoff = padjustedCutoff)
 
@@ -64,7 +59,7 @@ myGSEA <- function(ranks, TERM2GENE, plotFile,
     warning(paste0("GSEA Failed -- No significant pathways at designated pValue: ",
                    padjustedCutoff, ". Rerunning with higher pValue."))
     EGMT <- clusterProfiler::GSEA(ranks, TERM2GENE=TERM2GENE,
-                                  maxGSSize = 500, seed = T,
+                                  maxGSSize = 500, seed = TRUE,
                                   minGSSize = 15,
                                   nPerm = nperm, pvalueCutoff = padjustedCutoff + .2)
     resGSEA <- as.data.frame(EGMT)
@@ -74,16 +69,16 @@ myGSEA <- function(ranks, TERM2GENE, plotFile,
     warning(paste0("GSEA Failed -- No significant pathways at designated pValue: ",
                    padjustedCutoff, ". Rerunning with higher pValue."))
     EGMT <- clusterProfiler::GSEA(ranks, TERM2GENE=TERM2GENE,
-                                  maxGSSize = 500,seed = T,
+                                  maxGSSize = 500,seed = TRUE,
                                   minGSSize = 15,
                                   nPerm = nperm, pvalueCutoff = padjustedCutoff + .45)
     resGSEA <- as.data.frame(EGMT)
     resList[["EGMT"]] <- EGMT
   }
   if (topPlots) {
-    resGSEA <- resGSEA[order(resGSEA$NES, decreasing = T),]
+    resGSEA <- resGSEA[order(resGSEA$NES, decreasing = TRUE),]
     topUP <- resGSEA$ID[1:10]
-    resGSEA <- resGSEA[order(resGSEA$NES, decreasing = F),]
+    resGSEA <- resGSEA[order(resGSEA$NES, decreasing = FALSE),]
     topDOWN <- resGSEA$ID[1:10]
     resGSEA <- resGSEA[order(resGSEA$pvalue),]
     plUP <- list()

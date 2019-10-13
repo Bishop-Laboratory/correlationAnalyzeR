@@ -3,45 +3,48 @@
 #' Explores how a list of secondary genes relates to a primary gene of interest
 #'
 #' @param pairedGenesList A list, named with primary genes of interest with
-#'     vectors of secondary genes to test against OR a string containing the
-#'     official MSIGDB name for a gene set of interest.
+#' vectors of secondary genes to test against OR a string containing the
+#' official MSIGDB name for a gene set of interest.
 #'
 #' @param Species Species to obtain gene names for.
-#'     Either 'hsapiens' or 'mmusculus'
+#' Either 'hsapiens' or 'mmusculus'
 #'
 #' @param Sample_Type Type of RNA Seq samples used to create correlation data.
 #' Either "all", "normal", or "cancer". Can be a single value for all genes,
-#' or a vector where each entry corresponds to a gene of interest.
+#' or a vector corresponding to genesOfInterest.
 #'
 #' @param Tissue Which tissue type should gene correlations be derived from?
-#' Default = "all". Can be a single value for all genes, or a vector where each
-#' entry corresponds to a gene of interest.
-#'  Run getTissueTypes() to see available tissue list.
+#' Default = "all". Can be a single value for all genes,
+#' or a vector corresponding to genesOfInterest.
+#' Run getTissueTypes() to see available tissues.
 #'
 #' @param outputPrefix Prefix for saved files. Should include directory info.
 #'
-#' @param sigTest Should the results be compared against random genes?
+#' @param sigTest Should the results be compared against random? Default: TRUE.
 #'
-#' @param nPerm Number of bootstrap sampling events to run during sigTest.
+#' @param nPerm Number of bootstrap sampling events to run during sigTest. Default: 2000.
 #'
 #' @param plotMaxMinCorr If TRUE, the top correlated and anti-correlated genes
-#'     will be plotted alongside the selected secondary genes.
+#' will be plotted alongside the selected secondary genes. Default: TRUE.
 #'
 #' @param plotLabels If TRUE, correlation histograms will contain labeled lines showing
-#'     secondary genes and their correlation values.
-#'     If list of secondary genes is large, set this to FALSE or onlyTop to TRUE
-#'     to avoid cluttering the plot.
+#' secondary genes and their correlation values.
+#' If list of secondary genes is large, set this to FALSE or onlyTop to TRUE
+#' to avoid cluttering the plot. Default: TRUE.
+#'
+#' @param plotTitle Logical. If TRUE, plot title will be added to visualizations. Default: TRUE.
 #'
 #' @param onlyTop For larger secondary gene lists -- This will filter the
-#'     number of secondary genes which are plotted to avoid clutter if plotLabels = TRUE.
+#' number of secondary genes which are plotted to avoid clutter if plotLabels = TRUE.
+#' Default: FALSE.
 #'
-#' @param topCutoff The value used for filtering if 'onlyTop' is 'TRUE'
+#' @param topCutoff The value used for filtering if 'onlyTop' is 'TRUE'. Default: .5
 #'
 #' @param autoRug If the size of a secondary gene list > 50, plot lines will be replaced
-#'     by an auto-generated rug. To disable this behavior, set to FALSE.
+#' by an auto-generated rug. Default: TRUE.
 #'
 #' @param returnDataOnly if TRUE will only return a list containing correlations
-#'     and significance testing results if applicable.
+#' and significance testing results if applicable. Default: FALSE.
 #'
 #' @return A list containing correlation values and signficance testing results
 #'
@@ -49,11 +52,10 @@
 #' pairedGenesList <- list("TP53" = c("BRCA1", "CDK12", "PARP1"),
 #'                         "SON" = c("AURKB", "SFPQ", "DHX9"))
 #'
-#' pairedGenesList <- list("ATM" = "PUJANA_BRCA1_PCC_NETWORK")
-#'
-#' Result <- pairedGenesAnalyzeR(pairedGenesList = pairedGenesList,
-#'                               Species = "hsapiens",
-#'                               Sample_Type = "Normal_Tissues")
+#'correlationAnalyzeR::geneVsGeneListAnalyze(pairedGenesList = pairedGenesList,
+#'                               Species = "hsapiens", returnDataOnly = TRUE,
+#'                               Sample_Type = "normal",
+#'                               Tissue = "brain")
 #'
 #' @export
 geneVsGeneListAnalyze <- function(pairedGenesList,
@@ -63,37 +65,15 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
                                     "cancer"),
                                   Tissue = "all",
                                   outputPrefix = "CorrelationAnalyzeR_Output",
-                                  plotLabels = T,
-                                  sigTest = T, nPerm = 2000,
-                                  plotMaxMinCorr = T,
-                                  onlyTop = F,
+                                  plotLabels = TRUE,
+                                  sigTest = TRUE, nPerm = 2000,
+                                  plotMaxMinCorr = TRUE,
+                                  onlyTop = FALSE,
                                   topCutoff = .5,
-                                  autoRug = T,
-                                  plotTitle = T,
-                                  returnDataOnly = F) {
+                                  autoRug = TRUE,
+                                  plotTitle = TRUE,
+                                  returnDataOnly = FALSE) {
 
-  # # Bug checking
-  # Species = c( "hsapiens")
-  # Sample_Type = "normal"
-  # Tissue = "brain"
-  # returnDataOnly <- T
-  # outputPrefix = "tests/pairedOut"
-  # # pairedGenesList <- list("ATM" = "MIYAGAWA_TARGETS_OF_EWSR1_ETS_FUSIONS_UP",
-  # #                         "SON" = "TORCHIA_TARGETS_OF_EWSR1_FLI1_FUSION_UP",
-  # #                         "BRCA1" = "BILD_E2F3_ONCOGENIC_SIGNATURE")
-  # pairedGenesList <- list("ATM" = c("TP53", "NFE2L2", "BRCA2"))
-  # # pairedGenesList <- list("BRCA1" = "PUJANA_BRCA1_PCC_NETWORK")
-  # # pairedGenesList <- list("Akt1" = "RIGGI_EWING_SARCOMA_PROGENITOR_UP")
-  # # library(correlationAnalyzeR)
-  # onlyTop <- F
-  # topCutoff <- .5
-  # plotLabels <- F
-  # sigTest <- T
-  # plotTitle <- T
-  # autoRug <- T
-  # nPerm <- 2000
-  # outputPrefix = "tests/pairedTest"
-  # plotMaxMinCorr <- T
 
   # Create output folder
   if (! dir.exists(outputPrefix) & ! returnDataOnly) {
@@ -128,7 +108,7 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
   }
 
   # Check secondary genes to make sure they exist -- only a warning
-  intGenes_secondary <- unlist(pairedGenesList, use.names = T)
+  intGenes_secondary <- unlist(pairedGenesList, use.names = TRUE)
   badGenes_secondary <- intGenes_secondary[
     which(! intGenes_secondary %in% avGenes &
           ! intGenes_secondary %in% correlationAnalyzeR::MSIGDB_Geneset_Names)
@@ -189,7 +169,7 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
     secondaryGenes <- secondaryGenes[which(secondaryGenes != gene)] # Incase they added the original gene in
     corrDF <- data.frame(geneName = rownames(corrDFFull),
                          correlationValue = corrDFFull[,gene],
-                         stringsAsFactors = F)
+                         stringsAsFactors = FALSE)
     corrDF <- corrDF[which(corrDF$geneName != gene),]
     corrDF$secondaryGene <- F
     corrDF$secondaryGene[which(corrDF$geneName %in% secondaryGenes)] <- T
@@ -210,7 +190,7 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
 
     # Create histogram of gene correlations
     his <- ggplot2::ggplot(data = corrDF,
-                           mapping = ggplot2::aes(x = correlationValue)) +
+                           mapping = ggplot2::aes_string(x = "correlationValue")) +
       ggplot2::geom_histogram(bins = 100, color = "black", fill = "white") +
       ggplot2::ylab("Frequency\n") +
       ggplot2::scale_y_continuous(limits = c(0, 3500), expand = c(0,0)) +
@@ -249,7 +229,7 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
     corrDF_small <- corrDF[which(corrDF$secondaryGene),]
     # Choose top genes
     if (onlyTop) {
-      corrDF_small <- corrDF_small[order(abs(corrDF_small$correlationValue), decreasing = T),]
+      corrDF_small <- corrDF_small[order(abs(corrDF_small$correlationValue), decreasing = TRUE),]
       takeNum <- round(length(corrDF_small$geneName) * (1-topCutoff))
       corrDF_small <- corrDF_small[c(1:takeNum),]
     }
@@ -361,8 +341,8 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
       meanBoot <- function(data, indices) {
         d <- data[indices] # allows boot to select sample
         d <- sample(d, size = n)
-        ttest <- t.test(x = abs(selectVec), y = abs(d)) # Considers absolute value comparison
-        c(mean(d), median(d), ttest$p.value)
+        ttest <- stats::t.test(x = abs(selectVec), y = abs(d)) # Considers absolute value comparison
+        c(mean(d), stats::median(d), ttest$p.value)
       }
       # Function to give significance stars
       getSigStars <- function(pVal) {
@@ -386,10 +366,10 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
                             R=nPerm)
 
       # Get value for input data
-      Meanabs <- mean(abs(selectVec), na.rm = T) # For pvalue calc
-      Medianabs <- median(abs(selectVec), na.rm = T) # For pvalue calc
-      Mean <- mean((selectVec), na.rm = T) # For plotting
-      Median <- median((selectVec), na.rm = T) # For plotting
+      Meanabs <- mean(abs(selectVec), na.rm = TRUE) # For pvalue calc
+      Medianabs <- stats::median(abs(selectVec), na.rm = TRUE) # For pvalue calc
+      Mean <- mean((selectVec), na.rm = TRUE) # For plotting
+      Median <- stats::median((selectVec), na.rm = TRUE) # For plotting
 
       # Get bootstrapped values
       meanVec <- results$t[,1]
@@ -429,9 +409,8 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
 
       # TTest pVals
       title = paste0(gene, " correlations (selected vs random) pval distribution")
-      density(tdf$TTest_pVals)
-      denY <- which.max(density(tdf$TTest_pVals)$y)
-      pValTTest <- density(tdf$TTest_pVals)$x[denY]
+      denY <- which.max(stats::density(tdf$TTest_pVals)$y)
+      pValTTest <- stats::density(tdf$TTest_pVals)$x[denY]
       pValStr <- paste0("P(summit) = ", round(pValTTest, digits = 3), " [", getSigStars(pValTTest), "]")
       pTtest <- ggpubr::ggdensity(data = tdf, ylab = "P value density\n",
                                       x = "TTest_pVals",

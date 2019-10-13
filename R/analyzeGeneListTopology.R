@@ -13,43 +13,44 @@
 #'
 #' @param Sample_Type Type of RNA Seq samples used to create correlation data.
 #' Either "all", "normal", or "cancer". Can be a single value for all genes,
-#' or a vector where each entry corresponds to a gene of interest.
+#' or a vector corresponding to genesOfInterest.
 #'
 #' @param Tissue Which tissue type should gene correlations be derived from?
-#' Default = "all". Can be a single value for all genes, or a vector where each
-#' entry corresponds to a gene of interest.
-#'  Run getTissueTypes() to see available tissue list.
+#' Default = "all". Can be a single value for all genes,
+#' or a vector corresponding to genesOfInterest.
+#' Run getTissueTypes() to see available tissues.
 #'
 #' @param outputPrefix Prefix for saved files. Should include directory info.
 #'
-#' @param returnDataOnly if TRUE will return only a list of analysis results.
+#' @param returnDataOnly if TRUE will return only a list of analysis results. Default: FALSE.
 #'
-#' @param setComparisonCutoff Only relevant for cocorrelation analysis -- the number of genes which
-#'      must aggree for a gene to be considered co-correlative within the input gene list.
+#' @param setComparisonCutoff Only relevant for co-correlation analysis -- the number of genes which
+#' must aggree for a gene to be considered co-correlative within the input gene list.
 #'
 #' @param numTopGenesToPlot When creating a heatmap of the top co-correlative or top variant genes,
-#'      how many genes should be plotted on the y axis?
+#' how many genes should be plotted on the y axis? Default: "Auto"
 #'
-#' @param numClusters The number of clusters to create with hclust or TSNE analysis.
+#' @param numClusters The number of clusters to create with hclust or TSNE analysis. Default: "Auto"
 #'
 #' @param alternativeTSNE Logical. If TRUE, then a TSNE will be run as an alternative to PCA for visualizing
-#'      large input gene lists. This is highly recommended as 100+ member gene lists cannot be visualized otherwise.
+#' large input gene lists. This is highly recommended as 100+ member gene lists cannot be visualized otherwise.
 #'
-#' @param pathwayEnrichment Logic. If TRUE, pathway enrichment will be performed on variant genes -- if 'variantGenes'
-#'      selected -- and/or on co-correlative genes -- if "coCorrelativeGenes" selected.
+#' @param pathwayEnrichment Logic. If TRUE, pathway enrichment will be performed on variant genes --
+#' if 'variantGenes' selected -- and/or on co-correlative genes -- if "coCorrelativeGenes" selected.
 #'
 #' @param pValueCutoff Numeric. The p value cutoff applied when running all pathway enrichment tests.
 #'
 #' @param crossComparisonType The type of topology tests to run. (see details)
 #'
-#' @return A list of analysis results and plotting data.
+#' @return A list of correlations for input genes, and the results of chosen analysis + visualizations.
 #'
 #' @examples
-#' genesOfInterest <- c("CDK12", "AURKB", "SFPQ", "PARP1", "BRCC3", "BRCA2", "PARP1",
+#' genesOfInterest <- c("CDK12", "AURKB", "SFPQ", "NFKB1", "BRCC3", "BRCA2", "PARP1",
 #'                      "DHX9", "SON", "AURKA", "SETX", "BRCA1", "ATMIN")
-#' Result <- analyzeGenesetTopology(genesOfInterest = genesOfInterest,
+#' correlationAnalyzeR::analyzeGenesetTopology(genesOfInterest = genesOfInterest,
 #'                                  Species = "hsapiens",
-#'                                  Sample_Type = "Normal_Tissues",
+#'                                  Sample_Type = "cancer", returnDataOnly = TRUE,
+#'                                  Tissue = "brain",
 #'                                  crossComparisonType = c("variantGenes", "PCA"))
 #'
 #' @details
@@ -63,13 +64,12 @@
 #'        The PCA analyses here employes hclust to divide the gene list into functional clusters.
 #'        If the input list is > 100 genes, RTsne will be used for visualization.
 #' - pathwayEnrich: Cluster profiler's enricher function will be run on the input gene list.
-#'
+#' @importFrom rlang .data
+#' @import dplyr
 #' @export
 analyzeGenesetTopology <-  function(genesOfInterest,
                                     Species = c("hsapiens", "mmusculus"),
-                                    Sample_Type = c(#"All",
-                                      "normal",
-                                      "cancer"),
+                                    Sample_Type = c("normal", "cancer"),
                                     Tissue = "all",
                                     crossComparisonType = c("PCA",
                                                             "variantGenes",
@@ -77,38 +77,14 @@ analyzeGenesetTopology <-  function(genesOfInterest,
                                                             "pathwayEnrich"),
                                     pathwayType = c("simple", "complex"),
                                     setComparisonCutoff = "Auto",
-                                    pathwayEnrichment = F,
+                                    pathwayEnrichment = FALSE,
                                     pValueCutoff = .05,
                                     numTopGenesToPlot = "Auto",
-                                    alternativeTSNE = T,
+                                    alternativeTSNE = TRUE,
                                     numClusters = "Auto",
                                     outputPrefix = "CorrelationAnalyzeR_Output",
-                                    returnDataOnly = F) {
+                                    returnDataOnly = FALSE) {
 
-  # # Test parameters for debugging
-  # genesOfInterest <- c("CDK12", "AURKB", "SFPQ", "PARP1", "BRCC3", "BRCA2", "PARP1",
-  #                      "DHX9", "SON", "AURKA", "SETX", "BRCA1", "ATMIN")
-  # # genesOfInterest <- "PUJANA_BRCA1_PCC_NETWORK"
-  # outputPrefix = "tests/topologyOutput3"
-  # setComparisonCutoff = "Auto"
-  # numTopGenesToPlot = "Auto"
-  # Species = "hsapiens"
-  # Sample_Type = "normal"
-  # Tissue = "brain"
-  # pValueCutoff = .05
-  # alternativeTSNE <- T
-  # pathwayType = "simple"
-  # numClusters = "Auto"
-  # returnDataOnly <- F
-  # pathwayEnrichment = T
-  # crossComparisonType <- "PCA"
-  # crossComparisonType = c("variantGenes",
-  #                         "coCorrelativeGenes",
-  #                         "hierarchicalClustering",
-  #                         "pathwayEnrich",
-  #                         "PCA")
-  # # crossComparisonType <- "pathwayEnrich"
-  # setComparisonCutoff = "Auto"
 
   # Create output folder
   if (! dir.exists(outputPrefix) & ! returnDataOnly) {
@@ -145,18 +121,14 @@ analyzeGenesetTopology <-  function(genesOfInterest,
       stop("\nPlease enter either 'simple' or 'complex' for GSEA_Type\n")
     } else if (pathwayType[1] == "simple") {
       if (Species[1] == "hsapiens") {
-        data("hsapiens_simple_TERM2GENE")
         TERM2GENE <- correlationAnalyzeR::hsapiens_simple_TERM2GENE
       } else {
-        data("mmusculus_simple_TERM2GENE")
         TERM2GENE <- correlationAnalyzeR::mmusculus_simple_TERM2GENE
       }
     } else {
       if (Species[1] == "hsapiens") {
-        data("hsapiens_complex_TERM2GENE")
         TERM2GENE <- correlationAnalyzeR::hsapiens_complex_TERM2GENE
       } else {
-        data("mmusculus_complex_TERM2GENE")
         TERM2GENE <- correlationAnalyzeR::mmusculus_complex_TERM2GENE
       }
     }
@@ -183,9 +155,6 @@ analyzeGenesetTopology <-  function(genesOfInterest,
     }
     intGenes <- intGenes[which(! intGenes %in% termlist)]
   }
-
-
-
 
   cat("\nRetrieving correlation data...\n")
   # Call downloadData to get all required files
@@ -234,8 +203,8 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   for ( i in 1:length(colnames(resultsMat))) {
     gene <- colnames(resultsMat)[i]
     vals <- resultsMat[,i]
-    top <- vals[which(vals > quantile(vals, prob = .95))]
-    bottom <- vals[which(vals < quantile(vals, prob = .05))]
+    top <- vals[which(vals > stats::quantile(vals, prob = .95))]
+    bottom <- vals[which(vals < stats::quantile(vals, prob = .05))]
     compList_up[[i]] <- names(top)
     names(compList_up)[i] <- gene
     compList_dn[[i]] <- names(bottom)
@@ -247,8 +216,8 @@ analyzeGenesetTopology <-  function(genesOfInterest,
     rv <- metaMA::rowVars(resultsMat)
     select <- order(rv, decreasing=TRUE)[seq_len(min(1500, length(rv)))]
     topVarMat <- resultsMat[select,]
-    topVarHeat <- pheatmap::pheatmap(topVarMat, color = gplots::greenred(100), show_rownames = F,
-                                     main = "Variable Genes",silent = T,
+    topVarHeat <- pheatmap::pheatmap(topVarMat, color = gplots::greenred(100), show_rownames = FALSE,
+                                     main = "Variable Genes",silent = TRUE,
                                      width = width, height = height)
 
     resList[["variantGenesHeatmap"]] <- topVarHeat
@@ -273,26 +242,26 @@ analyzeGenesetTopology <-  function(genesOfInterest,
 
     select <- order(rv, decreasing=TRUE)[seq_len(min(numTopGenesToPlot, length(rv)))]
     topVarMat <- resultsMat[select,]
-    topVarHeattop <- pheatmap::pheatmap(topVarMat, color = gplots::greenred(100), show_rownames = T,
-             main = "Top Variable Genes", silent = T,
+    topVarHeattop <- pheatmap::pheatmap(topVarMat, color = gplots::greenred(100), show_rownames = TRUE,
+             main = "Top Variable Genes", silent = TRUE,
              width = width, height = height)
 
     resList[["variantGenesHeatmap_Top"]] <- topVarHeattop
     resList[["variantGenesHeatmap_Top_MAT"]] <- topVarMat
 
     if (! returnDataOnly) {
-      png(filename = file.path(outputPrefix, "VarGeneHeatmap.png"),
+      grDevices::png(filename = file.path(outputPrefix, "VarGeneHeatmap.png"),
           height = height, width = width, units = "in", res = 300)
       print(topVarHeat)
-      dev.off()
-      png(filename = file.path(outputPrefix, "VarGeneHeatmap_top.png"),
+      grDevices::dev.off()
+      grDevices::png(filename = file.path(outputPrefix, "VarGeneHeatmap_top.png"),
           height = height, width = width, units = "in", res = 300)
       print(topVarHeattop)
-      dev.off()
+      grDevices::dev.off()
       if (pathwayEnrichment) {
-        write.csv(eres,
+        utils::write.csv(eres,
                   file = file.path(outputPrefix, "variantGenes.Pathway.Analysis.csv"),
-                  row.names = F)
+                  row.names = FALSE)
         ggplot2::ggsave(plot = dp,
                         filename = file.path(outputPrefix, "variantGenes.Pathway.Analysis.png"),
                         height = 7, width = 10)
@@ -343,8 +312,8 @@ analyzeGenesetTopology <-  function(genesOfInterest,
 
     olMat <- resultsMat[select,]
 
-    cocorheatmap <- pheatmap::pheatmap(olMat, color = gplots::greenred(100), show_rownames = F,
-             main = "Co-Correlative Genes", silent = T,
+    cocorheatmap <- pheatmap::pheatmap(olMat, color = gplots::greenred(100), show_rownames = FALSE,
+             main = "Co-Correlative Genes", silent = TRUE,
              width = width, height = height)
 
     resList[["cocorrelativeGenesHeatmap"]] <- cocorheatmap
@@ -362,17 +331,17 @@ analyzeGenesetTopology <-  function(genesOfInterest,
     }
     if (! returnDataOnly) {
       if (pathwayEnrichment) {
-        write.csv(eres,
+        utils::write.csv(eres,
                   file = file.path(outputPrefix, "coCorrelativeGenes.Pathway.Analysis.csv"),
-                  row.names = F)
+                  row.names = FALSE)
         ggplot2::ggsave(plot = dp,
                         filename = file.path(outputPrefix, "coCorrelativeGenes.Pathway.Analysis.png"),
                         height = 7, width = 10)
       }
-      png(filename = file.path(outputPrefix, "coCorrelativeGeneHeatmap.png"),
+      grDevices::png(filename = file.path(outputPrefix, "coCorrelativeGeneHeatmap.png"),
           height = height, width = width, units = "in", res = 300)
       print(cocorheatmap)
-      dev.off()
+      grDevices::dev.off()
     }
   }
   # Set up for topological distance analysis
@@ -388,14 +357,14 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   # Begin topological distance analysis
   if ("PCA" %in% crossComparisonType & length(intGenes) <= 10) {
     # Principle component analysis
-    pca <- prcomp(resultsMat)
+    pca <- stats::prcomp(resultsMat)
     dd <- data.frame(summary(pca)$importance)
     percentVar <- as.numeric(round(100 * dd[2,]))
     percentVar <- percentVar[1:2]
     pcaData <- as.data.frame(pca$rotation)
     pcaData <- pcaData[,c(1:2)]
     pcaData$Gene <- rownames(pcaData)
-    plt1 <- ggplot2::ggplot(pcaData, ggplot2::aes(PC1, PC2, color=Gene)) +
+    plt1 <- ggplot2::ggplot(pcaData, ggplot2::aes_string("PC1", "PC2", color="Gene")) +
       ggplot2::geom_point(size = 5) +
       ggplot2::xlab(paste0("PC1: ",percentVar[1],"% variance")) +
       ggplot2::ylab(paste0("PC2: ",percentVar[2],"% variance")) +
@@ -412,7 +381,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
 
   } else if ("PCA" %in% crossComparisonType & (length(intGenes) <= 100 || ! alternativeTSNE)) {
     # Principle component analysis without colors
-    pca <- prcomp(resultsMat)
+    pca <- stats::prcomp(resultsMat)
     dd <- data.frame(summary(pca)$importance)
     percentVar <- as.numeric(round(100 * dd[2,]))
     percentVar <- percentVar[1:2]
@@ -421,15 +390,14 @@ analyzeGenesetTopology <-  function(genesOfInterest,
     pcaData$Gene <- rownames(pcaDataSmall)
 
     # HClust
-    require(dplyr)
 
     sdat <- t(scale(t(resultsMat)))
-    pr.dis <- dist(t(sdat), method = "euclidean")
-    hc.norm <- hclust(pr.dis)
+    pr.dis <- stats::dist(t(sdat), method = "euclidean")
+    hc.norm <- stats::hclust(pr.dis)
 
     info.norm <- data.frame(geneNames = rownames(pca$rotation))
     info.norm <- info.norm %>% mutate(PC1 = pca$rotation[, 1], PC2 = pca$rotation[,2])
-    info.norm$clusters <- factor(cutree(hc.norm, numClusters))
+    info.norm$clusters <- factor(stats::cutree(hc.norm, numClusters))
 
 
     lenPCA <- 5 + (length(genesOfInterest) - 5)/10
@@ -445,9 +413,9 @@ analyzeGenesetTopology <-  function(genesOfInterest,
       cexPCA <- 3
       pointsize <- 4
     }
-    plt1 <- ggplot2::ggplot(info.norm, ggplot2::aes(PC1, PC2)) +
+    plt1 <- ggplot2::ggplot(info.norm, ggplot2::aes_string("PC1", "PC2")) +
       ggplot2::geom_point(size = pointSize, color = info.norm$clusters) +
-      ggrepel::geom_text_repel(ggplot2::aes(label=geneNames),
+      ggrepel::geom_text_repel(ggplot2::aes_string(label="geneNames"),
                       size = cexPCA, color = "black",
                       min.segment.length = 0.02, segment.alpha = 1,
                       box.padding = 0.1) +
@@ -471,26 +439,25 @@ To disable this behavior, set 'alternativeTSNE' to FALSE")
     rv <- metaMA::rowVars(resultsMat)
     select <- order(rv, decreasing=TRUE)[seq_len(min(2500, length(rv)))]
     topVarMat <- resultsMat[select,]
-    pca <- prcomp(topVarMat)
+    pca <- stats::prcomp(topVarMat)
     # TSNE after PCA
     pcaData <- as.data.frame(pca$rotation)
     pcaData <- as.matrix(pcaData)
     # library(umap)
     # umap::umap(pcaData)
-    tsne_out <- Rtsne::Rtsne(X = pcaData, pca = F,
-                      verbose = T, max_iter = 5000, perplexity = 30, exaggeration_factor = 16)
+    tsne_out <- Rtsne::Rtsne(X = pcaData, pca = FALSE,
+                      verbose = TRUE, max_iter = 5000, perplexity = 30, exaggeration_factor = 16)
     # Cluster by TSNE distance
-    require(dplyr)
-    hc.norm <- hclust(dist(tsne_out$Y))
+    hc.norm <- stats::hclust(stats::dist(tsne_out$Y))
     info.norm <- data.frame(geneNames = rownames(pcaData))
     info.norm <- info.norm %>% mutate(tsne1 = tsne_out$Y[, 1], tsne2 = tsne_out$Y[,2])
-    info.norm$hclust <- factor(cutree(hc.norm, numClusters))
-    hc.norm.cent <- info.norm %>% group_by(hclust) %>% select(tsne1,
-                                                             tsne2) %>% summarize_all(mean)
+    info.norm$hclust <- factor(stats::cutree(hc.norm, numClusters))
+    hc.norm.cent <- info.norm %>% group_by(.data$hclust) %>% select(.data$tsne1,
+                                                             .data$tsne2) %>% summarize_all(mean)
     # Plot TSNE with clusters
-    gp <- ggplot2::ggplot(info.norm, ggplot2::aes(x = tsne1, y = tsne2, colour = hclust)) +
+    gp <- ggplot2::ggplot(info.norm, ggplot2::aes_string(x = "tsne1", y = "tsne2", colour = "hclust")) +
       ggplot2::geom_point(alpha = 0.3) + ggplot2::theme_bw() +
-      ggrepel::geom_label_repel(ggplot2::aes(label = hclust), data = hc.norm.cent) +
+      ggrepel::geom_label_repel(ggplot2::aes_string(label = "hclust"), data = hc.norm.cent) +
       ggplot2::guides(colour = FALSE) +
       ggplot2::ggtitle("Genes of Interest TSNE")
 
@@ -500,7 +467,7 @@ To disable this behavior, set 'alternativeTSNE' to FALSE")
     if (! returnDataOnly) {
       ggplot2::ggsave(plot = gp, filename = file.path(outputPrefix, "geneCorrelationData.TSNE.png"))
       # Save clustering info
-      write.csv(info.norm, file = file.path(outputPrefix, "geneClusterData.TSNE.csv"), row.names = F)
+      utils::write.csv(info.norm, file = file.path(outputPrefix, "geneClusterData.TSNE.csv"), row.names = FALSE)
 
     }
 
@@ -522,9 +489,9 @@ To disable this behavior, set 'alternativeTSNE' to FALSE")
     dp <- dp + ggplot2::labs(title = "Input Genes Pathway Enrichment")
     resList[["inputGenes_pathwayEnrich_dotplot"]] <- dp
     if (! returnDataOnly) {
-      write.csv(eres,
+      utils::write.csv(eres,
                 file = file.path(outputPrefix, "inputGenes.Pathway.Analysis.csv"),
-                row.names = F)
+                row.names = FALSE)
       ggplot2::ggsave(plot = dp,
                       filename = file.path(outputPrefix, "inputGenes.Pathway.Analysis.png"),
                       height = 7, width = 10)

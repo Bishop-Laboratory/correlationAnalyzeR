@@ -15,7 +15,7 @@ Description: Correlation AnalyzeR is a powerful tool for understanding how genes
     examine how a primary gene of interest correlates with a defined list of
     other genes. Finally, 'group-analysis' mode examines correlation data for a
     defined gene group to generate a robust gene-level topology.
-Depends: R (>= 3.5.2)
+Depends: R (>= 3.5.0)
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
@@ -26,4 +26,23 @@ Imports:
     ggpubr,
     data.table,
     gridExtra,
-    grid
+    grid,
+    dplyr,
+    tibble,
+    gplots,
+    ggrepel,
+    stringr,
+    matrixStats,
+    metaMA,
+    pheatmap,
+    preprocessCore,
+    enrichplot,
+    boot,
+    SuperExactTest,
+    Rtsne,
+    RMySQL,
+    DBI,
+    rlang,
+    grDevices,
+    stats,
+    utils

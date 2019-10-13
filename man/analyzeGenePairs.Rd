@@ -7,19 +7,18 @@
 analyzeGenePairs(genesOfInterest, Sample_Type = c("normal", "normal"),
   Tissue = c("all", "all"), Species = c("hsapiens", "mmusculus"),
   GSEA_Type = c("simple", "complex"),
-  outputPrefix = "CorrelationAnalyzeR_Output_Paired", runGSEA = T,
-  topPlots = F, returnDataOnly = F)
+  outputPrefix = "CorrelationAnalyzeR_Output_Paired",
+  crossCompareMode = FALSE, runGSEA = TRUE, topPlots = FALSE,
+  returnDataOnly = FALSE)
 }
 \arguments{
-\item{genesOfInterest}{A vector with two genes to compare.}
+\item{genesOfInterest}{A length-two vector with genes to compare.}
 
-\item{Sample_Type}{A vector of length-2 corresponding to the genesOfInterest.
-Indicates the type of sample for each; "all", "normal", or "cancer".
-Default: c("normal", "normal")}
+\item{Sample_Type}{A length-two vector of sample types corresponding to genesOfInterest.
+Choose "all", "normal", or "cancer". Default: c("normal", "normal")}
 
-\item{Tissue}{A vector of length-2 corresponding to the genesOfInterest.
-Indicates the type of tissue for each; Run getTissueTypes() to see available list.
-Default: c("all", "all")}
+\item{Tissue}{A length-two vector of tissue types corresponding to genesOfInterest.
+Run getTissueTypes() to see available list. Default: c("all", "all")}
 
 \item{Species}{Species to obtain gene names for.
 Either 'hsapiens' or 'mmusculus'. Default: "hsapiens".}
@@ -28,26 +27,49 @@ Either 'hsapiens' or 'mmusculus'. Default: "hsapiens".}
 or just those in the most popular categories. Should be one of either
 'simple' or 'complex'.}
 
-\item{outputPrefix}{Prefix for saved files. Should include directory info.}
+\item{outputPrefix}{Prefix for saved files -- the directory name to store output files in. If
+folder does not exist, it will be created.}
+
+\item{crossCompareMode}{Use this mode to generate comparisons
+across all tissue and disease types. If both genes for genesOfInterest are the
+same -- will compare normal vs cancer for that gene in each available tissue. Else, will
+perform comparison of two different genes in all tissue-disease groups.
+Will only consider user input for returnDataOnly, outputPrefix, Species, and genesOfInterest.}
 
 \item{runGSEA}{If TRUE will run GSEA using gene correlation values.}
 
-\item{returnDataOnly}{if TRUE will return only a dataframe of correlation
-values and will not generate any folders or files.}
+\item{topPlots}{Logical. If TRUE, myGSEA() will build gsea plots for top correlated genesets.}
+
+\item{returnDataOnly}{if TRUE will return result list object
+and will not generate any folders or files.}
 }
 \value{
-A dataframe of correlation values for each gene of interest.
+A named list containing visualizations and correlation data from paired analysis.
 }
 \description{
 Comaprison of two genes of interest using correlation values.
-This can be 2 different genes in the same tissue or sample type. Or
-the same gene accross two sample or tissue types.
+This can be 2 different genes in the same tissue or sample type or
+the same gene accross two sample or tissue types. Alternatively, specify 'crossCompareMode'
+to view compared correrlations across all available tissue types.
 }
 \examples{
 genesOfInterest <- c("ATM", "SLC7A11")
-Result <- analyzeSingleGenes(genesOfInterest = genesOfInterest,
+correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
                               Species = "hsapiens",
-                              GSEA_Type = "simple",
-                              Sample_Type = "Normal_Tissues")
+                              GSEA_Type = "simple", returnDataOnly = TRUE,
+                              Sample_Type = c("normal", "normal"),
+                              Tissue = c("brain", "brain"))
+
+genesOfInterest <- c("BRCA1", "BRCA1")
+correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
+                              Species = "hsapiens",
+                              GSEA_Type = "simple", returnDataOnly = TRUE,
+                              Sample_Type = c("normal", "cancer"),
+                              Tissue = c("respiratory", "respiratory"))
+
+genesOfInterest <- c("NFKB1", "SOX10")
+correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
+                              Species = "hsapiens", returnDataOnly = TRUE,
+                              crossCompareMode = TRUE)
 
 }
