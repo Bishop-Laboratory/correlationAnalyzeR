@@ -2,24 +2,18 @@
 % Please edit documentation in R/myGSEA.R
 \name{myGSEA}
 \alias{myGSEA}
-\title{Wrapper for clusterProlifer's GSEA function}
+\title{Wrapper for clusterProlifer's GSEA()}
 \usage{
-myGSEA(ranks, TERM2GENE, plotFile, outDir, Condition = "GSEA Results",
-  padjustedCutoff = 0.05, returnDataOnly = FALSE, nperm = 2000,
-  topPlots = TRUE)
+myGSEA(ranks, TERM2GENE, padjustedCutoff = 0.05,
+  returnDataOnly = FALSE, nperm = 2000, topPlots = TRUE, outDir,
+  Condition = "GSEA Results", plotFile = "GSEA_results")
 }
 \arguments{
 \item{ranks}{Numeric of gene 'scores' ordered by decreasing value and
 named with gene symbols.}
 
 \item{TERM2GENE}{Data frame with two columns: gene set identifiers and
-gene symbols.}
-
-\item{plotFile}{prefix to use for naming output files.}
-
-\item{outDir}{output directory.}
-
-\item{Condition}{Name to use for titles of plots. Default = "GSEA Results".}
+gene symbols. Can be generated using msigdbr::msigdbr().}
 
 \item{padjustedCutoff}{Value to use as a cutoff for returned gene sets.}
 
@@ -28,16 +22,28 @@ gene symbols.}
 \item{nperm}{Number of permutations to run. Default is 2000}
 
 \item{topPlots}{Should top GSEA pathways be plotted? Default: TRUE}
+
+\item{outDir}{output directory.}
+
+\item{Condition}{Name to use for titles of plots. Default = "GSEA Results".}
+
+\item{plotFile}{prefix to use for naming output files.}
 }
 \value{
-Output of GSEA function in clusterProfiler.
+Named list containing GSEA() output, GSEA data frame, and visualizations.
 }
 \description{
-Run's the GSEA function from clusterProfiler and creates useful
-    visualizations. It also outputs GSEA results to csv.
+Runs GSEA() from clusterProfiler and creates useful
+visualizations.
 }
 \examples{
-myGSEA(ranks = DGE_results$GSEA, TERM2GENE = msigdbr()[,c(1,5)],
-       plotFile = "GSEA_out", outDir = getwd(), Condition = "GSEA Results")
+corrDF <- correlationAnalyzeR::analyzeSingleGenes(genesOfInterest = c("BRCA1"),
+ returnDataOnly = TRUE, runGSEA = FALSE, Sample_Type = "normal")
+ranks <- corrDF$correlations[,1]
+names(ranks) <- rownames(corrDF$correlations)
+correlationAnalyzeR::myGSEA(ranks = ranks,
+TERM2GENE = correlationAnalyzeR::hsapiens_simple_TERM2GENE,
+       plotFile = "GSEA_out", outDir = getwd(),
+       topPlots = FALSE, returnDataOnly=TRUE, Condition = "GSEA Results")
 
 }

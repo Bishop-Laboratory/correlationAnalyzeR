@@ -6,9 +6,10 @@
 \usage{
 geneVsGeneListAnalyze(pairedGenesList, Species = c("hsapiens",
   "mmusculus"), Sample_Type = c("normal", "cancer"), Tissue = "all",
-  outputPrefix = "CorrelationAnalyzeR_Output", plotLabels = T,
-  sigTest = T, nPerm = 2000, plotMaxMinCorr = T, onlyTop = F,
-  topCutoff = 0.5, autoRug = T, plotTitle = T, returnDataOnly = F)
+  outputPrefix = "CorrelationAnalyzeR_Output", plotLabels = TRUE,
+  sigTest = TRUE, nPerm = 2000, plotMaxMinCorr = TRUE,
+  onlyTop = FALSE, topCutoff = 0.5, autoRug = TRUE,
+  plotTitle = TRUE, returnDataOnly = FALSE)
 }
 \arguments{
 \item{pairedGenesList}{A list, named with primary genes of interest with
@@ -20,37 +21,40 @@ Either 'hsapiens' or 'mmusculus'}
 
 \item{Sample_Type}{Type of RNA Seq samples used to create correlation data.
 Either "all", "normal", or "cancer". Can be a single value for all genes,
-or a vector where each entry corresponds to a gene of interest.}
+or a vector corresponding to genesOfInterest.}
 
 \item{Tissue}{Which tissue type should gene correlations be derived from?
-Default = "all". Can be a single value for all genes, or a vector where each
-entry corresponds to a gene of interest.
- Run getTissueTypes() to see available tissue list.}
+Default = "all". Can be a single value for all genes,
+or a vector corresponding to genesOfInterest.
+Run getTissueTypes() to see available tissues.}
 
 \item{outputPrefix}{Prefix for saved files. Should include directory info.}
 
 \item{plotLabels}{If TRUE, correlation histograms will contain labeled lines showing
 secondary genes and their correlation values.
 If list of secondary genes is large, set this to FALSE or onlyTop to TRUE
-to avoid cluttering the plot.}
+to avoid cluttering the plot. Default: TRUE.}
 
-\item{sigTest}{Should the results be compared against random genes?}
+\item{sigTest}{Should the results be compared against random? Default: TRUE.}
 
-\item{nPerm}{Number of bootstrap sampling events to run during sigTest.}
+\item{nPerm}{Number of bootstrap sampling events to run during sigTest. Default: 2000.}
 
 \item{plotMaxMinCorr}{If TRUE, the top correlated and anti-correlated genes
-will be plotted alongside the selected secondary genes.}
+will be plotted alongside the selected secondary genes. Default: TRUE.}
 
 \item{onlyTop}{For larger secondary gene lists -- This will filter the
-number of secondary genes which are plotted to avoid clutter if plotLabels = TRUE.}
+number of secondary genes which are plotted to avoid clutter if plotLabels = TRUE.
+Default: FALSE.}
 
-\item{topCutoff}{The value used for filtering if 'onlyTop' is 'TRUE'}
+\item{topCutoff}{The value used for filtering if 'onlyTop' is 'TRUE'. Default: .5}
 
 \item{autoRug}{If the size of a secondary gene list > 50, plot lines will be replaced
-by an auto-generated rug. To disable this behavior, set to FALSE.}
+by an auto-generated rug. Default: TRUE.}
+
+\item{plotTitle}{Logical. If TRUE, plot title will be added to visualizations. Default: TRUE.}
 
 \item{returnDataOnly}{if TRUE will only return a list containing correlations
-and significance testing results if applicable.}
+and significance testing results if applicable. Default: FALSE.}
 }
 \value{
 A list containing correlation values and signficance testing results
@@ -62,10 +66,9 @@ Explores how a list of secondary genes relates to a primary gene of interest
 pairedGenesList <- list("TP53" = c("BRCA1", "CDK12", "PARP1"),
                         "SON" = c("AURKB", "SFPQ", "DHX9"))
 
-pairedGenesList <- list("ATM" = "PUJANA_BRCA1_PCC_NETWORK")
-
-Result <- pairedGenesAnalyzeR(pairedGenesList = pairedGenesList,
-                              Species = "hsapiens",
-                              Sample_Type = "Normal_Tissues")
+correlationAnalyzeR::geneVsGeneListAnalyze(pairedGenesList = pairedGenesList,
+                              Species = "hsapiens", returnDataOnly = TRUE,
+                              Sample_Type = "normal",
+                              Tissue = "brain")
 
 }

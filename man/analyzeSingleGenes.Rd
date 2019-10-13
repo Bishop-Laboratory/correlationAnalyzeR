@@ -5,10 +5,11 @@
 \title{Analyze Single Genes}
 \usage{
 analyzeSingleGenes(genesOfInterest, Species = c("hsapiens", "mmusculus"),
-  GSEA_Type = c("simple", "complex"), Sample_Type = c("normal",
-  "cancer"), Tissue = "all",
-  outputPrefix = "CorrelationAnalyzeR_Output", runGSEA = T,
-  topPlots = T, returnDataOnly = F)
+  GSEA_Type = c("simple", "complex"), Sample_Type = "normal",
+  Tissue = "all", crossCompareMode = FALSE,
+  whichCompareGroups = c("all", "normal", "cancer"),
+  outputPrefix = "CorrelationAnalyzeR_Output", runGSEA = TRUE,
+  topPlots = TRUE, returnDataOnly = FALSE)
 }
 \arguments{
 \item{genesOfInterest}{A vector of genes to analyze.}
@@ -22,31 +23,50 @@ or just those in the most popular categories. Should be one of either
 
 \item{Sample_Type}{Type of RNA Seq samples used to create correlation data.
 Either "all", "normal", or "cancer". Can be a single value for all genes,
-or a vector where each entry corresponds to a gene of interest.}
+or a vector corresponding to genesOfInterest.}
 
 \item{Tissue}{Which tissue type should gene correlations be derived from?
-Default = "all". Can be a single value for all genes, or a vector where each
-entry corresponds to a gene of interest.
- Run getTissueTypes() to see available tissue list.}
+Default = "all". Can be a single value for all genes,
+or a vector corresponding to genesOfInterest.
+Run getTissueTypes() to see available tissues.}
+
+\item{crossCompareMode}{Instead of normal single gene analysis, will generate
+correlations for single gene across all tissue-disease groups. GSEA will not be run.
+Will only consider user input for returnDataOnly, whichCompareGroups,
+outputPrefix, Species, and genesOfInterest.}
+
+\item{whichCompareGroups}{For crossCompareMode, select "all", "normal", or "cancer"
+to analyze correlations from the corresponding groups.}
 
 \item{outputPrefix}{Prefix for saved files. Should include directory info.}
 
 \item{runGSEA}{If TRUE will run GSEA using gene correlation values.}
 
+\item{topPlots}{Logical. If TRUE, myGSEA() will build gsea plots for top correlated genesets.}
+
 \item{returnDataOnly}{if TRUE will return only a dataframe of correlation
 values and will not generate any folders or files.}
 }
 \value{
-A dataframe of correlation values for each gene of interest.
+A named list of correlation values, corGSEA results,
+and visualizations for each gene of interest.
 }
 \description{
-Obtains correlation info and GSEA results for each gene of interest
+Obtains correlations and corGSEA results for each gene of interest
 }
 \examples{
 genesOfInterest <- c("ATM", "SLC7A11")
-Result <- analyzeSingleGenes(genesOfInterest = genesOfInterest,
-                              Species = "hsapiens",
+correlationAnalyzeR::analyzeSingleGenes(genesOfInterest = genesOfInterest,
+                              Species = "hsapiens", returnDataOnly = TRUE,
                               GSEA_Type = "simple",
-                              Sample_Type = "Normal_Tissues")
+                              Sample_Type = c("normal", "cancer"),
+                              Tissue = c("respiratory", "pancreas"))
+
+genesOfInterest <- c("Brca1")
+correlationAnalyzeR::analyzeSingleGenes(genesOfInterest = genesOfInterest,
+                              Species = "mmusculus",
+                              GSEA_Type = "simple", returnDataOnly = TRUE,
+                              crossCompareMode = TRUE,
+                              whichCompareGroups = "normal")
 
 }

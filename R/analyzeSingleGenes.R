@@ -1,24 +1,32 @@
 #' Analyze Single Genes
 #'
-#' Obtains correlation info and GSEA results for each gene of interest
+#' Obtains correlations and corGSEA results for each gene of interest
 #'
 #' @param genesOfInterest A vector of genes to analyze.
 #'
 #' @param Species Species to obtain gene names for.
-#'     Either 'hsapiens' or 'mmusculus'
+#' Either 'hsapiens' or 'mmusculus'
 #'
 #' @param GSEA_Type Whether GSEA should consider all msigdb annotations,
-#'     or just those in the most popular categories. Should be one of either
-#'     'simple' or 'complex'.
+#' or just those in the most popular categories. Should be one of either
+#' 'simple' or 'complex'.
 #'
 #' @param Sample_Type Type of RNA Seq samples used to create correlation data.
 #' Either "all", "normal", or "cancer". Can be a single value for all genes,
-#' or a vector where each entry corresponds to a gene of interest.
+#' or a vector corresponding to genesOfInterest.
 #'
 #' @param Tissue Which tissue type should gene correlations be derived from?
-#' Default = "all". Can be a single value for all genes, or a vector where each
-#' entry corresponds to a gene of interest.
-#'  Run getTissueTypes() to see available tissue list.
+#' Default = "all". Can be a single value for all genes,
+#' or a vector corresponding to genesOfInterest.
+#' Run getTissueTypes() to see available tissues.
+#'
+#' @param crossCompareMode Instead of normal single gene analysis, will generate
+#' correlations for single gene across all tissue-disease groups. GSEA will not be run.
+#' Will only consider user input for returnDataOnly, whichCompareGroups,
+#' outputPrefix, Species, and genesOfInterest.
+#'
+#' @param whichCompareGroups For crossCompareMode, select "all", "normal", or "cancer"
+#' to analyze correlations from the corresponding groups.
 #'
 #' @param outputPrefix Prefix for saved files. Should include directory info.
 #'
@@ -27,36 +35,36 @@
 #' @param returnDataOnly if TRUE will return only a dataframe of correlation
 #'    values and will not generate any folders or files.
 #'
-#' @return A dataframe of correlation values for each gene of interest.
+#' @param topPlots Logical. If TRUE, myGSEA() will build gsea plots for top correlated genesets.
+#'
+#' @return A named list of correlation values, corGSEA results,
+#' and visualizations for each gene of interest.
 #'
 #' @examples
 #' genesOfInterest <- c("ATM", "SLC7A11")
-#' Result <- analyzeSingleGenes(genesOfInterest = genesOfInterest,
-#'                               Species = "hsapiens",
+#' correlationAnalyzeR::analyzeSingleGenes(genesOfInterest = genesOfInterest,
+#'                               Species = "hsapiens", returnDataOnly = TRUE,
 #'                               GSEA_Type = "simple",
-#'                               Sample_Type = "Normal_Tissues")
+#'                               Sample_Type = c("normal", "cancer"),
+#'                               Tissue = c("respiratory", "pancreas"))
+#'
+#' genesOfInterest <- c("Brca1")
+#' correlationAnalyzeR::analyzeSingleGenes(genesOfInterest = genesOfInterest,
+#'                               Species = "mmusculus",
+#'                               GSEA_Type = "simple", returnDataOnly = TRUE,
+#'                               crossCompareMode = TRUE,
+#'                               whichCompareGroups = "normal")
 #'
 #' @export
 analyzeSingleGenes <- function(genesOfInterest,
                                Species = c("hsapiens", "mmusculus"),
                                GSEA_Type = c("simple", "complex"),
-                               Sample_Type = c(#"All",
-                                          "normal",
-                                          "cancer"),
+                               Sample_Type = "normal",
                                Tissue = "all",
+                               crossCompareMode = FALSE,
+                               whichCompareGroups = c("all", "normal", "cancer"),
                                outputPrefix = "CorrelationAnalyzeR_Output",
-                               runGSEA = T, topPlots = T, returnDataOnly = F) {
-
-  # # Debug/Test
-  # genesOfInterest <- c("BRCA1", "ATM", "PARP1")
-  # GSEA_Type = "simple"
-  # runGSEA = T
-  # topPlots = F
-  # outputPrefix = "tests/CorrelationAnalyzeR_Output"
-  # Species = "hsapiens"
-  # Sample_Type = c("cancer", "normal", "cancer")
-  # Tissue = "brain"
-  # returnDataOnly = F
+                               runGSEA = TRUE, topPlots = TRUE, returnDataOnly = FALSE) {
 
   # Parse arguments
   geneString <- paste(genesOfInterest, collapse = ", ")
@@ -72,18 +80,14 @@ analyzeSingleGenes <- function(genesOfInterest,
         stop("\nPlease enter either 'simple' or 'complex' for GSEA_Type\n")
       } else if (GSEA_Type[1] == "simple") {
         if (Species[1] == "hsapiens") {
-          data("hsapiens_simple_TERM2GENE")
           TERM2GENE <- correlationAnalyzeR::hsapiens_simple_TERM2GENE
         } else {
-          data("mmusculus_simple_TERM2GENE")
           TERM2GENE <- correlationAnalyzeR::mmusculus_simple_TERM2GENE
         }
       } else {
         if (Species[1] == "hsapiens") {
-          data("hsapiens_complex_TERM2GENE")
           TERM2GENE <- correlationAnalyzeR::hsapiens_complex_TERM2GENE
         } else {
-          data("mmusculus_complex_TERM2GENE")
           TERM2GENE <- correlationAnalyzeR::mmusculus_complex_TERM2GENE
         }
       }
@@ -126,16 +130,96 @@ analyzeSingleGenes <- function(genesOfInterest,
            entries equal to the number of genesOfInterest.")
     }
   }
+
+  if (crossCompareMode) {
+    cat("\nRunning cross comparison mode ... \n")
+    if (Species == "mmusculus") {
+      whichCompareGroups <- "normal"
+      cat("\nOnly normal tissue comparisons available for mouse",
+          " due to black-listing of cancer groups.\n")
+      cat("\nContinuing with normal tissues ... \n")
+    }
+    availTissue <- correlationAnalyzeR::getTissueTypes(Species = Species,
+                                                       useBlackList = TRUE)
+    runGSEA <- F
+
+    if(whichCompareGroups != "all") {
+      availTissue <- availTissue[grep(availTissue,
+                                      pattern = whichCompareGroups)]
+    }
+    availTissue <- strsplit(availTissue, split = " - ")
+    Tissue <- sapply(availTissue, "[[", 1)
+    genesVec <- rep(genesOfInterest, each = length(Tissue))
+    Tissue <- rep(Tissue, length(genesOfInterest))
+    Sample_Type <- sapply(availTissue, "[[", 2)
+    Sample_Type <- rep(Sample_Type, length(genesOfInterest))
+    genesOfInterest <- genesVec
+
+  }
+
   # Call downloadData to get all required files
   corrDF <- correlationAnalyzeR::getCorrelationData(Species = Species,
                                                     Tissue = Tissue,
                                                     Sample_Type = Sample_Type,
                                                     geneList = genesOfInterest)
+  if(crossCompareMode) {
+    tissue2 <- gsub(Tissue, pattern = "0", replacement = " ")
+    tissue2 <- stringr::str_to_title(tissue2)
+    if(whichCompareGroups != "all") {
+      namesVec <- tissue2
+    } else {
+      namesVec <- paste0(tissue2, " - ", stringr::str_to_title(Sample_Type))
+    }
+    topName <- paste0(genesOfInterest, "_", Tissue, "_", Sample_Type)
+    resList <- list()
+    geneList <- unique(genesOfInterest)
+    for (i in 1:length(geneList)) {
+      geneNow <- geneList[i]
+
+      resList[[i]] <- list()
+      names(resList)[i] <- geneNow
+      inds <- which(genesOfInterest == geneNow)
+      newDF <- corrDF[,inds]
+      topNameNow <- topName[inds]
+      colnames(newDF) <- topNameNow
+      namesVecNow <- namesVec[inds]
+      resList[[i]][["correlations"]] <- newDF
+      newDFNorm <- preprocessCore::normalize.quantiles(as.matrix(newDF))
+      newDFNorm <- as.data.frame(newDFNorm)
+      rownames(newDFNorm) <- rownames(newDF)
+      colnames(newDFNorm) <- colnames(newDF)
+      newDFNorm$Variance <- matrixStats::rowVars(as.matrix(newDFNorm))
+      newDFNorm <- newDFNorm[order(newDFNorm$Variance, decreasing = TRUE),]
+      n <- length(colnames(newDFNorm))
+      pMat <- newDFNorm[c(1:30),c(-n)]
+      pMatBig <- newDFNorm[c(1:500),c(-n)]
+      titleName <- ifelse(whichCompareGroups == "all", paste0(geneNow,
+                                                              " correlations across conditions"),
+                          no = ifelse(whichCompareGroups == "normal",
+                                      paste0(geneNow,
+                                             " correlations across tissue types"),
+                                      no = paste0(geneNow,
+                                                  " correlations across tumor tissues")))
+
+      phSmall <- pheatmap::pheatmap(pMat, silent = TRUE,
+                                    angle_col = 45, #main = titleName,
+                                    labels_col = namesVecNow)
+      phBig <- pheatmap::pheatmap(pMatBig, silent = TRUE, angle_col = 45,
+                                  show_rownames = FALSE, #main = titleName,
+                                  labels_col = namesVecNow)
+      resList[[i]][["heatmapSmall"]] <- phSmall
+      resList[[i]][["heatmapSmallData"]] <- pMat
+      resList[[i]][["heatmapBig"]] <- phBig
+      resList[[i]][["heatmapBigData"]] <- pMatBig
+    }
+    return(resList)
+  }
+
   resList <- list()
   # Main code
   for (i in 1:length(colnames(corrDF))) {
     gene <- colnames(corrDF)[i]
-    cat(paste0("\n", gene))
+    cat(paste0("\nAnalyzing: ", gene))
     # Create output folder for gene
     geneOutDir <- file.path(outputPrefix, gene)
     if (! dir.exists(geneOutDir) & ! returnDataOnly) {
@@ -144,7 +228,7 @@ analyzeSingleGenes <- function(genesOfInterest,
     # Remove gene from correlation values to build normal distribution
     vec <- corrDF[,i]
     names(vec) <- rownames(corrDF)
-    vec <- vec[order(vec, decreasing = T)]
+    vec <- vec[order(vec, decreasing = TRUE)]
     vec <- vec[c(-1)]
     # Make a histogram of gene correlations
     corrDF2 <- corrDF[which(rownames(corrDF) != gene),i, drop = F]
@@ -186,6 +270,7 @@ analyzeSingleGenes <- function(genesOfInterest,
                                     plotFile = paste0(geneOneTitleFile,
                                                       ".corrPathways"),
                                     outDir = geneOutDir,
+                                    nperm = 2000,
                                     topPlots = topPlots,
                                     returnDataOnly = returnDataOnly,
                                     Condition = paste0(geneOneTitle,

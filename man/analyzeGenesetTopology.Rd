@@ -8,10 +8,10 @@ analyzeGenesetTopology(genesOfInterest, Species = c("hsapiens",
   "mmusculus"), Sample_Type = c("normal", "cancer"), Tissue = "all",
   crossComparisonType = c("PCA", "variantGenes", "coCorrelativeGenes",
   "pathwayEnrich"), pathwayType = c("simple", "complex"),
-  setComparisonCutoff = "Auto", pathwayEnrichment = F,
+  setComparisonCutoff = "Auto", pathwayEnrichment = FALSE,
   pValueCutoff = 0.05, numTopGenesToPlot = "Auto",
-  alternativeTSNE = T, numClusters = "Auto",
-  outputPrefix = "CorrelationAnalyzeR_Output", returnDataOnly = F)
+  alternativeTSNE = TRUE, numClusters = "Auto",
+  outputPrefix = "CorrelationAnalyzeR_Output", returnDataOnly = FALSE)
 }
 \arguments{
 \item{genesOfInterest}{A vector of genes to analyze or the name of an official MSIGDB term.}
@@ -21,12 +21,12 @@ Either 'hsapiens' or 'mmusculus'}
 
 \item{Sample_Type}{Type of RNA Seq samples used to create correlation data.
 Either "all", "normal", or "cancer". Can be a single value for all genes,
-or a vector where each entry corresponds to a gene of interest.}
+or a vector corresponding to genesOfInterest.}
 
 \item{Tissue}{Which tissue type should gene correlations be derived from?
-Default = "all". Can be a single value for all genes, or a vector where each
-entry corresponds to a gene of interest.
- Run getTissueTypes() to see available tissue list.}
+Default = "all". Can be a single value for all genes,
+or a vector corresponding to genesOfInterest.
+Run getTissueTypes() to see available tissues.}
 
 \item{crossComparisonType}{The type of topology tests to run. (see details)}
 
@@ -34,28 +34,28 @@ entry corresponds to a gene of interest.
 or just those in the most popular categories. Should be one of either
 'simple' or 'complex'.}
 
-\item{setComparisonCutoff}{Only relevant for cocorrelation analysis -- the number of genes which
+\item{setComparisonCutoff}{Only relevant for co-correlation analysis -- the number of genes which
 must aggree for a gene to be considered co-correlative within the input gene list.}
 
-\item{pathwayEnrichment}{Logic. If TRUE, pathway enrichment will be performed on variant genes -- if 'variantGenes'
-selected -- and/or on co-correlative genes -- if "coCorrelativeGenes" selected.}
+\item{pathwayEnrichment}{Logic. If TRUE, pathway enrichment will be performed on variant genes --
+if 'variantGenes' selected -- and/or on co-correlative genes -- if "coCorrelativeGenes" selected.}
 
 \item{pValueCutoff}{Numeric. The p value cutoff applied when running all pathway enrichment tests.}
 
 \item{numTopGenesToPlot}{When creating a heatmap of the top co-correlative or top variant genes,
-how many genes should be plotted on the y axis?}
+how many genes should be plotted on the y axis? Default: "Auto"}
 
 \item{alternativeTSNE}{Logical. If TRUE, then a TSNE will be run as an alternative to PCA for visualizing
 large input gene lists. This is highly recommended as 100+ member gene lists cannot be visualized otherwise.}
 
-\item{numClusters}{The number of clusters to create with hclust or TSNE analysis.}
+\item{numClusters}{The number of clusters to create with hclust or TSNE analysis. Default: "Auto"}
 
 \item{outputPrefix}{Prefix for saved files. Should include directory info.}
 
-\item{returnDataOnly}{if TRUE will return only a list of analysis results.}
+\item{returnDataOnly}{if TRUE will return only a list of analysis results. Default: FALSE.}
 }
 \value{
-A list of analysis results and plotting data.
+A list of correlations for input genes, and the results of chosen analysis + visualizations.
 }
 \description{
 Analyzes the topology of a gene list using gene correlation data and dimension-reduction techniques.
@@ -72,11 +72,12 @@ Cross Comparison Types:
 - pathwayEnrich: Cluster profiler's enricher function will be run on the input gene list.
 }
 \examples{
-genesOfInterest <- c("CDK12", "AURKB", "SFPQ", "PARP1", "BRCC3", "BRCA2", "PARP1",
+genesOfInterest <- c("CDK12", "AURKB", "SFPQ", "NFKB1", "BRCC3", "BRCA2", "PARP1",
                      "DHX9", "SON", "AURKA", "SETX", "BRCA1", "ATMIN")
-Result <- analyzeGenesetTopology(genesOfInterest = genesOfInterest,
+correlationAnalyzeR::analyzeGenesetTopology(genesOfInterest = genesOfInterest,
                                  Species = "hsapiens",
-                                 Sample_Type = "Normal_Tissues",
+                                 Sample_Type = "cancer", returnDataOnly = TRUE,
+                                 Tissue = "brain",
                                  crossComparisonType = c("variantGenes", "PCA"))
 
 }

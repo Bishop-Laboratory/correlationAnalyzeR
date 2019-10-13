@@ -8,13 +8,11 @@
 #' @return Dataframe containing available genes and NCBI descriptions.
 #'
 #' @examples
-#' getAvailableGenes("hsapiens")
+#' correlationAnalyzeR::getAvailableGenes("hsapiens")
 #'
 #' @export
 getAvailableGenes <- function(Species = c("hsapiens", "mmusculus")) {
 
-  # # # # Bug testing
-  # Species <- "hsapiens"
 
   # Specify information about the download location and species type
   if (Species[1] == "hsapiens") {
@@ -36,12 +34,12 @@ getAvailableGenes <- function(Species = c("hsapiens", "mmusculus")) {
   geneNamesDF <- as.data.frame(rownames(geneNamesDF))
   colnames(geneNamesDF)[1] <- "geneName"
   if (Species[1] == "hsapiens") {
-    data("humanGenes", package = "correlationAnalyzeR")
+    humanGenes <- correlationAnalyzeR::humanGenes
     colnames(humanGenes)[1] <- "geneName"
     geneNamesDF <- merge(x = humanGenes, y = geneNamesDF, by = "geneName",
                          all.y = T)
   } else if (Species[1] == "mmusculus") {
-    data("mouseGenes", package = "correlationAnalyzeR")
+    mouseGenes <- correlationAnalyzeR::mouseGenes
     colnames(mouseGenes)[1] <- "geneName"
     geneNamesDF <- merge(x = mouseGenes, y = geneNamesDF, by = "geneName",
                          all.y = T)

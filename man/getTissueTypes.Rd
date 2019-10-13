@@ -2,21 +2,26 @@
 % Please edit documentation in R/getTissueTypes.R
 \name{getTissueTypes}
 \alias{getTissueTypes}
-\title{Get tissue types}
+\title{Get available tissue types}
 \usage{
-getTissueTypes(Species = c("hsapiens", "mmusculus"))
+getTissueTypes(Species = c("hsapiens", "mmusculus"),
+  useBlackList = FALSE)
 }
 \arguments{
 \item{Species}{Species to obtain tissue types for.
 Either 'hsapiens' or 'mmusculus'}
+
+\item{useBlackList}{Should black-listed tissue/disease categories for this species
+be removed from the returned list? Improves the quality of analysis by removing
+categories with low sample numbers and high observed variance.}
 }
 \value{
 Vector containing available tissue types.
 }
 \description{
-Finds tissue types with available correlation data
+Finds tissue types with available correlation data for a given species
 }
 \examples{
-getTissueTypes("hsapiens")
+correlationAnalyzeR::getTissueTypes("hsapiens")
 
 }
