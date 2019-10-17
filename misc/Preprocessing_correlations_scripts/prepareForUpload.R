@@ -7,6 +7,10 @@ library(future)
 
 doParallel::registerDoParallel()
 
+# 
+# species <- "Human"
+# name <- "brain"
+# type <- "all"
 
 for (species in c("Human", "Mouse")) {
   print(species)
@@ -54,9 +58,9 @@ for (species in c("Human", "Mouse")) {
       }
       
       uploadToAWS <- function(finalDF2= NULL, tableName, check = F, geneNames) {
-        con <- dbConnect(RMySQL::MySQL(), user = "xxxxxx", 
+        con <- dbConnect(RMySQL::MySQL(), user = "...", 
                          port = 3306, dbname="bishoplabdb",
-                         password='xxxxxxx', 
+                         password='...', 
                          host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com")
         sql <- paste0("SELECT COUNT(*) FROM ", tableName)
         tabs <- DBI::dbListTables(con)
@@ -96,7 +100,8 @@ for (species in c("Human", "Mouse")) {
             uploadDF <- finalDF2[c(start:end), , drop=F]
             rownames(uploadDF) <- rownames(finalDF2)[c(start:end)]
             dbWriteTable(con, tableName, uploadDF, row.names = T,
-                         field.types = c("row_names" = "VARCHAR(255)", "values" = "mediumtext"), append = T)
+                         field.types = c("row_names" = "VARCHAR(255)",
+                                         "values" = "mediumtext"), append = T)
           }
           Sys.sleep(4)
           sql <- paste0("ALTER TABLE ", tableName, " ADD PRIMARY KEY (row_names);")
@@ -159,8 +164,7 @@ for (species in c("Human", "Mouse")) {
           print("Correlations detected ... proceeding to upload")
           # Check whether upload necessary before loading
           tableName <- paste0("correlations_", speciesScien, "_", type, "_", name)
-          checkBool <- uploadToAWS(tableName = tableName,
-                                   check = T, geneNames = geneNames)
+          checkBool <- uploadToAWS(tableName = tableName, check = T, geneNames = geneNames)
           if (checkBool) {
             print("Loading matrix for upload ... ")
             if (file.exists(file.path(Path, "corMatForUpload.RData"))) {
