@@ -66,6 +66,20 @@ analyzeSingleGenes <- function(genesOfInterest,
                                outputPrefix = "CorrelationAnalyzeR_Output",
                                runGSEA = TRUE, topPlots = TRUE, returnDataOnly = FALSE) {
 
+  # # Bug testing
+  # genesOfInterest <- c("FLI1", "EWSR1", "STAG2")
+  # Species = c("hsapiens", "mmusculus")
+  # GSEA_Type = c("simple", "complex")
+  # Sample_Type = "normal"
+  # Tissue = "all"
+  # crossCompareMode = TRUE
+  # whichCompareGroups = c("all", "normal", "cancer")
+  # outputPrefix = "CorrelationAnalyzeR_Output"
+  # runGSEA = FALSE
+  # topPlots = FALSE
+  # returnDataOnly = TRUE
+
+
   # Parse arguments
   geneString <- paste(genesOfInterest, collapse = ", ")
 
@@ -175,7 +189,6 @@ analyzeSingleGenes <- function(genesOfInterest,
     geneList <- unique(genesOfInterest)
     for (i in 1:length(geneList)) {
       geneNow <- geneList[i]
-
       resList[[i]] <- list()
       names(resList)[i] <- geneNow
       inds <- which(genesOfInterest == geneNow)
@@ -207,6 +220,41 @@ analyzeSingleGenes <- function(genesOfInterest,
       phBig <- pheatmap::pheatmap(pMatBig, silent = TRUE, angle_col = 45,
                                   show_rownames = FALSE, #main = titleName,
                                   labels_col = namesVecNow)
+
+      # Get TPM for gene
+      geneTPMList <- correlationAnalyzeR::getTissueTPM(genesOfInterest = geneNow,
+                                                       Species = Species,
+                                                       Tissues = "all",
+                                                       Sample_Type = whichCompareGroups[1],
+                                                       useBlackList = TRUE)
+      # Make TPM plot
+      geneTPMDF <- data.table::rbindlist(geneTPMList, idcol = "group")
+      colnames(geneTPMDF)[3] <- "value"
+      geneTPMDF$value <- log2(geneTPMDF$value + 1)
+      rawGroup <- geneTPMDF$group
+      rawGroup1 <- gsub(rawGroup, pattern = "_.*", replacement = "")
+      rawGroup2 <- gsub(rawGroup, pattern = ".*_", replacement = "")
+      rawGroup2 <- gsub(rawGroup2, pattern = "0", replacement = " ")
+      geneTPMDF$group <- paste0(rawGroup2, " - ", rawGroup1)
+      geneTPMDF$group <- stringr::str_to_title(geneTPMDF$group)
+      availTissue <- correlationAnalyzeR::getTissueTypes(Species = Species,
+                                                         useBlackList = TRUE)
+      availTissue <- gsub(availTissue, pattern = "0", replacement = " ")
+      availTissue <- stringr::str_to_title(availTissue)
+      # all(geneTPMDF$group %in% availTissue) -- should be TRUE
+      geneTPMDF <- geneTPMDF[order(match(geneTPMDF$group, availTissue)),]
+      TPMBP <- ggpubr::ggboxplot(data = geneTPMDF,
+                                 x = "group",
+                                 title = paste0(geneNow, " expression across groups"),
+                                 ylab = "log2(TPM + 1)",
+                                 fill = "group",
+                                 y = "value") +
+        ggpubr::rotate_x_text() +
+        ggpubr::rremove("legend") +
+        ggpubr::rremove("xlab")
+      colnames(geneTPMDF)[3] <- paste0(geneNow, "_log2TPM")
+      resList[[i]][["TPM_DF"]] <- geneTPMDF
+      resList[[i]][["TPM_boxPlot"]] <- TPMBP
       resList[[i]][["heatmapSmall"]] <- phSmall
       resList[[i]][["heatmapSmallData"]] <- pMat
       resList[[i]][["heatmapBig"]] <- phBig

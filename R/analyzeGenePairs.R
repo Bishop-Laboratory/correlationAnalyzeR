@@ -72,6 +72,9 @@ analyzeGenePairs <- function(genesOfInterest,
                              crossCompareMode = FALSE,
                              runGSEA = TRUE, topPlots = FALSE, returnDataOnly = FALSE) {
 
+  # genesOfInterest <- c("ATM", "SLC3A2")
+  # crossCompareMode = TRUE
+  # returnDataOnly = TRUE
 
   lm_eqn <- function(df){
     m <- stats::lm(eval(parse(text = colnames(df)[2])) ~ eval(parse(text = colnames(df)[1])), df)
@@ -100,7 +103,6 @@ analyzeGenePairs <- function(genesOfInterest,
       cat("\nWill perform normal vs cancer comparison on",
           genesOfInterest[1], "... \n")
       mode <- "cross_normalVsCancer"
-
       df <- as.data.frame(table(gsub(availTissue,
                                      pattern = " - .*",
                                      replacement = "")), stringsAsFactors = FALSE)
@@ -129,6 +131,11 @@ analyzeGenePairs <- function(genesOfInterest,
       outputPrefix = outputPrefix, runGSEA = runGSEA,
       Sample_Type = Sample_Type, Tissue = Tissue,
       Species = Species, GSEA_Type = GSEA_Type
+    )
+    # Get TPM
+    crossCompareResTPM <- correlationAnalyzeR::analyzeSingleGenes(
+      genesOfInterest = unique(genesVec),
+      crossCompareMode = TRUE
     )
     n <- length(names(pairRes))
     oldNames <- names(pairRes)[1:(n-1)]
@@ -183,20 +190,30 @@ analyzeGenePairs <- function(genesOfInterest,
         dfRawDnSmall <- dfRawDn[c(1:15),]
         dfPh <- rbind(dfRawUpSmall, dfRawDnSmall)
         dfPh <- dfPh[,c(-3)]
-        ph <- pheatmap::pheatmap(dfPh, cluster_cols = FALSE,
-                                 silent = TRUE, angle_col = 0, main = titleStr,
-                                 labels_col = c(oldNames[(i-1)], oldNames[i]))
+        if (mode == "cross_geneVsGene") {
+          ph <- pheatmap::pheatmap(dfPh, cluster_cols = FALSE,
+                                   silent = TRUE, angle_col = 0, main = titleStr,
+                                   labels_col = c(genesOfInterest[1],
+                                                  genesOfInterest[2]))
+        } else {
+          ph <- pheatmap::pheatmap(dfPh, cluster_cols = FALSE,
+                                   silent = TRUE, angle_col = 0, main = titleStr,
+                                   labels_col = c("Normal", "Cancer"))
+        }
+
         tempList[["heatMap"]] <- ph
 
         resList[["pairResList"]][[i/2]] <- tempList
         names(resList[["pairResList"]])[i/2] <- tissue
       }
     }
+
     correlations$average <- rowMeans(correlations)
     correlations$variance <- matrixStats::rowVars(as.matrix(correlations))
     correlations <- correlations[order(correlations$variance,
                                        decreasing = TRUE),]
     resList[["Correlations"]] <- correlations
+    resList[["singleGeneCrossCompareResults"]] <- crossCompareResTPM
     resList[["mode"]] <- mode
     return(resList)
 
