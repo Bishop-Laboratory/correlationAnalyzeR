@@ -32,6 +32,12 @@ getTissueTPM <- function(genesOfInterest,
                          Sample_Type = c("all", "normal", "cancer"),
                          useBlackList = TRUE) {
 
+  # genesOfInterest = c("BRCA1", "ATM")
+  # Species = "hsapiens"
+  # Tissues = "all"
+  # Sample_Type = "all"
+  # useBlackList = TRUE
+
   if (Species[1] == "hsapiens") {
     samples <- correlationAnalyzeR::sampleTPMOrderHuman
     possibleGenes <- correlationAnalyzeR::humanGenesTPM
@@ -83,7 +89,7 @@ getTissueTPM <- function(genesOfInterest,
   resdf <- DBI::dbFetch(res, n=-1)
   DBI::dbClearResult(res)
   resdf2 <- data.frame(row.names = resdf$row_names, samples = resdf$samples)
-  resdfList <- setNames(split(resdf2, seq(nrow(resdf2))), rownames(resdf2))
+  resdfList <- stats::setNames(split(resdf2, seq(nrow(resdf2))), rownames(resdf2))
   newList <- lapply(resdfList, FUN = function(x){
     newX <- as.character(x[,1])
     newX <- unlist(strsplit(newX, split = ","))
@@ -101,11 +107,10 @@ getTissueTPM <- function(genesOfInterest,
   DBI::dbDisconnect(con)
 
   # Parse TPM frame
-  resdf2 <- sapply(resdf$values, strsplit, ",")
-  names(resdf2) <- resdf$row_names
-  resdf2 <- lapply(resdf2, as.numeric)
+  resdf2 <- stringr::str_split_fixed(resdf$values, stringr::fixed(","), n = Inf)
+  resdf2 <- apply(t(resdf2), 1:2, as.numeric)
   resdf2 <- as.data.frame(resdf2)
-  resdf2 <- cbind(samples, resdf2)
+  colnames(resdf2) <- resdf$row_names
   resdf2$samples <- samples
   rownames(resdf2) <- NULL
   # Return TPM frame for each specified group

@@ -11,7 +11,7 @@ getAvailableGenes(Species = c("hsapiens", "mmusculus"))
 Either 'hsapiens' or 'mmusculus'}
 }
 \value{
-Dataframe containing available genes and NCBI descriptions.
+A vector of genes with associated correlation data
 }
 \description{
 Finds available genes within correlation data

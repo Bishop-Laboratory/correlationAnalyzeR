@@ -9,6 +9,9 @@ fixStrings(StringVec)
 \arguments{
 \item{StringVec}{A vector of titles (usually GSEA) to clean for visualizations}
 }
+\value{
+A vector of cleaned string titles in the same order as the input.
+}
 \description{
 Convert vector of GSEA (or other) names to publication-ready titles
 }

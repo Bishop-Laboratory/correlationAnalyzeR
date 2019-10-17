@@ -14,15 +14,15 @@ getTissueTPM(genesOfInterest, Species = c("hsapiens", "mmusculus"),
 \item{Species}{Species to obtain tissue types for.
 Either 'hsapiens' or 'mmusculus'}
 
+\item{Tissues}{Which tissue type should TPM be collected for? See available options
+with getTissueTypes().}
+
 \item{Sample_Type}{Type of RNA Seq samples to obtain TPM for? See available options
 with getTissueTypes().}
 
 \item{useBlackList}{Should black-listed tissue/disease categories for this species
 be removed from the returned list? Improves the quality of analysis by removing
 categories with low sample numbers and high observed variance.}
-
-\item{Tissue}{Which tissue type should TPM be collected for? See available options
-with getTissueTypes().}
 }
 \value{
 List of TPM matrices for each selected tissue-disease combination.
@@ -33,7 +33,7 @@ Downloads TPM values for tissues of interest
 \examples{
 res <- getTissueTPM(genesOfInterest = c("BRCA1", "ATM"),
                     Species = "hsapiens",
-                    Tissues = "brain",
+                    Tissues = c("brain", "respiratory"),
                     Sample_Type = "all",
                     useBlackList = TRUE)
 }

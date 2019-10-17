@@ -60,9 +60,7 @@
 #' @export
 geneVsGeneListAnalyze <- function(pairedGenesList,
                                   Species = c("hsapiens", "mmusculus"),
-                                  Sample_Type = c(#"All",
-                                    "normal",
-                                    "cancer"),
+                                  Sample_Type = c("normal", "cancer"),
                                   Tissue = "all",
                                   outputPrefix = "CorrelationAnalyzeR_Output",
                                   plotLabels = TRUE,
@@ -96,7 +94,6 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
 
   # Check primary genes to make sure they exist
   avGenes <- correlationAnalyzeR::getAvailableGenes(Species = Species)
-  avGenes <- as.character(avGenes$geneName)
   intGenes <- names(pairedGenesList)
   badGenes <- intGenes[which(! intGenes %in% avGenes)]
   if (length(badGenes) > 0) {
@@ -130,12 +127,8 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
             intGenes_secondary %in% correlationAnalyzeR::MSIGDB_Geneset_Names)
     ]
   if (length(termGenes_secondary > 0)) {
-    if (Species[1] == "hsapiens") {
-      TERM2GENE <- correlationAnalyzeR::hsapiens_complex_TERM2GENE
-      colnames(TERM2GENE)[2] <- "gene_symbol"
-    } else {
-      TERM2GENE <- correlationAnalyzeR::mmusculus_complex_TERM2GENE
-    }
+    TERM2GENE <- correlationAnalyzeR::getTERM2GENE(GSEA_Type = "complex",
+                                                   Species = Species)
     for(i in 1:length(termGenes_secondary)) {
       term <- termGenes_secondary[i]
       print(term)
@@ -358,8 +351,6 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
                                                           yes = names(pMap)[1],
                                                           no = "n.s."))))
       }
-      # Reproducibility
-      set.seed(1)
 
       # bootstrapping with # replications
       results <- boot::boot(data=vec, statistic=meanBoot,

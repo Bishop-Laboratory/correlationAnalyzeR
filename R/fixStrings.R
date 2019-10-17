@@ -3,7 +3,7 @@
 #' Convert vector of GSEA (or other) names to publication-ready titles
 #'
 #' @param StringVec A vector of titles (usually GSEA) to clean for visualizations
-#'
+#' @return A vector of cleaned string titles in the same order as the input.
 #' @export
 
 

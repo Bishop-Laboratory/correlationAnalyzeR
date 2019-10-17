@@ -6,7 +6,7 @@
 #' @param ranks Numeric of gene 'scores' ordered by decreasing value and
 #'     named with gene symbols.
 #' @param TERM2GENE Data frame with two columns: gene set identifiers and
-#' gene symbols. Can be generated using msigdbr::msigdbr().
+#' gene symbols. Can be generated using correlationAnalyzeR::getTERM2GENE()
 #' @param plotFile prefix to use for naming output files.
 #' @param outDir output directory.
 #' @param Condition Name to use for titles of plots. Default = "GSEA Results".
@@ -22,13 +22,14 @@
 #'  returnDataOnly = TRUE, runGSEA = FALSE, Sample_Type = "normal")
 #' ranks <- corrDF$correlations[,1]
 #' names(ranks) <- rownames(corrDF$correlations)
+#' TERM2GENE <- correlationAnalyzeR::getTERM2GENE(GSEA_Type = "simple",
+#' Species = "hsapiens")
 #' correlationAnalyzeR::myGSEA(ranks = ranks,
-#' TERM2GENE = correlationAnalyzeR::hsapiens_simple_TERM2GENE,
+#' TERM2GENE = TERM2GENE,
 #'        plotFile = "GSEA_out", outDir = getwd(),
 #'        topPlots = FALSE, returnDataOnly=TRUE, Condition = "GSEA Results")
 #'
 #' @export
-# Helper for GSEA
 myGSEA <- function(ranks,
                    TERM2GENE,
                    padjustedCutoff = .05,

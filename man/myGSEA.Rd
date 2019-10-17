@@ -13,7 +13,7 @@ myGSEA(ranks, TERM2GENE, padjustedCutoff = 0.05,
 named with gene symbols.}
 
 \item{TERM2GENE}{Data frame with two columns: gene set identifiers and
-gene symbols. Can be generated using msigdbr::msigdbr().}
+gene symbols. Can be generated using correlationAnalyzeR::getTERM2GENE()}
 
 \item{padjustedCutoff}{Value to use as a cutoff for returned gene sets.}
 
@@ -41,8 +41,10 @@ corrDF <- correlationAnalyzeR::analyzeSingleGenes(genesOfInterest = c("BRCA1"),
  returnDataOnly = TRUE, runGSEA = FALSE, Sample_Type = "normal")
 ranks <- corrDF$correlations[,1]
 names(ranks) <- rownames(corrDF$correlations)
+TERM2GENE <- correlationAnalyzeR::getTERM2GENE(GSEA_Type = "simple",
+Species = "hsapiens")
 correlationAnalyzeR::myGSEA(ranks = ranks,
-TERM2GENE = correlationAnalyzeR::hsapiens_simple_TERM2GENE,
+TERM2GENE = TERM2GENE,
        plotFile = "GSEA_out", outDir = getwd(),
        topPlots = FALSE, returnDataOnly=TRUE, Condition = "GSEA Results")
 

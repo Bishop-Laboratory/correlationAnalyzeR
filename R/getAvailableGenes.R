@@ -5,7 +5,7 @@
 #' @param Species Species to obtain gene names for.
 #'     Either 'hsapiens' or 'mmusculus'
 #'
-#' @return Dataframe containing available genes and NCBI descriptions.
+#' @return A vector of genes with associated correlation data
 #'
 #' @examples
 #' correlationAnalyzeR::getAvailableGenes("hsapiens")
@@ -31,18 +31,6 @@ getAvailableGenes <- function(Species = c("hsapiens", "mmusculus")) {
                                                          Sample_Type = Sample_Type,
                                                          Tissue = Tissue,
                                                          geneList = gene)
-  geneNamesDF <- as.data.frame(rownames(geneNamesDF))
-  colnames(geneNamesDF)[1] <- "geneName"
-  if (Species[1] == "hsapiens") {
-    humanGenes <- correlationAnalyzeR::humanGenes
-    colnames(humanGenes)[1] <- "geneName"
-    geneNamesDF <- merge(x = humanGenes, y = geneNamesDF, by = "geneName",
-                         all.y = T)
-  } else if (Species[1] == "mmusculus") {
-    mouseGenes <- correlationAnalyzeR::mouseGenes
-    colnames(mouseGenes)[1] <- "geneName"
-    geneNamesDF <- merge(x = mouseGenes, y = geneNamesDF, by = "geneName",
-                         all.y = T)
-  }
-  return(geneNamesDF)
+  avGenes <- rownames(geneNamesDF)
+  return(avGenes)
 }

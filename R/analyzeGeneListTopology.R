@@ -99,8 +99,10 @@ analyzeGenesetTopology <-  function(genesOfInterest,
 
   # Check genes to make sure they exist -- only a warning
   intGenes <- genesOfInterest
-  badGenes <- intGenes[which(! intGenes %in% avGenes$geneName &
-                                                   ! intGenes %in% correlationAnalyzeR::MSIGDB_Geneset_Names)]
+  badGenes <- intGenes[
+    which(! intGenes %in% avGenes &
+            ! intGenes %in% correlationAnalyzeR::MSIGDB_Geneset_Names)
+    ]
   if (length(badGenes) > 0) {
     warning(paste0("\n\t\t\t'", paste(badGenes, collapse = ", "), "'
                       not found in correlation data and is not an official MSIGDB name.
@@ -112,35 +114,17 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   }
 
   # Make list of terms inputted by the user
-  termlist <- intGenes[which(! intGenes %in% avGenes$geneName &
+  termlist <- intGenes[which(! intGenes %in% avGenes &
                                intGenes %in% correlationAnalyzeR::MSIGDB_Geneset_Names)]
 
   # Load appropriate TERM2GENE file built from msigdbr()
   if (Species[1] %in% c("hsapiens", "mmusculus")) {
-    if (! pathwayType %in% c("simple", "complex")) {
-      stop("\nPlease enter either 'simple' or 'complex' for GSEA_Type\n")
-    } else if (pathwayType[1] == "simple") {
-      if (Species[1] == "hsapiens") {
-        TERM2GENE <- correlationAnalyzeR::hsapiens_simple_TERM2GENE
-      } else {
-        TERM2GENE <- correlationAnalyzeR::mmusculus_simple_TERM2GENE
-      }
-    } else {
-      if (Species[1] == "hsapiens") {
-        TERM2GENE <- correlationAnalyzeR::hsapiens_complex_TERM2GENE
-      } else {
-        TERM2GENE <- correlationAnalyzeR::mmusculus_complex_TERM2GENE
-      }
-    }
+    TERM2GENE <- correlationAnalyzeR::getTERM2GENE(GSEA_Type = pathwayType,
+                                                   Species = Species)
   } else {
     stop("\ncorrelationAnalyzeR currently supports only Human and Mouse data.
          Please select either 'hsapiens' or 'mmusculus' for Species parameter.
          \n")
-  }
-  if (Species[1] == "hsapiens") {
-    TERM2GENE <- correlationAnalyzeR::hsapiens_complex_TERM2GENE
-  } else {
-    TERM2GENE <- correlationAnalyzeR::mmusculus_complex_TERM2GENE
   }
 
   if (length(termlist > 0)) {
@@ -149,8 +133,8 @@ analyzeGenesetTopology <-  function(genesOfInterest,
       term <- termlist[i]
       print(term)
       nameStr <- names(term)
-      termGenes <- TERM2GENE$human_gene_symbol[which(TERM2GENE$gs_name == term)]
-      termGenes <- termGenes[which(termGenes %in% avGenes$geneName)] # Ensure actionable genes
+      termGenes <- TERM2GENE$gene_symbol[which(TERM2GENE$gs_name == term)]
+      termGenes <- termGenes[which(termGenes %in% avGenes)] # Ensure actionable genes
       intGenes <- unique(c(intGenes, termGenes)) # Append to intgenes vector
     }
     intGenes <- intGenes[which(! intGenes %in% termlist)]
@@ -226,7 +210,8 @@ analyzeGenesetTopology <-  function(genesOfInterest,
     varGenes <- rownames(topVarMat)
     # Perform pathway enrichment with Co-Correlative genes
     if (pathwayEnrichment) {
-      VarGenesEGMT <- clusterProfiler::enricher(gene = varGenes, TERM2GENE = TERM2GENE, pvalueCutoff = pValueCutoff)
+      VarGenesEGMT <- clusterProfiler::enricher(gene = varGenes, TERM2GENE = TERM2GENE,
+                                                pvalueCutoff = pValueCutoff)
       eres <- as.data.frame(VarGenesEGMT)
       resList[["variantGenes_pathways"]] <- VarGenesEGMT
       # Modify gene set names to fit plotting window
@@ -312,7 +297,8 @@ analyzeGenesetTopology <-  function(genesOfInterest,
 
     olMat <- resultsMat[select,]
 
-    cocorheatmap <- pheatmap::pheatmap(olMat, color = gplots::greenred(100), show_rownames = FALSE,
+    cocorheatmap <- pheatmap::pheatmap(olMat, color = gplots::greenred(100),
+                                       show_rownames = FALSE,
              main = "Co-Correlative Genes", silent = TRUE,
              width = width, height = height)
 
@@ -320,11 +306,16 @@ analyzeGenesetTopology <-  function(genesOfInterest,
     resList[["cocorrelativeGenesHeatmap_MAT"]] <- olMat
     if (pathwayEnrichment) {
       # Perform pathway enrichment with Co-Correlative genes
-      CCGenesEGMT <- clusterProfiler::enricher(gene = olGenes, TERM2GENE = TERM2GENE, pvalueCutoff = pValueCutoff)
+      CCGenesEGMT <- clusterProfiler::enricher(gene = olGenes, TERM2GENE = TERM2GENE,
+                                               pvalueCutoff = pValueCutoff)
       eres <- as.data.frame(CCGenesEGMT)
       resList[["coCorrelativeGenes_pathways"]] <- eres
       # Modify gene set names to fit plotting window
-      CCGenesEGMT@result$Description[which(nchar(CCGenesEGMT@result$Description) > 40)] <- paste0(substr(CCGenesEGMT@result$Description[which(nchar(CCGenesEGMT@result$Description) > 40)], 1, 40), "...")
+      CCGenesEGMT@result$Description[
+        which(nchar(CCGenesEGMT@result$Description) > 40)
+        ] <- paste0(substr(CCGenesEGMT@result$Description[
+          which(nchar(CCGenesEGMT@result$Description) > 40)
+          ], 1, 40), "...")
       dp <- clusterProfiler::dotplot(CCGenesEGMT)
       dp <- dp + ggplot2::labs(title = "Co-Correlated Genes Pathway Enrichment")
       resList[["coCorrelativeGenes_pathways_dotplot"]] <- dp
@@ -479,7 +470,8 @@ To disable this behavior, set 'alternativeTSNE' to FALSE")
     if (length(intGenes) < 10) {
       warning("\nPathway enrichment is recommended with at least 10 genes, otherwise results may not be informative.\n")
     }
-    EGMT <- clusterProfiler::enricher(gene = intGenes, TERM2GENE = TERM2GENE, pvalueCutoff = pValueCutoff)
+    EGMT <- clusterProfiler::enricher(gene = intGenes, TERM2GENE = TERM2GENE,
+                                      pvalueCutoff = pValueCutoff)
     eres <- as.data.frame(EGMT)
     resList[["inputGenes_pathwayEnrich"]] <- EGMT
     resList[["inputGenes_pathwayEnrich_data"]] <- eres

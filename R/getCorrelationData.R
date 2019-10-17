@@ -24,6 +24,11 @@
 #' @export
 getCorrelationData <- function(Species, Sample_Type, Tissue, geneList) {
 
+  # Species = "hsapiens"
+  # Sample_Type = "normal"
+  # Tissue = "brain"
+  # geneList = c("ATM", "BRCA1")
+
   if (Species == "hsapiens") {
     geneNames <- correlationAnalyzeR::hsapiens_corrSmall_geneNames
   } else {
@@ -70,10 +75,10 @@ getCorrelationData <- function(Species, Sample_Type, Tissue, geneList) {
     res <- DBI::dbSendQuery(conn = con, statement = sql)
     resdf <- DBI::dbFetch(res, n=-1)
     DBI::dbClearResult(res)
-    resdf2 <- sapply(resdf$values, strsplit, ",")
-    names(resdf2) <- resdf$row_names
-    resdf2 <- lapply(resdf2, as.numeric)
+    resdf2 <- stringr::str_split_fixed(resdf$values, stringr::fixed(","), n = Inf)
+    resdf2 <- apply(t(resdf2), 1:2, as.numeric)
     resdf2 <- as.data.frame(resdf2)
+    colnames(resdf2) <- resdf$row_names
     rownames(resdf2) <- geneNames
   } else {
     resDfList <- list()
@@ -94,10 +99,10 @@ getCorrelationData <- function(Species, Sample_Type, Tissue, geneList) {
       res <- DBI::dbSendQuery(conn = con, statement = sql)
       resdf <- DBI::dbFetch(res, n=-1)
       DBI::dbClearResult(res)
-      resdf2 <- sapply(resdf$values, strsplit, ",")
-      names(resdf2) <- resdf$row_names
-      resdf2 <- lapply(resdf2, as.numeric)
+      resdf2 <- stringr::str_split_fixed(resdf$values, stringr::fixed(","), n = Inf)
+      resdf2 <- apply(t(resdf2), 1:2, as.numeric)
       resdf2 <- as.data.frame(resdf2)
+      colnames(resdf2) <- resdf$row_names
       rownames(resdf2) <- geneNames
       resDfList[[i]] <- resdf2
     }

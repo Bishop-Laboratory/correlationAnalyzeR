@@ -90,21 +90,8 @@ analyzeSingleGenes <- function(genesOfInterest,
   # Load appropriate TERM2GENE file built from msigdbr()
   if (Species[1] %in% c("hsapiens", "mmusculus")) {
     if (runGSEA) {
-      if (! GSEA_Type %in% c("simple", "complex")) {
-        stop("\nPlease enter either 'simple' or 'complex' for GSEA_Type\n")
-      } else if (GSEA_Type[1] == "simple") {
-        if (Species[1] == "hsapiens") {
-          TERM2GENE <- correlationAnalyzeR::hsapiens_simple_TERM2GENE
-        } else {
-          TERM2GENE <- correlationAnalyzeR::mmusculus_simple_TERM2GENE
-        }
-      } else {
-        if (Species[1] == "hsapiens") {
-          TERM2GENE <- correlationAnalyzeR::hsapiens_complex_TERM2GENE
-        } else {
-          TERM2GENE <- correlationAnalyzeR::mmusculus_complex_TERM2GENE
-        }
-      }
+      TERM2GENE <- correlationAnalyzeR::getTERM2GENE(GSEA_Type = GSEA_Type,
+                                                     Species = Species)
     }
   } else {
     stop("\ncorrelationAnalyzeR currently supports only Human and Mouse data.
@@ -113,7 +100,6 @@ analyzeSingleGenes <- function(genesOfInterest,
   }
   # Check genes to make sure they exist
   avGenes <- correlationAnalyzeR::getAvailableGenes(Species = Species)
-  avGenes <- as.character(avGenes$geneName)
   badGenes <- genesOfInterest[which(! genesOfInterest %in% avGenes)]
   if (length(badGenes) > 0) {
     stop(paste0("\n\t\t\t'", paste(badGenes, collapse = ", "), "' not found
@@ -162,10 +148,10 @@ analyzeSingleGenes <- function(genesOfInterest,
                                       pattern = whichCompareGroups)]
     }
     availTissue <- strsplit(availTissue, split = " - ")
-    Tissue <- sapply(availTissue, "[[", 1)
+    Tissue <- vapply(availTissue, FUN = "[[", FUN.VALUE = "character", 1)
     genesVec <- rep(genesOfInterest, each = length(Tissue))
     Tissue <- rep(Tissue, length(genesOfInterest))
-    Sample_Type <- sapply(availTissue, "[[", 2)
+    Sample_Type <- vapply(availTissue, FUN = "[[", FUN.VALUE = "character", 2)
     Sample_Type <- rep(Sample_Type, length(genesOfInterest))
     genesOfInterest <- genesVec
 

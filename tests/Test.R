@@ -14,7 +14,7 @@
 # res <- analyzeSingleGenes(genesOfInterest = genesOfInterest,
 #                           outputPrefix = "tests/singleGeneTesting",
 #                           Species = "hsapiens", Tissue = "pancreas",
-#                           topPlots = F,
+#                           topPlots = FALSE,
 #                           Sample_Type = "cancer")
 # corrDF <- res$correlations
 # res <- correlationAnalyzeR::analyzeGenePairs(genesOfInterest = c("ATM", "SLC3A2"),
@@ -100,8 +100,8 @@
 # # pairedGenesList <- list("ATM" = unique(BISHOP_NRF2_PATHWAY))
 # # outDir <- paste0(getwd(), "/Results/ATM_ROS")
 # # Res <- pairedGenesAnalyzeR(pairedGenesList = pairedGenesList,
-# #                            outDir = outDir, onlyTop = F, topCutoff = .5,
-# #                            sigTest = T)
+# #                            outDir = outDir, onlyTop = FALSE, topCutoff = .5,
+# #                            sigTest = TRUE)
 # #
 # # ATM_NRF2_MARKERS <- Res$ATM
 # # ATM_NRF2_MARKERS <- ATM_NRF2_MARKERS[order(ATM_NRF2_MARKERS)]
@@ -117,15 +117,15 @@
 # #
 # #
 # # Res <- pairedGenesAnalyzeR(pairedGenesList = pairedGenesList,
-# #                            outDir = outDir, onlyTop = F, topCutoff = .5,
-# #                            sigTest = T)
+# #                            outDir = outDir, onlyTop = FALSE, topCutoff = .5,
+# #                            sigTest = TRUE)
 # #
 # #
 # #
 # #
 # # Res2 <- pairedGenesAnalyzeR(pairedGenesList = pairedGenesList,
-# #                            outDir = outDir, onlyTop = T, topCutoff = .5,
-# #                            sigTest = T)
+# #                            outDir = outDir, onlyTop = TRUE, topCutoff = .5,
+# #                            sigTest = TRUE)
 #
 #
 #

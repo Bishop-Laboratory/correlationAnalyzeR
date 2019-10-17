@@ -61,6 +61,7 @@
 #' @importFrom rlang .data
 #' @import dplyr
 #' @import tibble
+#' @import tidyr
 #' @export
 #'
 analyzeGenePairs <- function(genesOfInterest,
@@ -72,9 +73,17 @@ analyzeGenePairs <- function(genesOfInterest,
                              crossCompareMode = FALSE,
                              runGSEA = TRUE, topPlots = FALSE, returnDataOnly = FALSE) {
 
-  # genesOfInterest <- c("ATM", "SLC3A2")
+  # genesOfInterest <- c("ATM", "ATM")
+  # Species <- "hsapiens"
   # crossCompareMode = TRUE
   # returnDataOnly = TRUE
+  # returnDataOnly = TRUE
+  # outputPrefix = "CorrelationAnalyzeR_Output_Paired"
+  # runGSEA = TRUE
+  # topPlots = FALSE
+  # Sample_Type = c("normal", "normal")
+  # Tissue = c("brain", "respiratory")
+  # GSEA_Type = c("simple", "complex")
 
   lm_eqn <- function(df){
     m <- stats::lm(eval(parse(text = colnames(df)[2])) ~ eval(parse(text = colnames(df)[1])), df)
@@ -119,23 +128,111 @@ analyzeGenePairs <- function(genesOfInterest,
           geneTwo, "across all available tissue-disease conditions... \n")
       mode <- "cross_geneVsGene"
       availTissue <- strsplit(availTissue, split = " - ")
-      Tissue <- sapply(availTissue, "[[", 1)
+      Tissue <- vapply(availTissue, FUN = "[[", FUN.VALUE = "character", 1)
       genesVec <- rep(genesOfInterest, length(Tissue))
       Tissue <- rep(Tissue, each = 2)
-      Sample_Type <- sapply(availTissue, "[[", 2)
+      Sample_Type <- vapply(availTissue, FUN = "[[", FUN.VALUE = "character", 2)
       Sample_Type <- rep(Sample_Type, each = 2)
     }
+    # Get TPM for each gene
+    geneUnique <- unique(genesVec)
+    # Get TPM for gene
+
+    geneTPMList <- correlationAnalyzeR::getTissueTPM(genesOfInterest = geneUnique,
+                                                     Species = Species,
+                                                     Tissues = "all",
+                                                     Sample_Type = "all",
+                                                     useBlackList = TRUE)
+    geneTPMDF <- data.table::rbindlist(geneTPMList, idcol = "group")
+
+    rawGroup <- geneTPMDF$group
+    rawGroup1 <- stringr::str_to_title(gsub(rawGroup,
+                                            pattern = "_.*",
+                                            replacement = ""))
+    rawGroup2 <- gsub(rawGroup, pattern = ".*_", replacement = "")
+    rawGroup2 <- stringr::str_to_title(gsub(rawGroup2,
+                                            pattern = "0",
+                                            replacement = " "))
+    geneTPMDF <- cbind(paste0(rawGroup2,
+                              " - ",
+                              rawGroup1),
+                       rawGroup2,
+                       rawGroup1,
+                       geneTPMDF[,c(-1)])
+    colnames(geneTPMDF)[c(1:4)] <- c("Group", "Tissue", "sampleType", "Samples")
+    availTissue <- correlationAnalyzeR::getTissueTypes(Species = Species,
+                                                       useBlackList = TRUE)
+    availTissue <- gsub(availTissue, pattern = "0", replacement = " ")
+    availTissue <- stringr::str_to_title(availTissue)
+    # all(geneTPMDF$Group %in% availTissue) #-- should be TRUE
+    geneTPMDF <- geneTPMDF[order(match(geneTPMDF$Group, availTissue)),]
+    # Make TPM plot
+    crossCompareResTPM <- list()
+    if (mode == "cross_geneVsGene") {
+      geneTPMDF[,5] <- log2(geneTPMDF[,5] + 1)
+      geneTPMDF[,6] <- log2(geneTPMDF[,6] + 1)
+      geneTPMDFToPlot <- geneTPMDF[,c(1,2, 3, 5, 6)]
+      geneTPMDFToPlot <- geneTPMDFToPlot %>%
+        gather("Gene", "TPM", -.data$Group, -.data$Tissue, -.data$sampleType)
+      geneOne <- geneUnique[1]
+      geneTwo <- geneUnique[2]
+      if (Species == "mmusculus") {
+        fillStr <- "Tissue"
+      } else {
+        fillStr <- "Group"
+      }
+      geneTPMDFToPlot1 <- geneTPMDFToPlot[which(geneTPMDFToPlot$Gene == geneOne),]
+      plotOne <- ggpubr::ggboxplot(data = geneTPMDFToPlot1,
+                                   x = fillStr, #facet.by = "Gene",
+                                   title = paste0(geneOne,
+                                                  " expression across tissues"),
+                                   ylab = "log2(TPM + 1)",
+                                   fill = fillStr,
+                                   y = "TPM") +
+        ggpubr::rotate_x_text() +
+        ggpubr::rremove("legend") +
+        ggpubr::rremove("xlab")
+      geneTPMDFToPlot2 <- geneTPMDFToPlot[which(geneTPMDFToPlot$Gene == geneTwo),]
+      plotTwo <- ggpubr::ggboxplot(data = geneTPMDFToPlot2,
+                                   x = fillStr, #facet.by = "Gene",
+                                   title = paste0(geneTwo,
+                                                  " expression across tissues"),
+                                   ylab = "log2(TPM + 1)",
+                                   fill = fillStr,
+                                   y = "TPM") +
+        ggpubr::rotate_x_text() +
+        ggpubr::rremove("legend") +
+        ggpubr::rremove("xlab")
+      colnames(geneTPMDF)[c(5:6)] <- paste0(colnames(geneTPMDF)[c(5:6)], "_log2TPM")
+      crossCompareResTPM[["TPM_boxPlotOne"]] <- plotOne
+      crossCompareResTPM[["TPM_boxPlotTwo"]] <- plotTwo
+
+    } else {
+      geneTPMDF[,5] <- log2(geneTPMDF[,5] + 1)
+      geneTPMDFToPlot <- geneTPMDF
+      colnames(geneTPMDFToPlot)[length(colnames(geneTPMDFToPlot))] <- "TPM"
+      plot <- ggpubr::ggboxplot(data = geneTPMDFToPlot,
+                                   x = "Group", #facet.by = "Gene",
+                                   title = paste0(geneUnique[1],
+                                                  " expression across tissues"),
+                                   ylab = "log2(TPM + 1)",
+                                   fill = "Group",
+                                   y = "TPM") +
+        ggpubr::rotate_x_text() +
+        ggpubr::rremove("legend") +
+        ggpubr::rremove("xlab")
+      colnames(geneTPMDF)[c(5)] <- paste0(colnames(geneTPMDF)[c(5)], "_log2TPM")
+      crossCompareResTPM[["TPM_boxPlot"]] <- plot
+    }
+    crossCompareResTPM[["TPM_DF"]] <- geneTPMDF
+
+    # Do paired to get correlation data
     pairRes <- correlationAnalyzeR::analyzeSingleGenes(
       genesOfInterest = genesVec,
       returnDataOnly = returnDataOnly, topPlots = topPlots,
       outputPrefix = outputPrefix, runGSEA = runGSEA,
       Sample_Type = Sample_Type, Tissue = Tissue,
       Species = Species, GSEA_Type = GSEA_Type
-    )
-    # Get TPM
-    crossCompareResTPM <- correlationAnalyzeR::analyzeSingleGenes(
-      genesOfInterest = unique(genesVec),
-      crossCompareMode = TRUE
     )
     n <- length(names(pairRes))
     oldNames <- names(pairRes)[1:(n-1)]
@@ -213,11 +310,12 @@ analyzeGenePairs <- function(genesOfInterest,
     correlations <- correlations[order(correlations$variance,
                                        decreasing = TRUE),]
     resList[["Correlations"]] <- correlations
-    resList[["singleGeneCrossCompareResults"]] <- crossCompareResTPM
+    resList[["crossCompareTPM"]] <- crossCompareResTPM
     resList[["mode"]] <- mode
     return(resList)
 
   }
+
 
   # If running in normal mode ...
   if (length(genesOfInterest) == 2 ) {
@@ -338,8 +436,70 @@ analyzeGenePairs <- function(genesOfInterest,
   compHeat <- compHeat[,c(2, 6)]
 
   rownames(compHeat) <- titleID[1:30]
+  # Get TPM
+  TPMList <- correlationAnalyzeR::getTissueTPM(genesOfInterest = c(geneOne, geneTwo),
+                                               Species = Species,
+                                               Tissues = c(tissueOne, tissueTwo),
+                                               Sample_Type = c(sampleOne, sampleTwo),
+                                               useBlackList = FALSE)
+  TPMDF <- data.table::rbindlist(TPMList, idcol = "Group")
+  TPMDFOne <- TPMDF[grep(TPMDF$Group,
+                         pattern = paste0("_", tissueOne)),]
+  TPMDFOne <- TPMDFOne[grep(TPMDFOne$Group,
+                         pattern = paste0(sampleOne, "_")),]
 
-
+  TPMDFTwo <- TPMDF[grep(TPMDF$Group,
+                         pattern = paste0("_", tissueTwo)),]
+  TPMDFTwo <- TPMDFTwo[grep(TPMDFTwo$Group,
+                            pattern = paste0(sampleTwo, "_")),]
+  if (geneOne != geneTwo) {
+    uiNameOne <- paste0(
+      stringr::str_to_title(tissueOne), "-",
+      stringr::str_to_title(sampleOne))
+    uiNameTwo <- paste0(
+      stringr::str_to_title(tissueTwo), "-",
+      stringr::str_to_title(sampleTwo))
+    TPMDFOne <- TPMDFOne[,c(-4)]
+    TPMDFOne$Gene <- colnames(TPMDFOne)[3]
+    TPMDFTwo <- TPMDFTwo[,c(-3)]
+    TPMDFTwo$Gene <- colnames(TPMDFTwo)[3]
+    TPMDFOne[,3] <- log2(TPMDFOne[,3] + 1)
+    TPMDFTwo[,3] <- log2(TPMDFTwo[,3] + 1)
+    colnames(TPMDFTwo)[3] <- "Log2TPM"
+    colnames(TPMDFOne)[3] <- "Log2TPM"
+    titleStr <- paste0(geneOne, " vs. ",
+                       geneTwo, " expression")
+    if (uiNameOne != uiNameTwo) {
+      capStr <- paste0("In ", tolower(uiNameOne), " vs ", tolower(uiNameTwo), " samples")
+    } else {
+      capStr <- paste0("In ", tolower(uiNameOne), " samples")
+    }
+    fillStr <- "Gene"
+  } else {
+    capStr <- NULL
+    TPMDFOne$Gene <- paste0(colnames(TPMDFOne)[3], "_", TPMDFOne$Group)
+    TPMDFTwo$Gene <- paste0(colnames(TPMDFTwo)[3], "_", TPMDFTwo$Group)
+    TPMDFOne[,3] <- log2(TPMDFOne[,3] + 1)
+    TPMDFTwo[,3] <- log2(TPMDFTwo[,3] + 1)
+    colnames(TPMDFTwo)[3] <- "Log2TPM"
+    colnames(TPMDFOne)[3] <- "Log2TPM"
+    titleStr <- paste0(geneOne, " expression")
+    fillStr <- "Group"
+  }
+  TPMDFFinal <- rbind(TPMDFOne, TPMDFTwo)
+  TPMDFFinal$Group <- stringr::str_to_title(gsub(TPMDFFinal$Group, pattern = "_",
+                                                     replacement = " - "))
+  TPMplot <- ggpubr::ggboxplot(data = TPMDFFinal,
+                               x = fillStr, #facet.by = "Gene",
+                               title = titleStr,
+                               caption = capStr,
+                               ylab = "log2(TPM + 1)",
+                               fill = fillStr,
+                               y = "Log2TPM") +
+    ggpubr::rremove("legend") +
+    ggpubr::rremove("xlab")
+  pairRes[["compared"]][["TPM_boxPlot"]] <- TPMplot
+  pairRes[["compared"]][["TPM_Data"]] <- TPMDFFinal
   if (longName) {
     uiNameOne <- paste0(
                         stringr::str_to_title(tissueOne), " - ",
@@ -352,11 +512,14 @@ analyzeGenePairs <- function(genesOfInterest,
     correlationsScatter$Gene[which(rownames(correlationsScatter) %in%
                                               c(geneOne, geneTwo))] <- T
     colnames(correlationsScatter)[c(1, 2)] <- c("x", "y")
+    if (geneOne != geneTwo) {
+      titleStr <- paste0(geneOne, " vs. ",
+                         geneTwo, " correlations")
+    } else {
+      titleStr <- paste0(geneOne, " correlations")
+    }
     gs <- ggpubr::ggscatter(correlationsScatter,
-                            title = paste0(geneOne, " vs. ",
-                                           geneTwo, " Correlations"),
-                            caption = paste0(uiNameOne, " vs ",
-                                             uiNameTwo),
+                            title = titleStr,
                             x = "x", y = "y",
                             ylab = geneTwoTitle,
                             xlab = geneOneTitle,
@@ -365,9 +528,8 @@ analyzeGenePairs <- function(genesOfInterest,
                             repel = TRUE, label = rownames(correlationsScatter),
                             font.label = c(12, "bold", "black"),
                             label.select = unique(c(geneOne, geneTwo)),
-                            add = "reg.line",
-                            # cor.method = "spearman",
-                            cor.coef = TRUE, conf.int = TRUE)
+                            add = "reg.line") +
+      ggpubr::stat_cor(label.y = 1.1)
     pairRes[["compared"]][["correlationPlot"]] <- gs
 
     phCor <- pheatmap::pheatmap(corHeat, silent = TRUE, angle_col = 0,

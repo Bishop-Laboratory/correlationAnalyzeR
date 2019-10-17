@@ -17,6 +17,8 @@
 #' @export
 getTissueTypes <- function(Species = c("hsapiens", "mmusculus"),
                            useBlackList = FALSE) {
+  # Species = "hsapiens"
+  # useBlackList = TRUE
 
   Species <- Species[1]
   con <- DBI::dbConnect(RMySQL::MySQL(), user = "public-rds-user", port = 3306,
@@ -41,8 +43,8 @@ getTissueTypes <- function(Species = c("hsapiens", "mmusculus"),
     tabs <- tabs[grep(x = tabs, pattern = paste(blackList, collapse = "|"), invert = TRUE)]
   }
   tabs <- strsplit(tabs, split = "_")
-  tissues <- sapply(tabs, "[[", 2)
-  types <- sapply(tabs, "[[", 1)
+  tissues <- vapply(tabs, "[[", FUN.VALUE = "character", 2)
+  types <- vapply(tabs, "[[", FUN.VALUE = "character", 1)
   result <- paste0(tissues, " - ", types)
   result <- result[order(result)]
   DBI::dbDisconnect(con)
