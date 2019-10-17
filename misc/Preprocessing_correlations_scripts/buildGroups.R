@@ -141,6 +141,40 @@ groupList[["all"]] <- list("all" = colData$samples,
 groupList <- groupList[which(! is.na(names(groupList)))]
 save(groupList, colData, file = "Data/Final_Expression_Matrices/Human/groupList.RData")
 
+# Make table and upload to AWS
+dfList <- list()
+for (i in 1:length(groupList)) {
+  tissue <- names(groupList)[i]
+  listTemp <- groupList[[i]]
+  listNew <- lapply(listTemp, FUN = function(x){
+    tmp = paste0(x, collapse = ",")
+    return(tmp)
+  })
+  dfList[[i]] <- data.frame(sampleType = names(listNew),
+                            samples = unlist(listNew, use.names = F))
+  names(dfList)[[i]] <- tissue
+  
+}
+tissueSampleDF <- data.table::rbindlist(dfList)
+tissueSampleDF$tissue <- rep(names(dfList), each = 3)
+tissueSampleDF$tissue <- gsub(tissueSampleDF$tissue, pattern = " ", replacement = "0")
+tissueSampleDF2 <- tissueSampleDF[,c(-1, -3)]
+rownames(tissueSampleDF2) <- paste0(tissueSampleDF$sampleType, "_", tissueSampleDF$tissue)
+con <- DBI::dbConnect(RMySQL::MySQL(), user = "millerh1", 
+                 port = 3306, dbname="bishoplabdb",
+                 password='...', 
+                 host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com")
+DBI::dbRemoveTable(conn = con, name = "hsapiens_sample_group_key")
+DBI::dbWriteTable(con, "hsapiens_sample_group_key", tissueSampleDF2, 
+                  row.names = T, overwrite = T,
+             field.types = c("row_names" = "VARCHAR(255)", 
+                             "samples" = "mediumtext"), append = F)
+sql <- paste0("ALTER TABLE ", "hsapiens_sample_group_key", 
+              " ADD PRIMARY KEY (row_names);")
+DBI::dbExecute(conn = con, statement = sql)
+DBI::dbDisconnect(con)
+
+
 
 # Mouse
 load("Data/Final_Expression_Matrices/Mouse/colData.RData")
@@ -226,4 +260,39 @@ groupList[["all"]] <- list("all" = colData$samples,
                            "normal" = colData$samples[which(colData$normal == 1)])
 groupList <- groupList[which(! is.na(names(groupList)))]
 save(groupList, colData, file = "Data/Final_Expression_Matrices/Mouse/groupList.RData")
+
+# Make table and upload to AWS
+dfList <- list()
+for (i in 1:length(groupList)) {
+  tissue <- names(groupList)[i]
+  listTemp <- groupList[[i]]
+  listNew <- lapply(listTemp, FUN = function(x){
+    tmp = paste0(x, collapse = ",")
+    return(tmp)
+  })
+  dfList[[i]] <- data.frame(sampleType = names(listNew),
+                            samples = unlist(listNew, use.names = F))
+  names(dfList)[[i]] <- tissue
+  
+}
+tissueSampleDF <- data.table::rbindlist(dfList)
+tissueSampleDF$tissue <- rep(names(dfList), each = 3)
+tissueSampleDF$tissue <- gsub(tissueSampleDF$tissue, pattern = " ", replacement = "0")
+tissueSampleDF2 <- tissueSampleDF[,c(-1, -3)]
+rownames(tissueSampleDF2) <- paste0(tissueSampleDF$sampleType, "_", tissueSampleDF$tissue)
+con <- DBI::dbConnect(RMySQL::MySQL(), user = "millerh1", 
+                      port = 3306, dbname="bishoplabdb",
+                      password='', 
+                      host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com")
+DBI::dbRemoveTable(conn = con, name = "mmusculus_sample_group_key")
+DBI::dbWriteTable(con, "mmusculus_sample_group_key", tissueSampleDF2, 
+                  row.names = T, overwrite = T,
+                  field.types = c("row_names" = "VARCHAR(255)", 
+                                  "samples" = "mediumtext"), append = F)
+sql <- paste0("ALTER TABLE ", "mmusculus_sample_group_key", 
+              " ADD PRIMARY KEY (row_names);")
+DBI::dbExecute(conn = con, statement = sql)
+DBI::dbDisconnect(con)
+
+
 
