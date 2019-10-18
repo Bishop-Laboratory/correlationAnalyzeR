@@ -546,8 +546,6 @@ analyzeGenePairs <- function(genesOfInterest,
     gs <- ggpubr::ggscatter(correlationsScatter,
                             title = paste0(geneOne, " vs. ",
                                            geneTwo, " Correlations"),
-                            caption = paste0(geneOne, " vs ",
-                                             geneTwo),
                             x = geneOne, y = geneTwo,
                             ylab = geneTwoTitle,
                             xlab = geneOneTitle,
@@ -556,9 +554,8 @@ analyzeGenePairs <- function(genesOfInterest,
                             repel = TRUE, label = rownames(correlationsScatter),
                             font.label = c(12, "bold", "black"),
                             label.select = unique(c(geneOne, geneTwo)),
-                            add = "reg.line",
-                            # cor.method = "spearman",
-                            cor.coef = TRUE, conf.int = TRUE)
+                            add = "reg.line") +
+      ggpubr::stat_cor(label.y = 1.1)
     pairRes[["compared"]][["correlationPlot"]] <- gs
 
     phCor <- pheatmap::pheatmap(corHeat,angle_col = 0,
