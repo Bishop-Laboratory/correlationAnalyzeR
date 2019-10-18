@@ -18,7 +18,7 @@ Description: Correlation AnalyzeR is a powerful tool for understanding how genes
 Depends: R (>= 3.6)
 License: GPL-3
 Encoding: UTF-8
-LazyData: FALSE
+LazyData: true
 RoxygenNote: 6.1.1
 Imports: 
     clusterProfiler,

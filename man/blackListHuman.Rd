@@ -11,4 +11,4 @@ blackListHuman
 \description{
 A vector of blacklisted tissue-disease categories for human samples
 }
-\keyword{datasets}
+\keyword{data}

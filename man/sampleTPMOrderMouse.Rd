@@ -11,4 +11,4 @@ sampleTPMOrderMouse
 \description{
 A vector containing the order of mouse samples in the sample-tissue SQL table
 }
-\keyword{datasets}
+\keyword{data}

@@ -11,4 +11,4 @@ mmusculus_corrSmall_geneNames
 \description{
 A vector of valid mouse genes to extract correlations from
 }
-\keyword{datasets}
+\keyword{data}

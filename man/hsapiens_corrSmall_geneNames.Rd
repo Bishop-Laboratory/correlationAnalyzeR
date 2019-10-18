@@ -11,4 +11,4 @@ hsapiens_corrSmall_geneNames
 \description{
 A vector of valid human genes to extract correlations from
 }
-\keyword{datasets}
+\keyword{data}

@@ -11,4 +11,4 @@ blackListMouse
 \description{
 A vector of blacklisted tissue-disease categories for mouse samples
 }
-\keyword{datasets}
+\keyword{data}

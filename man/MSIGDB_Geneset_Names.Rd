@@ -14,4 +14,4 @@ MSIGDB_Geneset_Names
 \description{
 A vector of valid MSIGDB geneset names
 }
-\keyword{datasets}
+\keyword{data}

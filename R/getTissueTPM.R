@@ -111,7 +111,7 @@ getTissueTPM <- function(genesOfInterest,
   resdf2 <- apply(t(resdf2), 1:2, as.numeric)
   resdf2 <- as.data.frame(resdf2)
   colnames(resdf2) <- resdf$row_names
-  resdf2$samples <- samples
+  resdf2 <- cbind(samples, resdf2)
   rownames(resdf2) <- NULL
   # Return TPM frame for each specified group
   resFrameList <- list()

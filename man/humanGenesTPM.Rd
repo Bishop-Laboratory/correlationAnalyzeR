@@ -11,4 +11,4 @@ humanGenesTPM
 \description{
 A vector of valid human genes with TPM data available
 }
-\keyword{datasets}
+\keyword{data}

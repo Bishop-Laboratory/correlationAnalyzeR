@@ -59,17 +59,14 @@ correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
                               GSEA_Type = "simple", returnDataOnly = TRUE,
                               Sample_Type = c("normal", "normal"),
                               Tissue = c("brain", "brain"))
-
 genesOfInterest <- c("BRCA1", "BRCA1")
 correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
                               Species = "hsapiens",
                               GSEA_Type = "simple", returnDataOnly = TRUE,
                               Sample_Type = c("normal", "cancer"),
                               Tissue = c("respiratory", "respiratory"))
-
 genesOfInterest <- c("NFKB1", "SOX10")
 correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
                               Species = "hsapiens", returnDataOnly = TRUE,
                               crossCompareMode = TRUE)
-
 }

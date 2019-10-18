@@ -4,40 +4,28 @@
 #' This can be 2 different genes in the same tissue or sample type or
 #' the same gene accross two sample or tissue types. Alternatively, specify 'crossCompareMode'
 #' to view compared correrlations across all available tissue types.
-#'
 #' @param genesOfInterest A length-two vector with genes to compare.
-#'
 #' @param Sample_Type A length-two vector of sample types corresponding to genesOfInterest.
 #' Choose "all", "normal", or "cancer". Default: c("normal", "normal")
-#'
 #' @param Tissue A length-two vector of tissue types corresponding to genesOfInterest.
 #' Run getTissueTypes() to see available list. Default: c("all", "all")
-#'
 #' @param Species Species to obtain gene names for.
 #'     Either 'hsapiens' or 'mmusculus'. Default: "hsapiens".
-#'
 #' @param GSEA_Type Whether GSEA should consider all msigdb annotations,
 #'     or just those in the most popular categories. Should be one of either
 #'     'simple' or 'complex'.
-#'
 #' @param crossCompareMode Use this mode to generate comparisons
 #' across all tissue and disease types. If both genes for genesOfInterest are the
 #' same -- will compare normal vs cancer for that gene in each available tissue. Else, will
 #' perform comparison of two different genes in all tissue-disease groups.
 #' Will only consider user input for returnDataOnly, outputPrefix, Species, and genesOfInterest.
-#'
 #' @param outputPrefix Prefix for saved files -- the directory name to store output files in. If
 #' folder does not exist, it will be created.
-#'
 #' @param runGSEA If TRUE will run GSEA using gene correlation values.
-#'
 #' @param returnDataOnly if TRUE will return result list object
 #' and will not generate any folders or files.
-#'
 #' @param topPlots Logical. If TRUE, myGSEA() will build gsea plots for top correlated genesets.
-#'
 #' @return A named list containing visualizations and correlation data from paired analysis.
-#'
 #' @examples
 #' genesOfInterest <- c("ATM", "SLC7A11")
 #' correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
@@ -45,19 +33,16 @@
 #'                               GSEA_Type = "simple", returnDataOnly = TRUE,
 #'                               Sample_Type = c("normal", "normal"),
 #'                               Tissue = c("brain", "brain"))
-#'
 #' genesOfInterest <- c("BRCA1", "BRCA1")
 #' correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
 #'                               Species = "hsapiens",
 #'                               GSEA_Type = "simple", returnDataOnly = TRUE,
 #'                               Sample_Type = c("normal", "cancer"),
 #'                               Tissue = c("respiratory", "respiratory"))
-#'
 #' genesOfInterest <- c("NFKB1", "SOX10")
 #' correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
 #'                               Species = "hsapiens", returnDataOnly = TRUE,
 #'                               crossCompareMode = TRUE)
-#'
 #' @importFrom rlang .data
 #' @import dplyr
 #' @import tibble
@@ -144,7 +129,6 @@ analyzeGenePairs <- function(genesOfInterest,
                                                      Sample_Type = "all",
                                                      useBlackList = TRUE)
     geneTPMDF <- data.table::rbindlist(geneTPMList, idcol = "group")
-
     rawGroup <- geneTPMDF$group
     rawGroup1 <- stringr::str_to_title(gsub(rawGroup,
                                             pattern = "_.*",

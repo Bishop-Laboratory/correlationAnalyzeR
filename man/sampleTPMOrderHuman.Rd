@@ -11,4 +11,4 @@ sampleTPMOrderHuman
 \description{
 A vector containing the order of human samples in the sample-tissue SQL table
 }
-\keyword{datasets}
+\keyword{data}

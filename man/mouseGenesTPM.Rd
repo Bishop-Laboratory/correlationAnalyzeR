@@ -11,4 +11,4 @@ mouseGenesTPM
 \description{
 A vector of valid mouse genes with TPM data available
 }
-\keyword{datasets}
+\keyword{data}
