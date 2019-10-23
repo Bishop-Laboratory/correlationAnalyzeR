@@ -9,6 +9,8 @@
 #' or just those in the most popular categories. Should be one of either
 #' 'simple' or 'complex'.
 #'
+#' @param sampler If TRUE, will only return 100,000 random genesets from either
+#' simple or complex TERM2GENEs. Useful for reducing GSEA computational burden.
 #' @return A tbl object with columns "gs_name" and "gene_symbol"
 #'
 #' @examples
@@ -16,10 +18,13 @@
 #'
 #' @export
 getTERM2GENE <- function(GSEA_Type = c("simple", "complex"),
-                         Species = c("hsapiens", "mmusculus")) {
+                         Species = c("hsapiens", "mmusculus"),
+                         sampler = FALSE) {
 
-  # Species = "mmusculus"
+  # Species = "hsapiens"
   # GSEA_Type = "simple"
+  # sampler = TRUE
+
 
   if (Species == "hsapiens") {
     msigSpec <- "Homo sapiens"
@@ -48,10 +53,13 @@ getTERM2GENE <- function(GSEA_Type = c("simple", "complex"),
       m_dfFinal <- data.table::rbindlist(msigList)
       TERM2GENE <- unique(m_dfFinal[,c(1, 8)])
     }
-
   } else {
     m_df <- msigdbr::msigdbr(msigSpec)
     TERM2GENE <- unique(m_df[,c(1, 8)])
+  }
+  if (sampler) {
+    set.seed(1)
+    TERM2GENE <- TERM2GENE[sample(nrow(TERM2GENE), size = 100000),]
   }
   return(TERM2GENE)
 }

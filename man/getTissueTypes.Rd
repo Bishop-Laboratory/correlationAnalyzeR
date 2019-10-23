@@ -5,7 +5,7 @@
 \title{Get available tissue types}
 \usage{
 getTissueTypes(Species = c("hsapiens", "mmusculus"),
-  useBlackList = FALSE)
+  useBlackList = FALSE, pool = NULL)
 }
 \arguments{
 \item{Species}{Species to obtain tissue types for.
@@ -14,6 +14,9 @@ Either 'hsapiens' or 'mmusculus'}
 \item{useBlackList}{Should black-listed tissue/disease categories for this species
 be removed from the returned list? Improves the quality of analysis by removing
 categories with low sample numbers and high observed variance.}
+
+\item{pool}{an object created by pool::dbPool to accessing SQL database.
+It will be created if not supplied.}
 }
 \value{
 Vector containing available tissue types.

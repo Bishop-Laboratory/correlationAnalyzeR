@@ -12,7 +12,8 @@
 #' or a vector corresponding to geneList.
 #' Run getTissueTypes() to see available tissue list.
 #' @param geneList Vector of genes for which data will be extracted.
-#'
+#' @param pool an object created by pool::dbPool to accessing SQL database.
+#' It will be created if not supplied.
 #' @return A correlation data frame object
 #'
 #' @examples
@@ -22,12 +23,45 @@
 #'                                     geneList = c("ATM", "BRCA1"))
 #'
 #' @export
-getCorrelationData <- function(Species, Sample_Type, Tissue, geneList) {
+getCorrelationData <- function(Species, Sample_Type,
+                               Tissue, geneList, pool = NULL) {
 
   # Species = "hsapiens"
   # Sample_Type = "normal"
   # Tissue = "brain"
   # geneList = c("ATM", "BRCA1")
+
+  if (is.null(pool)) {
+    retryCounter <- 1
+    cat("\nEstablishing connection to database ... \n")
+    while(is.null(pool)) {
+      pool <- try(silent = T, eval({
+        pool::dbPool(
+          drv = RMySQL::MySQL(),
+          user = "public-rds-user", port = 3306,
+          dbname="bishoplabdb",
+          password='public-user-password',
+          host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
+        )
+      }))
+      if ("try-error" %in% class(pool)) {
+        if (retryCounter == 3) {
+          stop("Unable to connect to database. Check internet connection and please contanct",
+               " package maintainer if you believe this is an error.")
+        }
+        warning(paste0("Failed to establish connection to database ... retrying now ... ",
+                       (4-retryCounter), " attempts left."),
+                immediate. = T)
+        pool <- NULL
+        retryCounter <- retryCounter + 1
+      }
+    }
+
+    on.exit(function() {
+      pool::poolClose(pool)
+    })
+  }
+
 
   if (Species == "hsapiens") {
     geneNames <- correlationAnalyzeR::hsapiens_corrSmall_geneNames
@@ -56,10 +90,6 @@ getCorrelationData <- function(Species, Sample_Type, Tissue, geneList) {
     }
   }
 
-  con <- DBI::dbConnect(RMySQL::MySQL(), user = "public-rds-user", port = 3306,
-                        dbname="bishoplabdb",
-                        password='public-user-password',
-                        host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com")
   if (length(unique(Tissue)) == 1 & length(unique(Sample_Type)) == 1) {
     if (Tissue == "respiratory") {
       TissueNow <- "repiratory"
@@ -72,9 +102,7 @@ getCorrelationData <- function(Species, Sample_Type, Tissue, geneList) {
                   tolower(unique(TissueNow)),
                   " WHERE row_names IN ('",
                   paste(geneList, collapse = "','"), "')")
-    res <- DBI::dbSendQuery(conn = con, statement = sql)
-    resdf <- DBI::dbFetch(res, n=-1)
-    DBI::dbClearResult(res)
+    resdf <- pool::dbGetQuery(pool, sql)
     resdf2 <- stringr::str_split_fixed(resdf$values, stringr::fixed(","), n = Inf)
     resdf2 <- apply(t(resdf2), 1:2, as.numeric)
     resdf2 <- as.data.frame(resdf2)
@@ -96,9 +124,7 @@ getCorrelationData <- function(Species, Sample_Type, Tissue, geneList) {
                     tolower(Sample_TypeNow), "_", tolower(TissueNow2),
                     " WHERE row_names IN ('",
                     geneName, "')")
-      res <- DBI::dbSendQuery(conn = con, statement = sql)
-      resdf <- DBI::dbFetch(res, n=-1)
-      DBI::dbClearResult(res)
+      resdf <- pool::dbGetQuery(pool, sql)
       resdf2 <- stringr::str_split_fixed(resdf$values, stringr::fixed(","), n = Inf)
       resdf2 <- apply(t(resdf2), 1:2, as.numeric)
       resdf2 <- as.data.frame(resdf2)
@@ -108,7 +134,6 @@ getCorrelationData <- function(Species, Sample_Type, Tissue, geneList) {
     }
     resdf2 <- do.call(cbind, resDfList)
   }
-  DBI::dbDisconnect(conn = con)
   return(resdf2)
 }
 

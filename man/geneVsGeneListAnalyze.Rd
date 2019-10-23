@@ -9,7 +9,7 @@ geneVsGeneListAnalyze(pairedGenesList, Species = c("hsapiens",
   outputPrefix = "CorrelationAnalyzeR_Output", plotLabels = TRUE,
   sigTest = TRUE, nPerm = 2000, plotMaxMinCorr = TRUE,
   onlyTop = FALSE, topCutoff = 0.5, autoRug = TRUE,
-  plotTitle = TRUE, returnDataOnly = FALSE)
+  plotTitle = TRUE, returnDataOnly = FALSE, pool = NULL)
 }
 \arguments{
 \item{pairedGenesList}{A list, named with primary genes of interest with
@@ -55,6 +55,9 @@ by an auto-generated rug. Default: TRUE.}
 
 \item{returnDataOnly}{if TRUE will only return a list containing correlations
 and significance testing results if applicable. Default: FALSE.}
+
+\item{pool}{an object created by pool::dbPool to accessing SQL database.
+It will be created if not supplied.}
 }
 \value{
 A list containing correlation values and signficance testing results

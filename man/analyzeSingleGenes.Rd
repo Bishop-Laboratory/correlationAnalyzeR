@@ -6,10 +6,11 @@
 \usage{
 analyzeSingleGenes(genesOfInterest, Species = c("hsapiens", "mmusculus"),
   GSEA_Type = c("simple", "complex"), Sample_Type = "normal",
-  Tissue = "all", crossCompareMode = FALSE,
+  Tissue = "all", crossCompareMode = FALSE, nperm = 2000,
   whichCompareGroups = c("all", "normal", "cancer"),
-  outputPrefix = "CorrelationAnalyzeR_Output", runGSEA = TRUE,
-  topPlots = TRUE, returnDataOnly = FALSE)
+  outputPrefix = "CorrelationAnalyzeR_Output", sampler = FALSE,
+  runGSEA = TRUE, topPlots = TRUE, returnDataOnly = FALSE,
+  pool = NULL)
 }
 \arguments{
 \item{genesOfInterest}{A vector of genes to analyze.}
@@ -35,10 +36,15 @@ correlations for single gene across all tissue-disease groups. GSEA will not be 
 Will only consider user input for returnDataOnly, whichCompareGroups,
 outputPrefix, Species, and genesOfInterest.}
 
+\item{nperm}{Number of permutations to run in GSEA. Default is 2000}
+
 \item{whichCompareGroups}{For crossCompareMode, select "all", "normal", or "cancer"
 to analyze correlations from the corresponding groups.}
 
 \item{outputPrefix}{Prefix for saved files. Should include directory info.}
+
+\item{sampler}{If TRUE, will only return 100,000 random genesets from either
+simple or complex TERM2GENEs. Useful for reducing GSEA computational burden.}
 
 \item{runGSEA}{If TRUE will run GSEA using gene correlation values.}
 
@@ -46,6 +52,9 @@ to analyze correlations from the corresponding groups.}
 
 \item{returnDataOnly}{if TRUE will return only a dataframe of correlation
 values and will not generate any folders or files.}
+
+\item{pool}{an object created by pool::dbPool to accessing SQL database.
+It will be created if not supplied.}
 }
 \value{
 A named list of correlation values, corGSEA results,

@@ -45,7 +45,8 @@
 #'
 #' @param returnDataOnly if TRUE will only return a list containing correlations
 #' and significance testing results if applicable. Default: FALSE.
-#'
+#' @param pool an object created by pool::dbPool to accessing SQL database.
+#' It will be created if not supplied.
 #' @return A list containing correlation values and signficance testing results
 #'
 #' @examples
@@ -70,7 +71,55 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
                                   topCutoff = .5,
                                   autoRug = TRUE,
                                   plotTitle = TRUE,
-                                  returnDataOnly = FALSE) {
+                                  returnDataOnly = FALSE,
+                                  pool = NULL) {
+
+
+  # pairedGenesList = list("ATM" = "HALLMARK_OXIDATIVE_PHOSPHORYLATION")
+  # Species = c("hsapiens", "mmusculus")
+  # Sample_Type = c("normal", "cancer")
+  # Tissue = "all"
+  # outputPrefix = "CorrelationAnalyzeR_Output"
+  # plotLabels = TRUE
+  # sigTest = TRUE
+  # nPerm = 2000
+  # plotMaxMinCorr = TRUE
+  # onlyTop = FALSE
+  # topCutoff = .5
+  # autoRug = TRUE
+  # plotTitle = TRUE
+  # returnDataOnly = TRUE
+
+  if (is.null(pool)) {
+    retryCounter <- 1
+    cat("\nEstablishing connection to database ... \n")
+    while(is.null(pool)) {
+      pool <- try(silent = T, eval({
+        pool::dbPool(
+          drv = RMySQL::MySQL(),
+          user = "public-rds-user", port = 3306,
+          dbname="bishoplabdb",
+          password='public-user-password',
+          host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
+        )
+      }))
+      if ("try-error" %in% class(pool)) {
+        if (retryCounter == 3) {
+          stop("Unable to connect to database. Check internet connection and please contanct",
+               " package maintainer if you believe this is an error.")
+        }
+        warning(paste0("Failed to establish connection to database ... retrying now ... ",
+                       (4-retryCounter), " attempts left."),
+                immediate. = T)
+        pool <- NULL
+        retryCounter <- retryCounter + 1
+      }
+    }
+
+    on.exit(function() {
+      pool::poolClose(pool)
+    })
+  }
 
 
   # Create output folder
@@ -93,7 +142,7 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
   resList <- list()
 
   # Check primary genes to make sure they exist
-  avGenes <- correlationAnalyzeR::getAvailableGenes(Species = Species)
+  avGenes <- correlationAnalyzeR::getAvailableGenes(Species = Species, pool = pool)
   intGenes <- names(pairedGenesList)
   badGenes <- intGenes[which(! intGenes %in% avGenes)]
   if (length(badGenes) > 0) {
@@ -141,10 +190,11 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
 
 
   # Call getCorrelationData to get all required files
-  corrDFFull <- correlationAnalyzeR::getCorrelationData(Species = Species,
-                                                        Tissue = Tissue,
-                                                        Sample_Type = Sample_Type,
-                                                        geneList = intGenes)
+  corrDFFull <- correlationAnalyzeR::getCorrelationData(Species = Species[1],
+                                                        Tissue = Tissue[1],
+                                                        Sample_Type = Sample_Type[1],
+                                                        geneList = intGenes,
+                                                        pool = pool)
 
   # Main code
   for (i in 1:length(colnames(corrDFFull))) {

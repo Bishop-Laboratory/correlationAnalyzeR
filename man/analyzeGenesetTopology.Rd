@@ -11,7 +11,8 @@ analyzeGenesetTopology(genesOfInterest, Species = c("hsapiens",
   setComparisonCutoff = "Auto", pathwayEnrichment = FALSE,
   pValueCutoff = 0.05, numTopGenesToPlot = "Auto",
   alternativeTSNE = TRUE, numClusters = "Auto",
-  outputPrefix = "CorrelationAnalyzeR_Output", returnDataOnly = FALSE)
+  outputPrefix = "CorrelationAnalyzeR_Output", returnDataOnly = FALSE,
+  pool = NULL)
 }
 \arguments{
 \item{genesOfInterest}{A vector of genes to analyze or the name of an official MSIGDB term.}
@@ -53,6 +54,9 @@ large input gene lists. This is highly recommended as 100+ member gene lists can
 \item{outputPrefix}{Prefix for saved files. Should include directory info.}
 
 \item{returnDataOnly}{if TRUE will return only a list of analysis results. Default: FALSE.}
+
+\item{pool}{an object created by pool::dbPool to accessing SQL database.
+It will be created if not supplied.}
 }
 \value{
 A list of correlations for input genes, and the results of chosen analysis + visualizations.

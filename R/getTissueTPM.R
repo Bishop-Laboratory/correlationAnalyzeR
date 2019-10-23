@@ -16,7 +16,8 @@
 #' @param useBlackList Should black-listed tissue/disease categories for this species
 #' be removed from the returned list? Improves the quality of analysis by removing
 #' categories with low sample numbers and high observed variance.
-#'
+#' @param pool an object created by pool::dbPool to accessing SQL database.
+#' It will be created if not supplied.
 #' @return List of TPM matrices for each selected tissue-disease combination.
 #'
 #' @examples
@@ -30,13 +31,44 @@ getTissueTPM <- function(genesOfInterest,
                          Species = c("hsapiens", "mmusculus"),
                          Tissues = "all",
                          Sample_Type = c("all", "normal", "cancer"),
-                         useBlackList = TRUE) {
+                         useBlackList = TRUE, pool = NULL) {
 
   # genesOfInterest = c("BRCA1", "ATM")
   # Species = "hsapiens"
   # Tissues = "all"
   # Sample_Type = "all"
   # useBlackList = TRUE
+
+  if (is.null(pool)) {
+    retryCounter <- 1
+    cat("\nEstablishing connection to database ... \n")
+    while(is.null(pool)) {
+      pool <- try(silent = T, eval({
+        pool::dbPool(
+          drv = RMySQL::MySQL(),
+          user = "public-rds-user", port = 3306,
+          dbname="bishoplabdb",
+          password='public-user-password',
+          host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
+        )
+      }))
+      if ("try-error" %in% class(pool)) {
+        if (retryCounter == 3) {
+          stop("Unable to connect to database. Check internet connection and please contanct",
+               " package maintainer if you believe this is an error.")
+        }
+        warning(paste0("Failed to establish connection to database ... retrying now ... ",
+                       (4-retryCounter), " attempts left."),
+                immediate. = T)
+        pool <- NULL
+        retryCounter <- retryCounter + 1
+      }
+    }
+
+    on.exit(function() {
+      pool::poolClose(pool)
+    })
+  }
 
   if (Species[1] == "hsapiens") {
     samples <- correlationAnalyzeR::sampleTPMOrderHuman
@@ -47,7 +79,8 @@ getTissueTPM <- function(genesOfInterest,
   }
   # Get samples for each tissue group
   possibleTissues <- correlationAnalyzeR::getTissueTypes(Species = Species,
-                                                         useBlackList = useBlackList)
+                                                         useBlackList = useBlackList,
+                                                         pool = pool)
   possibleTissues1 <- gsub(possibleTissues, pattern = " - .*", replacement = "")
   possibleTissues2 <- gsub(possibleTissues, pattern = ".* - ", replacement = "")
   possibleRetrieval <- paste0(possibleTissues2, "_", possibleTissues1)
@@ -77,17 +110,11 @@ getTissueTPM <- function(genesOfInterest,
             " view data(humanTPMGenes) or data(mouseTPMGenes) to see available gene list")
   }
 
-  con <- DBI::dbConnect(RMySQL::MySQL(), user = "public-rds-user", port = 3306,
-                        dbname="bishoplabdb",
-                        password='public-user-password',
-                        host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com")
   sql <- paste0("SELECT * FROM ",
                 Species, "_sample_group_key ",
                 " WHERE row_names IN ('",
                 paste(ofInterest, collapse = "','"), "')")
-  res <- DBI::dbSendQuery(conn = con, statement = sql)
-  resdf <- DBI::dbFetch(res, n=-1)
-  DBI::dbClearResult(res)
+  resdf <- pool::dbGetQuery(pool, sql)
   resdf2 <- data.frame(row.names = resdf$row_names, samples = resdf$samples)
   resdfList <- stats::setNames(split(resdf2, seq(nrow(resdf2))), rownames(resdf2))
   newList <- lapply(resdfList, FUN = function(x){
@@ -101,11 +128,7 @@ getTissueTPM <- function(genesOfInterest,
                 Species,
                 " WHERE row_names IN ('",
                 paste(genesOfInterestFinal, collapse = "','"), "')")
-  res <- DBI::dbSendQuery(conn = con, statement = sql)
-  resdf <- DBI::dbFetch(res, n=-1)
-  DBI::dbClearResult(res)
-  DBI::dbDisconnect(con)
-
+  resdf <- pool::dbGetQuery(pool, sql)
   # Parse TPM frame
   resdf2 <- stringr::str_split_fixed(resdf$values, stringr::fixed(","), n = Inf)
   resdf2 <- apply(t(resdf2), 1:2, as.numeric)

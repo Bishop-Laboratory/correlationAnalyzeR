@@ -6,7 +6,7 @@
 \usage{
 getTissueTPM(genesOfInterest, Species = c("hsapiens", "mmusculus"),
   Tissues = "all", Sample_Type = c("all", "normal", "cancer"),
-  useBlackList = TRUE)
+  useBlackList = TRUE, pool = NULL)
 }
 \arguments{
 \item{genesOfInterest}{A length-two vector with genes to compare.}
@@ -23,6 +23,9 @@ with getTissueTypes().}
 \item{useBlackList}{Should black-listed tissue/disease categories for this species
 be removed from the returned list? Improves the quality of analysis by removing
 categories with low sample numbers and high observed variance.}
+
+\item{pool}{an object created by pool::dbPool to accessing SQL database.
+It will be created if not supplied.}
 }
 \value{
 List of TPM matrices for each selected tissue-disease combination.

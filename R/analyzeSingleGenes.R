@@ -32,11 +32,17 @@
 #'
 #' @param runGSEA If TRUE will run GSEA using gene correlation values.
 #'
+#' @param nperm Number of permutations to run in GSEA. Default is 2000
+#'
+#' @param sampler If TRUE, will only return 100,000 random genesets from either
+#' simple or complex TERM2GENEs. Useful for reducing GSEA computational burden.
+#'
 #' @param returnDataOnly if TRUE will return only a dataframe of correlation
 #'    values and will not generate any folders or files.
 #'
 #' @param topPlots Logical. If TRUE, myGSEA() will build gsea plots for top correlated genesets.
-#'
+#' @param pool an object created by pool::dbPool to accessing SQL database.
+#' It will be created if not supplied.
 #' @return A named list of correlation values, corGSEA results,
 #' and visualizations for each gene of interest.
 #'
@@ -62,9 +68,12 @@ analyzeSingleGenes <- function(genesOfInterest,
                                Sample_Type = "normal",
                                Tissue = "all",
                                crossCompareMode = FALSE,
+                               nperm = 2000,
                                whichCompareGroups = c("all", "normal", "cancer"),
                                outputPrefix = "CorrelationAnalyzeR_Output",
-                               runGSEA = TRUE, topPlots = TRUE, returnDataOnly = FALSE) {
+                               sampler = FALSE, runGSEA = TRUE,
+                               topPlots = TRUE, returnDataOnly = FALSE,
+                               pool = NULL) {
 
   # # Bug testing
   # genesOfInterest <- c("FLI1", "EWSR1", "STAG2")
@@ -72,12 +81,44 @@ analyzeSingleGenes <- function(genesOfInterest,
   # GSEA_Type = c("simple", "complex")
   # Sample_Type = "normal"
   # Tissue = "all"
-  # crossCompareMode = TRUE
+  # crossCompareMode = FALSE
   # whichCompareGroups = c("all", "normal", "cancer")
   # outputPrefix = "CorrelationAnalyzeR_Output"
   # runGSEA = FALSE
   # topPlots = FALSE
   # returnDataOnly = TRUE
+  # pool = NULL
+
+  if (is.null(pool)) {
+    retryCounter <- 1
+    cat("\nEstablishing connection to database ... \n")
+    while(is.null(pool)) {
+      pool <- try(silent = T, eval({
+        pool::dbPool(
+          drv = RMySQL::MySQL(),
+          user = "public-rds-user", port = 3306,
+          dbname="bishoplabdb",
+          password='public-user-password',
+          host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
+        )
+      }))
+      if ("try-error" %in% class(pool)) {
+        if (retryCounter == 3) {
+          stop("Unable to connect to database. Check internet connection and please contanct",
+               " package maintainer if you believe this is an error.")
+        }
+        warning(paste0("Failed to establish connection to database ... retrying now ... ",
+                       (4-retryCounter), " attempts left."),
+                immediate. = T)
+        pool <- NULL
+        retryCounter <- retryCounter + 1
+      }
+    }
+
+    on.exit(function() {
+      pool::poolClose(pool)
+    })
+  }
 
 
   # Parse arguments
@@ -91,6 +132,7 @@ analyzeSingleGenes <- function(genesOfInterest,
   if (Species[1] %in% c("hsapiens", "mmusculus")) {
     if (runGSEA) {
       TERM2GENE <- correlationAnalyzeR::getTERM2GENE(GSEA_Type = GSEA_Type,
+                                                     sampler = sampler,
                                                      Species = Species)
     }
   } else {
@@ -99,7 +141,7 @@ analyzeSingleGenes <- function(genesOfInterest,
          \n")
   }
   # Check genes to make sure they exist
-  avGenes <- correlationAnalyzeR::getAvailableGenes(Species = Species)
+  avGenes <- correlationAnalyzeR::getAvailableGenes(Species = Species, pool = pool)
   badGenes <- genesOfInterest[which(! genesOfInterest %in% avGenes)]
   if (length(badGenes) > 0) {
     stop(paste0("\n\t\t\t'", paste(badGenes, collapse = ", "), "' not found
@@ -140,6 +182,7 @@ analyzeSingleGenes <- function(genesOfInterest,
       cat("\nContinuing with normal tissues ... \n")
     }
     availTissue <- correlationAnalyzeR::getTissueTypes(Species = Species,
+                                                       pool = pool,
                                                        useBlackList = TRUE)
     runGSEA <- F
 
@@ -159,7 +202,7 @@ analyzeSingleGenes <- function(genesOfInterest,
 
   # Call downloadData to get all required files
   corrDF <- correlationAnalyzeR::getCorrelationData(Species = Species,
-                                                    Tissue = Tissue,
+                                                    Tissue = Tissue, pool = pool,
                                                     Sample_Type = Sample_Type,
                                                     geneList = genesOfInterest)
   if(crossCompareMode) {
@@ -210,7 +253,7 @@ analyzeSingleGenes <- function(genesOfInterest,
       # Get TPM for gene
       geneTPMList <- correlationAnalyzeR::getTissueTPM(genesOfInterest = geneNow,
                                                        Species = Species,
-                                                       Tissues = "all",
+                                                       Tissues = "all", pool = pool,
                                                        Sample_Type = whichCompareGroups[1],
                                                        useBlackList = TRUE)
       # Make TPM plot
@@ -224,6 +267,7 @@ analyzeSingleGenes <- function(genesOfInterest,
       geneTPMDF$group <- paste0(rawGroup2, " - ", rawGroup1)
       geneTPMDF$group <- stringr::str_to_title(geneTPMDF$group)
       availTissue <- correlationAnalyzeR::getTissueTypes(Species = Species,
+                                                         pool = pool,
                                                          useBlackList = TRUE)
       availTissue <- gsub(availTissue, pattern = "0", replacement = " ")
       availTissue <- stringr::str_to_title(availTissue)
@@ -304,7 +348,7 @@ analyzeSingleGenes <- function(genesOfInterest,
                                     plotFile = paste0(geneOneTitleFile,
                                                       ".corrPathways"),
                                     outDir = geneOutDir,
-                                    nperm = 2000,
+                                    nperm = nperm,
                                     topPlots = topPlots,
                                     returnDataOnly = returnDataOnly,
                                     Condition = paste0(geneOneTitle,

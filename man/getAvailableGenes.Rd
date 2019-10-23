@@ -4,11 +4,14 @@
 \alias{getAvailableGenes}
 \title{Get Available Genes}
 \usage{
-getAvailableGenes(Species = c("hsapiens", "mmusculus"))
+getAvailableGenes(Species = c("hsapiens", "mmusculus"), pool = NULL)
 }
 \arguments{
 \item{Species}{Species to obtain gene names for.
 Either 'hsapiens' or 'mmusculus'}
+
+\item{pool}{an object created by pool::dbPool to accessing SQL database.
+It will be created if not supplied.}
 }
 \value{
 A vector of genes with associated correlation data

@@ -8,8 +8,9 @@ analyzeGenePairs(genesOfInterest, Sample_Type = c("normal", "normal"),
   Tissue = c("all", "all"), Species = c("hsapiens", "mmusculus"),
   GSEA_Type = c("simple", "complex"),
   outputPrefix = "CorrelationAnalyzeR_Output_Paired",
-  crossCompareMode = FALSE, runGSEA = TRUE, topPlots = FALSE,
-  returnDataOnly = FALSE)
+  crossCompareMode = FALSE, runGSEA = TRUE, nperm = 2000,
+  sampler = FALSE, topPlots = FALSE, returnDataOnly = FALSE,
+  pool = NULL)
 }
 \arguments{
 \item{genesOfInterest}{A length-two vector with genes to compare.}
@@ -38,10 +39,18 @@ Will only consider user input for returnDataOnly, outputPrefix, Species, and gen
 
 \item{runGSEA}{If TRUE will run GSEA using gene correlation values.}
 
+\item{nperm}{Number of permutations to run in GSEA. Default is 2000}
+
+\item{sampler}{If TRUE, will only return 100,000 random genesets from either
+simple or complex TERM2GENEs. Useful for reducing GSEA computational burden.}
+
 \item{topPlots}{Logical. If TRUE, myGSEA() will build gsea plots for top correlated genesets.}
 
 \item{returnDataOnly}{if TRUE will return result list object
 and will not generate any folders or files.}
+
+\item{pool}{an object created by pool::dbPool to accessing SQL database.
+It will be created if not supplied.}
 }
 \value{
 A named list containing visualizations and correlation data from paired analysis.

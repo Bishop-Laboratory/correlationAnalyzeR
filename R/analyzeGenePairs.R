@@ -14,6 +14,9 @@
 #' @param GSEA_Type Whether GSEA should consider all msigdb annotations,
 #'     or just those in the most popular categories. Should be one of either
 #'     'simple' or 'complex'.
+#' @param nperm Number of permutations to run in GSEA. Default is 2000
+#' @param sampler If TRUE, will only return 100,000 random genesets from either
+#' simple or complex TERM2GENEs. Useful for reducing GSEA computational burden.
 #' @param crossCompareMode Use this mode to generate comparisons
 #' across all tissue and disease types. If both genes for genesOfInterest are the
 #' same -- will compare normal vs cancer for that gene in each available tissue. Else, will
@@ -25,6 +28,8 @@
 #' @param returnDataOnly if TRUE will return result list object
 #' and will not generate any folders or files.
 #' @param topPlots Logical. If TRUE, myGSEA() will build gsea plots for top correlated genesets.
+#' @param pool an object created by pool::dbPool to accessing SQL database.
+#' It will be created if not supplied.
 #' @return A named list containing visualizations and correlation data from paired analysis.
 #' @examples
 #' genesOfInterest <- c("ATM", "SLC7A11")
@@ -56,19 +61,52 @@ analyzeGenePairs <- function(genesOfInterest,
                              GSEA_Type = c("simple", "complex"),
                              outputPrefix = "CorrelationAnalyzeR_Output_Paired",
                              crossCompareMode = FALSE,
-                             runGSEA = TRUE, topPlots = FALSE, returnDataOnly = FALSE) {
+                             runGSEA = TRUE, nperm = 2000, sampler = FALSE,
+                             topPlots = FALSE, returnDataOnly = FALSE, pool = NULL) {
 
-  # genesOfInterest <- c("ATM", "ATM")
+  # genesOfInterest <- c("BRCA1", "BRCA1")
   # Species <- "hsapiens"
-  # crossCompareMode = TRUE
+  # crossCompareMode = FALSE
   # returnDataOnly = TRUE
   # returnDataOnly = TRUE
   # outputPrefix = "CorrelationAnalyzeR_Output_Paired"
   # runGSEA = TRUE
   # topPlots = FALSE
   # Sample_Type = c("normal", "normal")
-  # Tissue = c("brain", "respiratory")
+  # Tissue = c("respiratory", "female0reproductive")
   # GSEA_Type = c("simple", "complex")
+  # pool = NULL
+
+  if (is.null(pool)) {
+    retryCounter <- 1
+    cat("\nEstablishing connection to database ... \n")
+    while(is.null(pool)) {
+      pool <- try(silent = T, eval({
+        pool::dbPool(
+          drv = RMySQL::MySQL(),
+          user = "public-rds-user", port = 3306,
+          dbname="bishoplabdb",
+          password='public-user-password',
+          host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
+        )
+      }))
+      if ("try-error" %in% class(pool)) {
+        if (retryCounter == 3) {
+          stop("Unable to connect to database. Check internet connection and please contanct",
+               " package maintainer if you believe this is an error.")
+        }
+        warning(paste0("Failed to establish connection to database ... retrying now ... ",
+                       (4-retryCounter), " attempts left."),
+                immediate. = T)
+        pool <- NULL
+        retryCounter <- retryCounter + 1
+      }
+    }
+
+    on.exit(function() {
+      pool::poolClose(pool)
+    })
+  }
 
   lm_eqn <- function(df){
     m <- stats::lm(eval(parse(text = colnames(df)[2])) ~ eval(parse(text = colnames(df)[1])), df)
@@ -85,6 +123,7 @@ analyzeGenePairs <- function(genesOfInterest,
 
     cat("\nRunning cross comparison mode ... \n")
     availTissue <- correlationAnalyzeR::getTissueTypes(Species = Species,
+                                                       pool = pool,
                                                        useBlackList = TRUE)
     runGSEA <- F
     if (genesOfInterest[1] == genesOfInterest[2]) {
@@ -121,11 +160,10 @@ analyzeGenePairs <- function(genesOfInterest,
     }
     # Get TPM for each gene
     geneUnique <- unique(genesVec)
-    # Get TPM for gene
-
     geneTPMList <- correlationAnalyzeR::getTissueTPM(genesOfInterest = geneUnique,
                                                      Species = Species,
                                                      Tissues = "all",
+                                                     pool = pool,
                                                      Sample_Type = "all",
                                                      useBlackList = TRUE)
     geneTPMDF <- data.table::rbindlist(geneTPMList, idcol = "group")
@@ -145,6 +183,7 @@ analyzeGenePairs <- function(genesOfInterest,
                        geneTPMDF[,c(-1)])
     colnames(geneTPMDF)[c(1:4)] <- c("Group", "Tissue", "sampleType", "Samples")
     availTissue <- correlationAnalyzeR::getTissueTypes(Species = Species,
+                                                       pool = pool,
                                                        useBlackList = TRUE)
     availTissue <- gsub(availTissue, pattern = "0", replacement = " ")
     availTissue <- stringr::str_to_title(availTissue)
@@ -212,9 +251,9 @@ analyzeGenePairs <- function(genesOfInterest,
 
     # Do paired to get correlation data
     pairRes <- correlationAnalyzeR::analyzeSingleGenes(
-      genesOfInterest = genesVec,
+      genesOfInterest = genesVec, pool = pool,
       returnDataOnly = returnDataOnly, topPlots = topPlots,
-      outputPrefix = outputPrefix, runGSEA = runGSEA,
+      outputPrefix = outputPrefix, runGSEA = FALSE,
       Sample_Type = Sample_Type, Tissue = Tissue,
       Species = Species, GSEA_Type = GSEA_Type
     )
@@ -304,9 +343,10 @@ analyzeGenePairs <- function(genesOfInterest,
   # If running in normal mode ...
   if (length(genesOfInterest) == 2 ) {
     pairRes <- correlationAnalyzeR::analyzeSingleGenes(
-      genesOfInterest = genesOfInterest,
+      genesOfInterest = genesOfInterest, pool = pool,
       returnDataOnly = returnDataOnly, topPlots = topPlots,
-      outputPrefix = outputPrefix, runGSEA = runGSEA,
+      outputPrefix = outputPrefix,
+      runGSEA = runGSEA, nperm = nperm, sampler = sampler,
       Sample_Type = Sample_Type, Tissue = Tissue,
       Species = Species, GSEA_Type = GSEA_Type
     )
@@ -421,12 +461,15 @@ analyzeGenePairs <- function(genesOfInterest,
 
   rownames(compHeat) <- titleID[1:30]
   # Get TPM
+  tissueOneNow <- gsub(tissueOne, pattern = " ", replacement = "0")
+  tissueTwoNow <- gsub(tissueTwo, pattern = " ", replacement = "0")
   TPMList <- correlationAnalyzeR::getTissueTPM(genesOfInterest = c(geneOne, geneTwo),
-                                               Species = Species,
-                                               Tissues = c(tissueOne, tissueTwo),
+                                               Species = Species, pool = pool,
+                                               Tissues = c(tissueOneNow, tissueTwoNow),
                                                Sample_Type = c(sampleOne, sampleTwo),
                                                useBlackList = FALSE)
   TPMDF <- data.table::rbindlist(TPMList, idcol = "Group")
+  TPMDF$Group <- gsub(TPMDF$Group, pattern = "0", replacement = " ")
   TPMDFOne <- TPMDF[grep(TPMDF$Group,
                          pattern = paste0("_", tissueOne)),]
   TPMDFOne <- TPMDFOne[grep(TPMDFOne$Group,

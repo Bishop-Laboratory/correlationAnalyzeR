@@ -4,7 +4,7 @@
 \alias{getCorrelationData}
 \title{Get Gene Correlation Data}
 \usage{
-getCorrelationData(Species, Sample_Type, Tissue, geneList)
+getCorrelationData(Species, Sample_Type, Tissue, geneList, pool = NULL)
 }
 \arguments{
 \item{Species}{Species to obtain gene names for.
@@ -20,6 +20,9 @@ or a vector corresponding to geneList.
 Run getTissueTypes() to see available tissue list.}
 
 \item{geneList}{Vector of genes for which data will be extracted.}
+
+\item{pool}{an object created by pool::dbPool to accessing SQL database.
+It will be created if not supplied.}
 }
 \value{
 A correlation data frame object

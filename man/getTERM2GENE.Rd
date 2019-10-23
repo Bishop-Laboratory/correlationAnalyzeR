@@ -5,7 +5,7 @@
 \title{Obtains TERM2GENE object for corGSEA}
 \usage{
 getTERM2GENE(GSEA_Type = c("simple", "complex"),
-  Species = c("hsapiens", "mmusculus"))
+  Species = c("hsapiens", "mmusculus"), sampler = FALSE)
 }
 \arguments{
 \item{GSEA_Type}{Whether GSEA should consider all msigdb annotations,
@@ -14,6 +14,9 @@ or just those in the most popular categories. Should be one of either
 
 \item{Species}{Species to obtain gene names for.
 Either 'hsapiens' or 'mmusculus'}
+
+\item{sampler}{If TRUE, will only return 100,000 random genesets from either
+simple or complex TERM2GENEs. Useful for reducing GSEA computational burden.}
 }
 \value{
 A tbl object with columns "gs_name" and "gene_symbol"

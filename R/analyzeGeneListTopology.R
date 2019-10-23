@@ -41,7 +41,8 @@
 #' @param pValueCutoff Numeric. The p value cutoff applied when running all pathway enrichment tests.
 #'
 #' @param crossComparisonType The type of topology tests to run. (see details)
-#'
+#' @param pool an object created by pool::dbPool to accessing SQL database.
+#' It will be created if not supplied.
 #' @return A list of correlations for input genes, and the results of chosen analysis + visualizations.
 #'
 #' @examples
@@ -83,8 +84,59 @@ analyzeGenesetTopology <-  function(genesOfInterest,
                                     alternativeTSNE = TRUE,
                                     numClusters = "Auto",
                                     outputPrefix = "CorrelationAnalyzeR_Output",
-                                    returnDataOnly = FALSE) {
+                                    returnDataOnly = FALSE,
+                                    pool = NULL) {
 
+  # pool::poolClose(pool)
+  # pool = NULL
+  # genesOfInterest <- "HALLMARK_OXIDATIVE_PHOSPHORYLATION"
+  # crossComparisonType = c("PCA")
+  # pathwayType = c("simple")
+  # returnDataOnly = TRUE
+  # outputPrefix = "CorrelationAnalyzeR_Output"
+  # numClusters = "Auto"
+  # alternativeTSNE = TRUE
+  # numTopGenesToPlot = "Auto"
+  # pValueCutoff = .05
+  # pathwayEnrichment = FALSE
+  # setComparisonCutoff = "Auto"
+  # Tissue = "all"
+  # Sample_Type = c("normal")
+  # Species = c("hsapiens")
+
+
+
+
+  if (is.null(pool)) {
+    retryCounter <- 1
+    cat("\nEstablishing connection to database ... \n")
+    while(is.null(pool)) {
+      pool <- try(silent = T, eval({
+        pool::dbPool(
+          drv = RMySQL::MySQL(),
+          user = "public-rds-user", port = 3306,
+          dbname="bishoplabdb",
+          password='public-user-password',
+          host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
+        )
+      }))
+      if ("try-error" %in% class(pool)) {
+        if (retryCounter == 3) {
+          stop("Unable to connect to database. Check internet connection and please contanct",
+               " package maintainer if you believe this is an error.")
+        }
+        warning(paste0("Failed to establish connection to database ... retrying now ... ",
+                       (4-retryCounter), " attempts left."),
+                immediate. = T)
+        pool <- NULL
+        retryCounter <- retryCounter + 1
+      }
+    }
+
+    on.exit(function() {
+      pool::poolClose(pool)
+    })
+  }
 
   # Create output folder
   if (! dir.exists(outputPrefix) & ! returnDataOnly) {
@@ -95,7 +147,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   resList <- list()
 
   # Get available gene names
-  avGenes <- getAvailableGenes(Species)
+  avGenes <- correlationAnalyzeR::getAvailableGenes(Species, pool = pool)
 
   # Check genes to make sure they exist -- only a warning
   intGenes <- genesOfInterest
@@ -118,14 +170,18 @@ analyzeGenesetTopology <-  function(genesOfInterest,
                                intGenes %in% correlationAnalyzeR::MSIGDB_Geneset_Names)]
 
   # Load appropriate TERM2GENE file built from msigdbr()
-  if (Species[1] %in% c("hsapiens", "mmusculus")) {
+  if ((length(termlist) |
+       "pathwayEnrich" %in% crossComparisonType |
+       pathwayEnrichment)) {
     TERM2GENE <- correlationAnalyzeR::getTERM2GENE(GSEA_Type = pathwayType,
                                                    Species = Species)
-  } else {
-    stop("\ncorrelationAnalyzeR currently supports only Human and Mouse data.
-         Please select either 'hsapiens' or 'mmusculus' for Species parameter.
-         \n")
   }
+  if (! Species[1] %in% c("hsapiens", "mmusculus"))  {
+    stop("\ncorrelationAnalyzeR currently supports only Human and Mouse data.
+       Please select either 'hsapiens' or 'mmusculus' for Species parameter.
+       \n")
+  }
+
 
   if (length(termlist > 0)) {
 
@@ -137,14 +193,16 @@ analyzeGenesetTopology <-  function(genesOfInterest,
       termGenes <- termGenes[which(termGenes %in% avGenes)] # Ensure actionable genes
       intGenes <- unique(c(intGenes, termGenes)) # Append to intgenes vector
     }
-    intGenes <- intGenes[which(! intGenes %in% termlist)]
+    genesOfInterest <- intGenes[which(! intGenes %in% termlist)]
   }
 
   cat("\nRetrieving correlation data...\n")
   # Call downloadData to get all required files
   # timestamp()
+  Sample_Type <- rep(Sample_Type[1], length(genesOfInterest))
+  Tissue <- rep(Tissue[1], length(genesOfInterest))
   corrDF <- correlationAnalyzeR::getCorrelationData(Species = Species,
-                                                    Tissue = Tissue,
+                                                    Tissue = Tissue, pool = pool,
                                                     Sample_Type = Sample_Type,
                                                     geneList = genesOfInterest)
   # timestamp()
