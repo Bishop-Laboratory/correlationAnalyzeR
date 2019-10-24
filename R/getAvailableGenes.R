@@ -14,6 +14,11 @@
 #' @export
 getAvailableGenes <- function(Species = c("hsapiens", "mmusculus"), pool = NULL) {
 
+  if (! is.null(pool)) {
+    if (! pool$valid) {
+      pool <- NULL
+    }
+  }
   if (is.null(pool)) {
     retryCounter <- 1
     cat("\nEstablishing connection to database ... \n")
@@ -59,6 +64,7 @@ getAvailableGenes <- function(Species = c("hsapiens", "mmusculus"), pool = NULL)
   Sample_Type = "normal" # This is default behavior
   Tissue = "brain"
   # Download a sample file which contains all gene identifiers
+
   geneNamesDF <- correlationAnalyzeR::getCorrelationData(Species = Species[1],
                                                          Sample_Type = Sample_Type,
                                                          Tissue = Tissue,

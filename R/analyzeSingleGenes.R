@@ -76,16 +76,17 @@ analyzeSingleGenes <- function(genesOfInterest,
                                pool = NULL) {
 
   # # Bug testing
-  # genesOfInterest <- c("FLI1", "EWSR1", "STAG2")
+  # genesOfInterest <- c("NONO")
   # Species = c("hsapiens", "mmusculus")
   # GSEA_Type = c("simple", "complex")
   # Sample_Type = "normal"
   # Tissue = "all"
-  # crossCompareMode = FALSE
+  # crossCompareMode = TRUE
   # whichCompareGroups = c("all", "normal", "cancer")
   # outputPrefix = "CorrelationAnalyzeR_Output"
-  # runGSEA = FALSE
+  # runGSEA = TRUE
   # topPlots = FALSE
+  # sampler = FALSE
   # returnDataOnly = TRUE
   # pool = NULL
 
@@ -205,6 +206,12 @@ analyzeSingleGenes <- function(genesOfInterest,
                                                     Tissue = Tissue, pool = pool,
                                                     Sample_Type = Sample_Type,
                                                     geneList = genesOfInterest)
+  if (Species == "hsapiens") {
+    geneNames <- correlationAnalyzeR::hsapiens_corrSmall_geneNames
+  } else {
+    geneNames <- correlationAnalyzeR::mmusculus_corrSmall_geneNames
+  }
+  rownames(corrDF) <- geneNames
   if(crossCompareMode) {
     tissue2 <- gsub(Tissue, pattern = "0", replacement = " ")
     tissue2 <- stringr::str_to_title(tissue2)
@@ -279,7 +286,7 @@ analyzeSingleGenes <- function(genesOfInterest,
                                  ylab = "log2(TPM + 1)",
                                  fill = "group",
                                  y = "value") +
-        ggpubr::rotate_x_text() +
+        ggpubr::rotate_x_text(angle = 45) +
         ggpubr::rremove("legend") +
         ggpubr::rremove("xlab")
       colnames(geneTPMDF)[3] <- paste0(geneNow, "_log2TPM")

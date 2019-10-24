@@ -58,6 +58,7 @@ getTERM2GENE <- function(GSEA_Type = c("simple", "complex"),
     TERM2GENE <- unique(m_df[,c(1, 8)])
   }
   if (sampler) {
+    print("Using sampler!")
     set.seed(1)
     TERM2GENE <- TERM2GENE[sample(nrow(TERM2GENE), size = 100000),]
   }

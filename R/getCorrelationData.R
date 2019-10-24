@@ -28,9 +28,15 @@ getCorrelationData <- function(Species, Sample_Type,
 
   # Species = "hsapiens"
   # Sample_Type = "normal"
-  # Tissue = "brain"
-  # geneList = c("ATM", "BRCA1")
+  # Tissue = c("all", "brain")
+  # geneList = c("A1BG", "A1BG")
 
+
+  if (! is.null(pool)) {
+    if (! pool$valid) {
+      pool <- NULL
+    }
+  }
   if (is.null(pool)) {
     retryCounter <- 1
     cat("\nEstablishing connection to database ... \n")
@@ -73,20 +79,18 @@ getCorrelationData <- function(Species, Sample_Type,
     Tissue <- rep(Tissue, length(geneList))
   } else if (length(Tissue) > 1) {
     if (length(Tissue) != length(geneList)) {
-      stop("Number of valid genes not equal
-           to length of supplied Tissue vector.
-           Tissue vector should include 1 entry or the number of
-           entries equal to the number of genesOfInterest.")
+      warning("Number of valid genes not equal
+           to length of supplied Tissue vector. Using only ", Tissue[1])
+      Tissue <- rep(Tissue[1], length(geneList))
     }
   }
   if (length(Sample_Type) == 1) {
     Sample_Type <- rep(Sample_Type, length(geneList))
   } else if (length(Sample_Type) > 1) {
     if (length(Sample_Type) != length(geneList)) {
-      stop("Number of valid genes not equal
-           to length of supplied Sample_Type vector.
-           Sample_Type vector should include 1 entry or the number of
-           entries equal to the number of genesOfInterest.")
+      warning("Number of valid genes not equal
+           to length of supplied Sample_Type vector. Using only ", Sample_Type[1])
+      Sample_Type <- rep(Sample_Type[1], length(geneList))
     }
   }
 
@@ -102,12 +106,58 @@ getCorrelationData <- function(Species, Sample_Type,
                   tolower(unique(TissueNow)),
                   " WHERE row_names IN ('",
                   paste(geneList, collapse = "','"), "')")
-    resdf <- pool::dbGetQuery(pool, sql)
+    resdf <- try(silent = T, eval({
+      pool::dbGetQuery(pool, sql)
+    }))
+    if ("try-error" %in% class(resdf)) {
+      pool::poolClose(pool)
+      pool <- NULL
+      if (is.null(pool)) {
+        retryCounter <- 1
+        cat("\nEstablishing connection to database ... \n")
+        while(is.null(pool)) {
+          pool <- try(silent = T, eval({
+            pool::dbPool(
+              drv = RMySQL::MySQL(),
+              user = "public-rds-user", port = 3306,
+              dbname="bishoplabdb",
+              password='public-user-password',
+              host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
+            )
+          }))
+          if ("try-error" %in% class(pool)) {
+            if (retryCounter == 3) {
+              stop("Unable to connect to database. Check internet connection and please contanct",
+                   " package maintainer if you believe this is an error.")
+            }
+            warning(paste0("Failed to establish connection to database ... retrying now ... ",
+                           (4-retryCounter), " attempts left."),
+                    immediate. = T)
+            pool <- NULL
+            retryCounter <- retryCounter + 1
+          }
+        }
+
+        on.exit(function() {
+          pool::poolClose(pool)
+        })
+      }
+    }
+    resdf <- try(silent = T, eval({
+      pool::dbGetQuery(pool, sql)
+    }))
+    if ("try-error" %in% class(resdf)) {
+      stop("Unable to connect to the database at the moment. If you",
+           " believe this is an error, please contact the package maintainer.")
+    }
     resdf2 <- stringr::str_split_fixed(resdf$values, stringr::fixed(","), n = Inf)
     resdf2 <- apply(t(resdf2), 1:2, as.numeric)
     resdf2 <- as.data.frame(resdf2)
     colnames(resdf2) <- resdf$row_names
     rownames(resdf2) <- geneNames
+    if (length(geneList) > 1) {
+      resdf2 <- resdf2[,order(match(colnames(resdf2), geneList))]
+    }
   } else {
     resDfList <- list()
     for ( i in 1:length(geneList) ) {
@@ -125,6 +175,50 @@ getCorrelationData <- function(Species, Sample_Type,
                     " WHERE row_names IN ('",
                     geneName, "')")
       resdf <- pool::dbGetQuery(pool, sql)
+      resdf <- try(silent = T, eval({
+        pool::dbGetQuery(pool, sql)
+      }))
+      if ("try-error" %in% class(resdf)) {
+        pool::poolClose(pool)
+        pool <- NULL
+        if (is.null(pool)) {
+          retryCounter <- 1
+          cat("\nEstablishing connection to database ... \n")
+          while(is.null(pool)) {
+            pool <- try(silent = T, eval({
+              pool::dbPool(
+                drv = RMySQL::MySQL(),
+                user = "public-rds-user", port = 3306,
+                dbname="bishoplabdb",
+                password='public-user-password',
+                host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
+              )
+            }))
+            if ("try-error" %in% class(pool)) {
+              if (retryCounter == 3) {
+                stop("Unable to connect to database. Check internet connection and please contanct",
+                     " package maintainer if you believe this is an error.")
+              }
+              warning(paste0("Failed to establish connection to database ... retrying now ... ",
+                             (4-retryCounter), " attempts left."),
+                      immediate. = T)
+              pool <- NULL
+              retryCounter <- retryCounter + 1
+            }
+          }
+
+          on.exit(function() {
+            pool::poolClose(pool)
+          })
+        }
+      }
+      resdf <- try(silent = T, eval({
+        pool::dbGetQuery(pool, sql)
+      }))
+      if ("try-error" %in% class(resdf)) {
+        stop("Unable to connect to the database at the moment. If you",
+             " believe this is an error, please contact the package maintainer.")
+      }
       resdf2 <- stringr::str_split_fixed(resdf$values, stringr::fixed(","), n = Inf)
       resdf2 <- apply(t(resdf2), 1:2, as.numeric)
       resdf2 <- as.data.frame(resdf2)
@@ -132,10 +226,9 @@ getCorrelationData <- function(Species, Sample_Type,
       rownames(resdf2) <- geneNames
       resDfList[[i]] <- resdf2
     }
-    resdf2 <- do.call(cbind, resDfList)
+    resdf2 <- dplyr::bind_cols(resDfList)
+    rownames(resdf2) <- geneNames
   }
   return(resdf2)
 }
-
-
 

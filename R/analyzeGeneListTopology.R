@@ -256,7 +256,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   if ("variantGenes" %in% crossComparisonType) {
     # select the genes with top variance -- they explain differences between genes of interest
     rv <- metaMA::rowVars(resultsMat)
-    select <- order(rv, decreasing=TRUE)[seq_len(min(1500, length(rv)))]
+    select <- order(rv, decreasing=TRUE)[seq_len(min(500, length(rv)))]
     topVarMat <- resultsMat[select,]
     topVarHeat <- pheatmap::pheatmap(topVarMat, color = gplots::greenred(100), show_rownames = FALSE,
                                      main = "Variable Genes",silent = TRUE,

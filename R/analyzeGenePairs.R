@@ -64,7 +64,7 @@ analyzeGenePairs <- function(genesOfInterest,
                              runGSEA = TRUE, nperm = 2000, sampler = FALSE,
                              topPlots = FALSE, returnDataOnly = FALSE, pool = NULL) {
 
-  # genesOfInterest <- c("BRCA1", "BRCA1")
+  # genesOfInterest <- c("KRAS", "GPX4")
   # Species <- "hsapiens"
   # crossCompareMode = FALSE
   # returnDataOnly = TRUE
@@ -73,9 +73,25 @@ analyzeGenePairs <- function(genesOfInterest,
   # runGSEA = TRUE
   # topPlots = FALSE
   # Sample_Type = c("normal", "normal")
-  # Tissue = c("respiratory", "female0reproductive")
+  # Tissue = c("all", "all")
   # GSEA_Type = c("simple", "complex")
   # pool = NULL
+  # sampler = FALSE
+  # nperm = 2000
+
+
+  getPhBreaks <- function(mat, palette = NULL) {
+    # From https://stackoverflow.com/questions/31677923/set-0-point-for-pheatmap-in-r
+    if (is.null(palette)) {
+      palette <- grDevices::colorRampPalette(rev(
+        RColorBrewer::brewer.pal(n = 7, name =
+                     "RdYlBu")))(100)
+    }
+    n <- length(palette)
+    breaks <- c(seq(min(mat), 0, length.out=ceiling(n/2) + 1),
+                  seq(max(mat)/n, max(mat), length.out=floor(n/2)))
+    return(list(palette, breaks))
+  }
 
   if (is.null(pool)) {
     retryCounter <- 1
@@ -212,7 +228,7 @@ analyzeGenePairs <- function(genesOfInterest,
                                    ylab = "log2(TPM + 1)",
                                    fill = fillStr,
                                    y = "TPM") +
-        ggpubr::rotate_x_text() +
+        ggpubr::rotate_x_text(angle = 45) +
         ggpubr::rremove("legend") +
         ggpubr::rremove("xlab")
       geneTPMDFToPlot2 <- geneTPMDFToPlot[which(geneTPMDFToPlot$Gene == geneTwo),]
@@ -223,7 +239,7 @@ analyzeGenePairs <- function(genesOfInterest,
                                    ylab = "log2(TPM + 1)",
                                    fill = fillStr,
                                    y = "TPM") +
-        ggpubr::rotate_x_text() +
+        ggpubr::rotate_x_text(angle = 45) +
         ggpubr::rremove("legend") +
         ggpubr::rremove("xlab")
       colnames(geneTPMDF)[c(5:6)] <- paste0(colnames(geneTPMDF)[c(5:6)], "_log2TPM")
@@ -241,7 +257,7 @@ analyzeGenePairs <- function(genesOfInterest,
                                    ylab = "log2(TPM + 1)",
                                    fill = "Group",
                                    y = "TPM") +
-        ggpubr::rotate_x_text() +
+        ggpubr::rotate_x_text(angle = 45) +
         ggpubr::rremove("legend") +
         ggpubr::rremove("xlab")
       colnames(geneTPMDF)[c(5)] <- paste0(colnames(geneTPMDF)[c(5)], "_log2TPM")
@@ -293,7 +309,7 @@ analyzeGenePairs <- function(genesOfInterest,
           ggplot2::labs(title = titleStr) +
           ggplot2::ylab(oldNames[(i-1)]) +
           ggplot2::xlab(oldNames[i]) +
-          ggplot2::annotate("text", x = 0, y = 1.1,
+          ggplot2::annotate("text", x = 0, y = 1.2,
                             label = labb,
                             parse = TRUE) +
           ggpubr::theme_pubr() +
@@ -311,17 +327,21 @@ analyzeGenePairs <- function(genesOfInterest,
         dfPh <- rbind(dfRawUpSmall, dfRawDnSmall)
         dfPh <- dfPh[,c(-3)]
         if (mode == "cross_geneVsGene") {
+          breaks <- getPhBreaks(dfPh)
           ph <- pheatmap::pheatmap(dfPh, cluster_cols = FALSE,
+                                   breaks = breaks[[2]],
                                    silent = TRUE, angle_col = 0, main = titleStr,
                                    labels_col = c(genesOfInterest[1],
                                                   genesOfInterest[2]))
         } else {
+          breaks <- getPhBreaks(dfPh)
           ph <- pheatmap::pheatmap(dfPh, cluster_cols = FALSE,
+                                   breaks = breaks[[2]],
                                    silent = TRUE, angle_col = 0, main = titleStr,
                                    labels_col = c("Normal", "Cancer"))
         }
 
-        tempList[["heatMap"]] <- ph
+        tempList[["heatMap"]] <- ggplotify::as.ggplot(ph)
 
         resList[["pairResList"]][[i/2]] <- tempList
         names(resList[["pairResList"]])[i/2] <- tissue
@@ -338,7 +358,6 @@ analyzeGenePairs <- function(genesOfInterest,
     return(resList)
 
   }
-
 
   # If running in normal mode ...
   if (length(genesOfInterest) == 2 ) {
@@ -380,6 +399,8 @@ analyzeGenePairs <- function(genesOfInterest,
 
 
   pairRes[["compared"]] <- list()
+
+
   # Variance heat map
   correlations$average <- rowMeans(correlations)
   correlations$variance <- matrixStats::rowVars(as.matrix(correlations[,c(1,2)]))
@@ -390,6 +411,7 @@ analyzeGenePairs <- function(genesOfInterest,
   correlations2 <- correlations[which(! rownames(correlations) %in%
                                         colnames(correlations)),]
 
+  # Divergence of gene correlations
   corHeatOne <- correlations2 %>%
     rownames_to_column('gene') %>%
     dplyr::filter(eval(parse(text = cn[1])) > 0) %>%
@@ -401,8 +423,34 @@ analyzeGenePairs <- function(genesOfInterest,
     top_n(15, .data$variance) %>%
     column_to_rownames('gene')
   corHeat <- rbind(corHeatOne, corHeatTwo)
-  corHeat <- corHeat[, c(1, 2)]
-  colnames(corHeat) <- c(geneOne, geneTwo)
+  corHeatVar <- corHeat[, c(1, 2)]
+  colnames(corHeatVar) <- c(geneOne, geneTwo)
+
+  # Similarity of gene correlations
+  # First get the top 1000 genes by both columns
+  # ( We want similar and meaninful genes)
+  correlations21 <- correlations2[order(abs(correlations2[,1]),
+                                       decreasing = TRUE),]
+  correlations21 <- correlations21[c(1:1000),]
+  correlations22 <- correlations2[order(abs(correlations2[,2]),
+                                        decreasing = TRUE),]
+  correlations22 <- correlations22[c(1:1000),]
+  correlations2 <- unique(rbind(correlations21, correlations22))
+
+  corHeatOne <- correlations2 %>%
+    rownames_to_column('gene') %>%
+    dplyr::filter(eval(parse(text = cn[1])) > 0) %>%
+    top_n(15, -.data$variance) %>%
+    column_to_rownames('gene')
+  corHeatTwo <- correlations2 %>%
+    rownames_to_column('gene') %>%
+    dplyr::filter(eval(parse(text = cn[1])) < 0) %>%
+    top_n(15, -.data$variance) %>%
+    column_to_rownames('gene')
+  corHeat <- rbind(corHeatOne, corHeatTwo)
+  corHeatSim <- corHeat[, c(1, 2)]
+  colnames(corHeatSim) <- c(geneOne, geneTwo)
+
 
   # GSEA compare -- heatmap
   compPaths <- merge( x= pairRes[[geneOneTitle]][["GSEA"]][["eres"]],
@@ -424,13 +472,13 @@ analyzeGenePairs <- function(genesOfInterest,
     colnames(compPaths) <- gsub(x = colnames(compPaths),pattern =  ".y",
                                 replacement =  paste0("_", geneTwo))
   }
-
+  # Divergence of pathways
   compPaths$NES_average <- rowMeans(compPaths[,c(2, 6)])
   compPaths$NES_variance <- matrixStats::rowVars(as.matrix(compPaths[,c(2, 6)]))
   compPaths <- compPaths[order(compPaths$NES_variance, decreasing = TRUE),]
-
   cn <- colnames(compPaths)
   cnes <- cn[grep(x = cn, pattern = "NES")]
+
   compHeatOne <- compPaths %>%
     dplyr::filter(eval(parse(text = cnes[1])) > 0) %>%
     top_n(15, .data$NES_variance)  %>% slice(1:15)
@@ -438,6 +486,7 @@ analyzeGenePairs <- function(genesOfInterest,
     dplyr::filter(eval(parse(text = cnes[2])) > 0 & ! .data$ID %in% compHeatOne$ID) %>%
     top_n(15, .data$NES_variance) %>% slice(1:15)
   compHeat <- unique(rbind(compHeatOne, compHeatTwo))
+  n <- length(compHeat$ID)
   titleID <- compHeat$ID
   titleID <- correlationAnalyzeR::fixStrings(titleID)
   titleID[which(nchar(titleID) > 40)] <- paste0(substr(titleID[which(nchar(titleID) > 40)],
@@ -457,9 +506,42 @@ analyzeGenePairs <- function(genesOfInterest,
                                                            collapse = ""),
                                              n = length(dups)))
   }
-  compHeat <- compHeat[,c(2, 6)]
+  compHeatVar <- compHeat[,c(2, 6)]
+  rownames(compHeatVar) <- titleID[1:n]
 
-  rownames(compHeat) <- titleID[1:30]
+
+  # Similarity of pathways
+  compHeatOne <- compPaths %>%
+    dplyr::filter(eval(parse(text = cnes[1])) > 0) %>%
+    top_n(15, -.data$NES_variance)  %>% slice(1:15)
+  compHeatTwo <- compPaths %>%
+    dplyr::filter(eval(parse(text = cnes[2])) > 0 & ! .data$ID %in% compHeatOne$ID) %>%
+    top_n(15, -.data$NES_variance) %>% slice(1:15)
+  compHeat <- unique(rbind(compHeatOne, compHeatTwo))
+  n <- length(compHeat$ID)
+  titleID <- compHeat$ID
+  titleID <- correlationAnalyzeR::fixStrings(titleID)
+  titleID[which(nchar(titleID) > 40)] <- paste0(substr(titleID[which(nchar(titleID) > 40)],
+                                                       1, 40), "...")
+  dups <- which(duplicated(titleID))
+  if (length(dups)) {
+    ends <- substr(compPaths$ID[dups],
+                   nchar(compPaths$ID[dups])-3,
+                   nchar(compPaths$ID[dups]))
+    titleID[dups] <- paste0(substr(titleID[dups], 1, 34), "...", tolower(ends) )
+  }
+
+  dups <- which(duplicated(titleID))
+  if (length(dups)) {
+    titleID[dups] <- paste0(substr(titleID[dups], 1, 34),
+                            "...", replicate(expr = paste0(sample(letters, 3),
+                                                           collapse = ""),
+                                             n = length(dups)))
+  }
+  compHeatSim <- compHeat[,c(2, 6)]
+  rownames(compHeatSim) <- titleID[1:n]
+
+
   # Get TPM
   tissueOneNow <- gsub(tissueOne, pattern = " ", replacement = "0")
   tissueTwoNow <- gsub(tissueTwo, pattern = " ", replacement = "0")
@@ -527,102 +609,115 @@ analyzeGenePairs <- function(genesOfInterest,
     ggpubr::rremove("xlab")
   pairRes[["compared"]][["TPM_boxPlot"]] <- TPMplot
   pairRes[["compared"]][["TPM_Data"]] <- TPMDFFinal
-  if (longName) {
-    uiNameOne <- paste0(
-                        stringr::str_to_title(tissueOne), " - ",
-                        stringr::str_to_title(sampleOne))
-    uiNameTwo <- paste0(
-                        stringr::str_to_title(tissueTwo), " - ",
-                        stringr::str_to_title(sampleTwo))
-    correlationsScatter <- correlations
-    correlationsScatter$Gene <- F
-    correlationsScatter$Gene[which(rownames(correlationsScatter) %in%
-                                              c(geneOne, geneTwo))] <- T
-    colnames(correlationsScatter)[c(1, 2)] <- c("x", "y")
-    if (geneOne != geneTwo) {
-      titleStr <- paste0(geneOne, " vs. ",
-                         geneTwo, " correlations")
-    } else {
-      titleStr <- paste0(geneOne, " correlations")
-    }
-    gs <- ggpubr::ggscatter(correlationsScatter,
-                            title = titleStr,
-                            x = "x", y = "y",
-                            ylab = geneTwoTitle,
-                            xlab = geneOneTitle,
-                            label.rectangle = FALSE,
-                            size = .5,
-                            repel = TRUE, label = rownames(correlationsScatter),
-                            font.label = c(12, "bold", "black"),
-                            label.select = unique(c(geneOne, geneTwo)),
-                            add = "reg.line") +
-      ggpubr::stat_cor(label.y = 1.1)
-    pairRes[["compared"]][["correlationPlot"]] <- gs
 
-    phCor <- pheatmap::pheatmap(corHeat, silent = TRUE, angle_col = 0,
-                                main = "Differentially correlated genes",
-                                labels_col = c(geneOneTitle, geneTwoTitle),
-                                cluster_rows = TRUE, cluster_cols = FALSE)
-    pairRes[["compared"]][["correlationVarianceHeatmap"]] <- phCor
-    phGSEA <- pheatmap::pheatmap(compHeat, silent = TRUE, angle_col = 0,
-                                 main = "Differentially correlated pathways",
-                                 labels_col = c(geneOneTitle, geneTwoTitle),
-                                 cluster_rows = TRUE,
-                                 cluster_cols = FALSE)
-    pairRes[["compared"]][["correlatedPathwaysHeatmap"]] <- phGSEA
-    if (! returnDataOnly) {
-      ggplot2::ggsave(phGSEA, height = 7.5, width = 6,
-                      filename = file.path(outputPrefix,
-                                           "GSEA_compared_heatmap.png"))
-      ggplot2::ggsave(phCor, height = 7.5, width = 4.5,
-                      filename = file.path(outputPrefix,
-                                           "correlations_compared_heatmap.png"))
-      ggplot2::ggsave(gs, filename = file.path(outputPrefix,
-                                               "correlationScatterCompare.png"))
-    }
 
+
+  correlationsScatter <- correlations
+  correlationsScatter$Gene <- F
+  correlationsScatter$Gene[which(rownames(correlationsScatter) %in%
+                                   c(geneOne, geneTwo))] <- T
+  colnames(correlationsScatter)[c(1, 2)] <- c("x", "y")
+  if (geneOne != geneTwo) {
+    titleStr <- paste0(geneOne, " vs. ",
+                       geneTwo, " correlations")
+    geneOneTitleHeat <- geneOne
+    geneTwoTitleHeat <- geneTwo
   } else {
-    correlationsScatter <- correlations
-    correlationsScatter$Gene <- F
-    correlationsScatter$Gene[which(rownames(correlationsScatter) %in%
-                                              c(geneOne, geneTwo))] <- T
-    gs <- ggpubr::ggscatter(correlationsScatter,
-                            title = paste0(geneOne, " vs. ",
-                                           geneTwo, " Correlations"),
-                            x = geneOne, y = geneTwo,
-                            ylab = geneTwoTitle,
-                            xlab = geneOneTitle,
-                            label.rectangle = FALSE,
-                            size = .5,
-                            repel = TRUE, label = rownames(correlationsScatter),
-                            font.label = c(12, "bold", "black"),
-                            label.select = unique(c(geneOne, geneTwo)),
-                            add = "reg.line") +
-      ggpubr::stat_cor(label.y = 1.1)
-    pairRes[["compared"]][["correlationPlot"]] <- gs
-
-    phCor <- pheatmap::pheatmap(corHeat,angle_col = 0,
-                                silent = TRUE,
-                                main = "Differentially correlated genes",
-                                cluster_rows = TRUE, cluster_cols = FALSE)
-    pairRes[["compared"]][["correlationVarianceHeatmap"]] <- phCor
-    phGSEA <- pheatmap::pheatmap(compHeat, silent = TRUE,
-                                 main = "Differentially correlated pathways",
-                                 cluster_rows = TRUE, angle_col = 0,
-                                 labels_col = c(geneOne, geneTwo),
-                                 cluster_cols = FALSE)
-    pairRes[["compared"]][["correlatedPathwaysHeatmap"]] <- phGSEA
-    if (! returnDataOnly) {
-      ggplot2::ggsave(phGSEA, 7.5, width = 6,
-                      filename = file.path(outputPrefix,
-                                           "GSEA_compared_heatmap.png"))
-      ggplot2::ggsave(phCor, 7.5, width = 4.5,
-                      filename = file.path(outputPrefix,
-                                           "correlations_compared_heatmap.png"))
-      ggplot2::ggsave(gs, filename = file.path(outputPrefix,
-                                               "correlationScatterCompare.png"))
-    }
+    titleStr <- paste0(geneOne, " correlations")
+    geneOneTitleHeat <- geneOneTitle
+    geneTwoTitleHeat <- geneTwoTitle
   }
+  gs <- ggpubr::ggscatter(correlationsScatter,
+                          title = titleStr,
+                          x = "x", y = "y",
+                          ylab = geneTwoTitle,
+                          xlab = geneOneTitle,
+                          label.rectangle = FALSE,
+                          size = .5,
+                          repel = TRUE, label = rownames(correlationsScatter),
+                          font.label = c(12, "bold", "black"),
+                          label.select = unique(c(geneOne, geneTwo)),
+                          add = "reg.line") +
+    ggpubr::stat_cor(label.y = 1.2)
+  pairRes[["compared"]][["correlationPlot"]] <- gs
+
+  df <- correlationsScatter
+  df <- unique(df[,c(1,2)])
+  # df <- pairResNow$correlations
+  lm_eqn <- function(df){
+    m <- stats::lm(eval(parse(text = colnames(df)[2])) ~ eval(parse(text = colnames(df)[1])), df)
+    r <- sqrt(summary(m)$r.squared) * sign(unname(stats::coef(m)[2]))
+    eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(R)~"="~r,
+                     list(a = format(unname(stats::coef(m)[1]), digits = 2),
+                          b = format(unname(stats::coef(m)[2]), digits = 2),
+                          r = format(r, digits = 2)))
+    as.character(as.expression(eq));
+  }
+  labb <- lm_eqn(df)
+  gp <- ggplot2::ggplot(data = df,
+                        mapping = ggplot2::aes_string(x = colnames(df)[1],
+                                                      y = colnames(df)[2])) +
+    ggplot2::stat_bin2d(bins = 150) +
+    ggplot2::geom_smooth(colour="black", size = 1.25,
+                         method='lm') +
+    ggplot2::labs(title = titleStr) +
+    ggplot2::ylab(geneTwoTitle) +
+    ggplot2::xlab(geneOneTitle) +
+    ggplot2::annotate("text", x = 0, y = 1.2,
+                      label = labb,
+                      parse = TRUE) +
+    ggpubr::theme_pubr() +
+    ggplot2::theme(legend.position = "none")
+  pairRes[["compared"]][["correlationPlotBin"]] <- gs
+
+
+
+  breaks <- getPhBreaks(corHeatVar)
+  phCorVar <- pheatmap::pheatmap(corHeatVar, silent = TRUE, angle_col = 45,
+                                 breaks = breaks[[2]],
+                                 main = "Top differentially correlated genes",
+                                 labels_col = c(geneOneTitleHeat, geneTwoTitleHeat),
+                                 cluster_rows = TRUE, cluster_cols = FALSE)
+  pairRes[["compared"]][["correlationVarianceHeatmap"]] <- ggplotify::as.ggplot(phCorVar)
+  breaks <- getPhBreaks(compHeatVar)
+  phGSEAVar <- pheatmap::pheatmap(compHeatVar, silent = TRUE, angle_col = 45,
+                                  breaks = breaks[[2]],
+                                  main = "Top differentially correlated pathways",
+                                  labels_col = c(geneOneTitleHeat, geneTwoTitleHeat),
+                                  cluster_rows = TRUE,
+                                  cluster_cols = FALSE)
+  pairRes[["compared"]][["pathwayVarianceHeatmap"]] <- ggplotify::as.ggplot(phGSEAVar)
+  breaks <- getPhBreaks(corHeatSim)
+  phCorSim <- pheatmap::pheatmap(corHeatSim, silent = TRUE, angle_col = 45,
+                                 breaks = breaks[[2]],
+                                 main = "Top similarly correlated genes",
+                                 labels_col = c(geneOneTitleHeat, geneTwoTitleHeat),
+                                 cluster_rows = TRUE, cluster_cols = FALSE)
+  pairRes[["compared"]][["correlationSimilarityHeatmap"]] <- ggplotify::as.ggplot(phCorSim)
+  breaks <- getPhBreaks(compHeatSim)
+  phGSEASim <- pheatmap::pheatmap(compHeatSim, silent = TRUE, angle_col = 45,
+                                  breaks = breaks[[2]],
+                                  main = "Top similarly correlated pathways",
+                                  labels_col = c(geneOneTitleHeat, geneTwoTitleHeat),
+                                  cluster_rows = TRUE,
+                                  cluster_cols = FALSE)
+  pairRes[["compared"]][["pathwaySimilarityHeatmap"]] <- ggplotify::as.ggplot(phGSEASim)
+
+
+  if (! returnDataOnly) {
+    ggplot2::ggsave(phGSEA, 7.5, width = 6,
+                    filename = file.path(outputPrefix,
+                                         "GSEA_compared_heatmap.png"))
+    ggplot2::ggsave(phCor, 7.5, width = 4.5,
+                    filename = file.path(outputPrefix,
+                                         "correlations_compared_heatmap.png"))
+    ggplot2::ggsave(gs, filename = file.path(outputPrefix,
+                                             "correlationScatterCompare.png"))
+    ggplot2::ggsave(gp, filename = file.path(outputPrefix,
+                                             "correlationScatterBinCompare.png"))
+  }
+
+
   pairRes[["compared"]][["correlatedPathwaysDataFrame"]] <- compPaths
   # Return results
   return(pairRes)
