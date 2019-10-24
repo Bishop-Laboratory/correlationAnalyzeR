@@ -668,7 +668,7 @@ analyzeGenePairs <- function(genesOfInterest,
                       parse = TRUE) +
     ggpubr::theme_pubr() +
     ggplot2::theme(legend.position = "none")
-  pairRes[["compared"]][["correlationPlotBin"]] <- gs
+  pairRes[["compared"]][["correlationPlotBin"]] <- gp
 
 
 
