@@ -25,6 +25,8 @@
 #' @param outputPrefix Prefix for saved files -- the directory name to store output files in. If
 #' folder does not exist, it will be created.
 #' @param runGSEA If TRUE will run GSEA using gene correlation values.
+#' @param TERM2GENE Mapping of geneset IDs to gene names. If NULL, it will be
+#' generated automatically. Only applicable if GSEA is to be run.
 #' @param returnDataOnly if TRUE will return result list object
 #' and will not generate any folders or files.
 #' @param topPlots Logical. If TRUE, myGSEA() will build gsea plots for top correlated genesets.
@@ -61,8 +63,11 @@ analyzeGenePairs <- function(genesOfInterest,
                              GSEA_Type = c("simple", "complex"),
                              outputPrefix = "CorrelationAnalyzeR_Output_Paired",
                              crossCompareMode = FALSE,
-                             runGSEA = TRUE, nperm = 2000, sampler = FALSE,
-                             topPlots = FALSE, returnDataOnly = FALSE, pool = NULL) {
+                             runGSEA = TRUE,
+                             TERM2GENE = NULL,
+                             nperm = 2000, sampler = FALSE,
+                             topPlots = FALSE, returnDataOnly = TRUE,
+                             pool = NULL) {
 
   # genesOfInterest <- c("KRAS", "GPX4")
   # Species <- "hsapiens"
@@ -267,7 +272,7 @@ analyzeGenePairs <- function(genesOfInterest,
 
     # Do paired to get correlation data
     pairRes <- correlationAnalyzeR::analyzeSingleGenes(
-      genesOfInterest = genesVec, pool = pool,
+      genesOfInterest = genesVec, pool = pool, TERM2GENE = TERM2GENE,
       returnDataOnly = returnDataOnly, topPlots = topPlots,
       outputPrefix = outputPrefix, runGSEA = FALSE,
       Sample_Type = Sample_Type, Tissue = Tissue,
@@ -364,7 +369,7 @@ analyzeGenePairs <- function(genesOfInterest,
     pairRes <- correlationAnalyzeR::analyzeSingleGenes(
       genesOfInterest = genesOfInterest, pool = pool,
       returnDataOnly = returnDataOnly, topPlots = topPlots,
-      outputPrefix = outputPrefix,
+      outputPrefix = outputPrefix, TERM2GENE = TERM2GENE,
       runGSEA = runGSEA, nperm = nperm, sampler = sampler,
       Sample_Type = Sample_Type, Tissue = Tissue,
       Species = Species, GSEA_Type = GSEA_Type
@@ -456,7 +461,8 @@ analyzeGenePairs <- function(genesOfInterest,
   compPaths <- merge( x= pairRes[[geneOneTitle]][["GSEA"]][["eres"]],
                       y = pairRes[[geneTwoTitle]][["GSEA"]][["eres"]],
                       by = c("ID", "Description"))
-  compPaths <- compPaths[,c(1, 5, 6, 7, 11, 14, 15, 16, 20)]
+
+  compPaths <- compPaths[,c(1, 5, 6, 7, 8, 11, 12, 13, 14)]
   if(longName) {
     colnames(compPaths) <- gsub(x = colnames(compPaths),pattern =  ".x",
                                 replacement =  paste0("_", geneOne,

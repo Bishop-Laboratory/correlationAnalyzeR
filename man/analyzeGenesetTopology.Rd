@@ -11,7 +11,7 @@ analyzeGenesetTopology(genesOfInterest, Species = c("hsapiens",
   setComparisonCutoff = "Auto", pathwayEnrichment = FALSE,
   pValueCutoff = 0.05, numTopGenesToPlot = "Auto",
   alternativeTSNE = TRUE, numClusters = "Auto",
-  outputPrefix = "CorrelationAnalyzeR_Output", returnDataOnly = FALSE,
+  outputPrefix = "CorrelationAnalyzeR_Output", returnDataOnly = TRUE,
   pool = NULL)
 }
 \arguments{
@@ -53,7 +53,7 @@ large input gene lists. This is highly recommended as 100+ member gene lists can
 
 \item{outputPrefix}{Prefix for saved files. Should include directory info.}
 
-\item{returnDataOnly}{if TRUE will return only a list of analysis results. Default: FALSE.}
+\item{returnDataOnly}{if TRUE will return only a list of analysis results. Default: TRUE}
 
 \item{pool}{an object created by pool::dbPool to accessing SQL database.
 It will be created if not supplied.}

@@ -12,8 +12,8 @@
 #' @param Condition Name to use for titles of plots. Default = "GSEA Results".
 #' @param nperm Number of permutations to run. Default is 2000
 #' @param padjustedCutoff Value to use as a cutoff for returned gene sets.
-#' @param returnDataOnly Should GSEA data/plots be saved to file? Default: FALSE
-#' @param topPlots Should top GSEA pathways be plotted? Default: TRUE
+#' @param returnDataOnly Should GSEA data/plots be saved to file? Default: TRUE
+#' @param topPlots Should top GSEA pathways be plotted? Default: FALSE
 #'
 #' @return Named list containing GSEA() output, GSEA data frame, and visualizations.
 #'
@@ -29,28 +29,41 @@
 #'        plotFile = "GSEA_out", outDir = getwd(),
 #'        topPlots = FALSE, returnDataOnly=TRUE, Condition = "GSEA Results")
 #'
+#' @import dplyr
+#' @import clusterProfiler
+#'
 #' @export
 myGSEA <- function(ranks,
                    TERM2GENE,
                    padjustedCutoff = .05,
-                   returnDataOnly = FALSE,
+                   returnDataOnly = TRUE,
                    nperm = 2000,
-                   topPlots = TRUE,
+                   topPlots = FALSE,
                    outDir,
                    Condition = "GSEA Results",
                    plotFile = "GSEA_results") {
 
 
+  # # Bug testing
+  # padjustedCutoff = .05
+  # topPlots = FALSE
+  # nperm = 2000
+  # corrDF <- correlationAnalyzeR::analyzeSingleGenes(genesOfInterest = c("ATM"),
+  #                                                   returnDataOnly = TRUE,
+  #                                                   runGSEA = FALSE,
+  #                                                   Sample_Type = "normal")
+  # ranks <- corrDF$correlations[,1]
+  # names(ranks) <- rownames(corrDF$correlations)
+  # TERM2GENE <- correlationAnalyzeR::getTERM2GENE(GSEA_Type = "simple",
+  #                                                Species = "hsapiens")
+
   resList <- list()
   ranks <- ranks[which(! duplicated(names(ranks)))]
   ranks <- ranks[which(! is.na(ranks))]
   ranks <- ranks[order(ranks, decreasing = TRUE)]
-  EGMT <- clusterProfiler::GSEA(ranks, TERM2GENE=TERM2GENE,
-                                maxGSSize = 500, seed = TRUE,
-                                minGSSize = 15,
-                                nPerm = nperm, pvalueCutoff = padjustedCutoff)
 
-
+  EGMT <- GSEA2(TERM2GENE = TERM2GENE, ranks = ranks, nproc = 1,
+                nperm = nperm, pvalueCutoff = padjustedCutoff)
 
   resGSEA <- as.data.frame(EGMT)
 
@@ -59,22 +72,23 @@ myGSEA <- function(ranks,
   if (length(resGSEA$ID) < 10){
     warning(paste0("GSEA Failed -- No significant pathways at designated pValue: ",
                    padjustedCutoff, ". Rerunning with higher pValue."))
-    EGMT <- clusterProfiler::GSEA(ranks, TERM2GENE=TERM2GENE,
-                                  maxGSSize = 500, seed = TRUE,
-                                  minGSSize = 15,
-                                  nPerm = nperm, pvalueCutoff = padjustedCutoff + .2)
+    EGMT <- GSEA2(TERM2GENE = TERM2GENE, ranks = ranks, nproc = 1,
+                  nperm = nperm, pvalueCutoff = padjustedCutoff + .15)
     resGSEA <- as.data.frame(EGMT)
     resList[["EGMT"]] <- EGMT
   }
   if (length(resGSEA$ID) < 10){
     warning(paste0("GSEA Failed -- No significant pathways at designated pValue: ",
                    padjustedCutoff, ". Rerunning with higher pValue."))
-    EGMT <- clusterProfiler::GSEA(ranks, TERM2GENE=TERM2GENE,
-                                  maxGSSize = 500,seed = TRUE,
-                                  minGSSize = 15,
-                                  nPerm = nperm, pvalueCutoff = padjustedCutoff + .45)
+    EGMT <- GSEA2(TERM2GENE = TERM2GENE, ranks = ranks, nproc = 1,
+                  nperm = nperm, pvalueCutoff = padjustedCutoff + .45)
     resGSEA <- as.data.frame(EGMT)
     resList[["EGMT"]] <- EGMT
+  }
+  if (length(resGSEA$ID) < 10){
+    stop(paste0("GSEA Failed -- No significant pathways at designated pValue: ",
+                padjustedCutoff, ". Please check your data. If you believe this ",
+                "behavior is a bug, please contact the package maintainer."))
   }
   if (topPlots) {
     resGSEA <- resGSEA[order(resGSEA$NES, decreasing = TRUE),]
@@ -189,8 +203,59 @@ myGSEA <- function(ranks,
 
   resList[["eres"]] <- resGSEA
 
-  cat("Returning ... ", names(resList))
+  cat("\nReturning ... ", names(resList), "\n")
 
   return(resList)
 }
 
+
+
+# Modified GSEA from clusterProfiler. Reduces computational time.
+GSEA2 <- function(TERM2GENE, ranks,
+                  nperm = 2000, nproc = "auto",
+                  pvalueCutoff = .05) {
+  if (nproc == "auto") {
+    nproc = parallel::detectCores()
+  }
+  TERMList <- TERM2GENE %>% split(x = .$gene_symbol, f = .$gs_name)
+  EGMT <- fgsea::fgsea(pathways = TERMList, nproc = nproc,
+                       maxSize = 500,
+                       minSize = 15,
+                       stats = ranks, nperm = nperm)
+  res <- data.frame(
+    ID = as.character(EGMT$pathway),
+    Description = as.character(EGMT$pathway),
+    setSize = EGMT$size,
+    enrichmentScore = EGMT$ES,
+    NES = EGMT$NES,
+    pvalue = EGMT$pval,
+    p.adjust = EGMT$padj,
+    core_enrichment = vapply(EGMT$leadingEdge, FUN.VALUE = "char",
+                             paste0, collapse='/'),
+    stringsAsFactors = FALSE
+  )
+  res <- res[!is.na(res$pvalue),]
+  res <- res[ res$pvalue <= pvalueCutoff, ]
+  res <- res[ res$p.adjust <= pvalueCutoff, ]
+  idx <- order(res$pvalue, decreasing = FALSE)
+  res <- res[idx, ]
+  params <- list(pvalueCutoff = pvalueCutoff,
+                 nPerm = nperm,
+                 pAdjustMethod = "BH",
+                 exponent = 1,
+                 minGSSize = 15,
+                 maxGSSize = 500
+  )
+  row.names(res) <- res$ID
+  EGMT <- new("gseaResult",
+              result     = res,
+              geneSets   = TERMList,
+              geneList   = ranks,
+              params     = params,
+              readable   = FALSE
+  )
+  EGMT@organism <- "UNKNOWN"
+  EGMT@setType <- "UNKNOWN"
+  EGMT@keytype <- "UNKNOWN"
+  return(EGMT)
+}

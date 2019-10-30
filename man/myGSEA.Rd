@@ -4,9 +4,9 @@
 \alias{myGSEA}
 \title{Wrapper for clusterProlifer's GSEA()}
 \usage{
-myGSEA(ranks, TERM2GENE, padjustedCutoff = 0.05,
-  returnDataOnly = FALSE, nperm = 2000, topPlots = TRUE, outDir,
-  Condition = "GSEA Results", plotFile = "GSEA_results")
+myGSEA(ranks, TERM2GENE, padjustedCutoff = 0.05, returnDataOnly = TRUE,
+  nperm = 2000, topPlots = FALSE, outDir, Condition = "GSEA Results",
+  plotFile = "GSEA_results")
 }
 \arguments{
 \item{ranks}{Numeric of gene 'scores' ordered by decreasing value and
@@ -17,11 +17,11 @@ gene symbols. Can be generated using correlationAnalyzeR::getTERM2GENE()}
 
 \item{padjustedCutoff}{Value to use as a cutoff for returned gene sets.}
 
-\item{returnDataOnly}{Should GSEA data/plots be saved to file? Default: FALSE}
+\item{returnDataOnly}{Should GSEA data/plots be saved to file? Default: TRUE}
 
 \item{nperm}{Number of permutations to run. Default is 2000}
 
-\item{topPlots}{Should top GSEA pathways be plotted? Default: TRUE}
+\item{topPlots}{Should top GSEA pathways be plotted? Default: FALSE}
 
 \item{outDir}{output directory.}
 

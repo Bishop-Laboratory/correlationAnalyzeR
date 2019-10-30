@@ -44,7 +44,7 @@
 #' by an auto-generated rug. Default: TRUE.
 #'
 #' @param returnDataOnly if TRUE will only return a list containing correlations
-#' and significance testing results if applicable. Default: FALSE.
+#' and significance testing results if applicable. Default: TRUE.
 #' @param pool an object created by pool::dbPool to accessing SQL database.
 #' It will be created if not supplied.
 #' @return A list containing correlation values and signficance testing results
@@ -71,7 +71,7 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
                                   topCutoff = .5,
                                   autoRug = TRUE,
                                   plotTitle = TRUE,
-                                  returnDataOnly = FALSE,
+                                  returnDataOnly = TRUE,
                                   pool = NULL) {
 
 

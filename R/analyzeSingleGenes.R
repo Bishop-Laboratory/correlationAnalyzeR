@@ -31,7 +31,8 @@
 #' @param outputPrefix Prefix for saved files. Should include directory info.
 #'
 #' @param runGSEA If TRUE will run GSEA using gene correlation values.
-#'
+#' @param TERM2GENE Mapping of geneset IDs to gene names. If NULL, it will be
+#' generated automatically. Only applicable if GSEA is to be run.
 #' @param nperm Number of permutations to run in GSEA. Default is 2000
 #'
 #' @param sampler If TRUE, will only return 100,000 random genesets from either
@@ -69,10 +70,11 @@ analyzeSingleGenes <- function(genesOfInterest,
                                Tissue = "all",
                                crossCompareMode = FALSE,
                                nperm = 2000,
+                               TERM2GENE = NULL,
                                whichCompareGroups = c("all", "normal", "cancer"),
                                outputPrefix = "CorrelationAnalyzeR_Output",
                                sampler = FALSE, runGSEA = TRUE,
-                               topPlots = TRUE, returnDataOnly = FALSE,
+                               topPlots = TRUE, returnDataOnly = TRUE,
                                pool = NULL) {
 
   # # Bug testing
@@ -130,17 +132,20 @@ analyzeSingleGenes <- function(genesOfInterest,
     dir.create(outputPrefix)
   }
   # Load appropriate TERM2GENE file built from msigdbr()
-  if (Species[1] %in% c("hsapiens", "mmusculus")) {
-    if (runGSEA) {
-      TERM2GENE <- correlationAnalyzeR::getTERM2GENE(GSEA_Type = GSEA_Type,
-                                                     sampler = sampler,
-                                                     Species = Species)
-    }
-  } else {
-    stop("\ncorrelationAnalyzeR currently supports only Human and Mouse data.
+  if (is.null(TERM2GENE)) {
+    if (Species[1] %in% c("hsapiens", "mmusculus")) {
+      if (runGSEA) {
+        TERM2GENE <- correlationAnalyzeR::getTERM2GENE(GSEA_Type = GSEA_Type,
+                                                       sampler = sampler,
+                                                       Species = Species)
+      }
+    } else {
+      stop("\ncorrelationAnalyzeR currently supports only Human and Mouse data.
          Please select either 'hsapiens' or 'mmusculus' for Species parameter.
          \n")
+    }
   }
+
   # Check genes to make sure they exist
   avGenes <- correlationAnalyzeR::getAvailableGenes(Species = Species, pool = pool)
   badGenes <- genesOfInterest[which(! genesOfInterest %in% avGenes)]

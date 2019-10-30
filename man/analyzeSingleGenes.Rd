@@ -7,9 +7,9 @@
 analyzeSingleGenes(genesOfInterest, Species = c("hsapiens", "mmusculus"),
   GSEA_Type = c("simple", "complex"), Sample_Type = "normal",
   Tissue = "all", crossCompareMode = FALSE, nperm = 2000,
-  whichCompareGroups = c("all", "normal", "cancer"),
+  TERM2GENE = NULL, whichCompareGroups = c("all", "normal", "cancer"),
   outputPrefix = "CorrelationAnalyzeR_Output", sampler = FALSE,
-  runGSEA = TRUE, topPlots = TRUE, returnDataOnly = FALSE,
+  runGSEA = TRUE, topPlots = TRUE, returnDataOnly = TRUE,
   pool = NULL)
 }
 \arguments{
@@ -37,6 +37,9 @@ Will only consider user input for returnDataOnly, whichCompareGroups,
 outputPrefix, Species, and genesOfInterest.}
 
 \item{nperm}{Number of permutations to run in GSEA. Default is 2000}
+
+\item{TERM2GENE}{Mapping of geneset IDs to gene names. If NULL, it will be
+generated automatically. Only applicable if GSEA is to be run.}
 
 \item{whichCompareGroups}{For crossCompareMode, select "all", "normal", or "cancer"
 to analyze correlations from the corresponding groups.}

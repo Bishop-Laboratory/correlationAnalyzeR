@@ -8,9 +8,9 @@ analyzeGenePairs(genesOfInterest, Sample_Type = c("normal", "normal"),
   Tissue = c("all", "all"), Species = c("hsapiens", "mmusculus"),
   GSEA_Type = c("simple", "complex"),
   outputPrefix = "CorrelationAnalyzeR_Output_Paired",
-  crossCompareMode = FALSE, runGSEA = TRUE, nperm = 2000,
-  sampler = FALSE, topPlots = FALSE, returnDataOnly = FALSE,
-  pool = NULL)
+  crossCompareMode = FALSE, runGSEA = TRUE, TERM2GENE = NULL,
+  nperm = 2000, sampler = FALSE, topPlots = FALSE,
+  returnDataOnly = TRUE, pool = NULL)
 }
 \arguments{
 \item{genesOfInterest}{A length-two vector with genes to compare.}
@@ -38,6 +38,9 @@ perform comparison of two different genes in all tissue-disease groups.
 Will only consider user input for returnDataOnly, outputPrefix, Species, and genesOfInterest.}
 
 \item{runGSEA}{If TRUE will run GSEA using gene correlation values.}
+
+\item{TERM2GENE}{Mapping of geneset IDs to gene names. If NULL, it will be
+generated automatically. Only applicable if GSEA is to be run.}
 
 \item{nperm}{Number of permutations to run in GSEA. Default is 2000}
 

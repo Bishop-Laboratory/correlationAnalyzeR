@@ -22,7 +22,7 @@
 #'
 #' @param outputPrefix Prefix for saved files. Should include directory info.
 #'
-#' @param returnDataOnly if TRUE will return only a list of analysis results. Default: FALSE.
+#' @param returnDataOnly if TRUE will return only a list of analysis results. Default: TRUE
 #'
 #' @param setComparisonCutoff Only relevant for co-correlation analysis -- the number of genes which
 #' must aggree for a gene to be considered co-correlative within the input gene list.
@@ -84,7 +84,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
                                     alternativeTSNE = TRUE,
                                     numClusters = "Auto",
                                     outputPrefix = "CorrelationAnalyzeR_Output",
-                                    returnDataOnly = FALSE,
+                                    returnDataOnly = TRUE,
                                     pool = NULL) {
 
   # pool::poolClose(pool)
