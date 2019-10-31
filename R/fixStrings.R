@@ -169,8 +169,6 @@ fixStrings <- function(StringVec) {
                     perl = TRUE, ignore.case = FALSE)
   StringVec <- gsub(StringVec, pattern = "Ifn([a-z])", perl = TRUE,
                     replacement = "IFN\\1", ignore.case = FALSE)
-  StringVec <- gsub(StringVec, pattern = "Inf([a-z])", perl = TRUE,
-                    replacement = "INF\\1", ignore.case = FALSE)
   StringVec <- gsub(StringVec, pattern = "Il([0-9]+)", perl = TRUE,
                     replacement = "IL\\1", ignore.case = FALSE)
   StringVec <- gsub(StringVec, pattern = "(IL[0-9]+)(r)", perl = TRUE,
