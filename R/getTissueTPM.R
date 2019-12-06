@@ -39,12 +39,24 @@ getTissueTPM <- function(genesOfInterest,
   # Sample_Type = "all"
   # useBlackList = TRUE
 
+  if (! is.null(pool)) {
+    if (! pool$valid) {
+      pool <- NULL
+    } else {
+      conn <- pool::poolCheckout(pool)
+      doPool <- TRUE
+      on.exit(pool::poolReturn(conn))
+    }
+  }
+
   if (is.null(pool)) {
+    doPool <- FALSE
+    conn <- NULL
     retryCounter <- 1
     cat("\nEstablishing connection to database ... \n")
-    while(is.null(pool)) {
-      pool <- try(silent = T, eval({
-        pool::dbPool(
+    while(is.null(conn)) {
+      conn <- try(silent = T, eval({
+        DBI::dbConnect(
           drv = RMySQL::MySQL(),
           user = "public-rds-user", port = 3306,
           dbname="bishoplabdb",
@@ -52,7 +64,7 @@ getTissueTPM <- function(genesOfInterest,
           host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
         )
       }))
-      if ("try-error" %in% class(pool)) {
+      if ("try-error" %in% class(conn)) {
         if (retryCounter == 3) {
           stop("Unable to connect to database. Check internet connection and please contanct",
                " package maintainer if you believe this is an error.")
@@ -60,14 +72,13 @@ getTissueTPM <- function(genesOfInterest,
         warning(paste0("Failed to establish connection to database ... retrying now ... ",
                        (4-retryCounter), " attempts left."),
                 immediate. = T)
-        pool <- NULL
+        conn <- NULL
         retryCounter <- retryCounter + 1
+        Sys.sleep(1)
       }
     }
 
-    on.exit(function() {
-      pool::poolClose(pool)
-    })
+    on.exit(DBI::dbDisconnect(conn))
   }
 
   if (Species[1] == "hsapiens") {
@@ -114,7 +125,12 @@ getTissueTPM <- function(genesOfInterest,
                 Species, "_sample_group_key ",
                 " WHERE row_names IN ('",
                 paste(ofInterest, collapse = "','"), "')")
-  resdf <- pool::dbGetQuery(pool, sql)
+  resdf <- try(silent = T, eval({
+    DBI::dbGetQuery(conn, sql)
+  }))
+  if ("try-error" %in% class(resdf)) {
+    stop("ERROR IN DB CONNECTION: ", resdf)
+  }
   resdf2 <- data.frame(row.names = resdf$row_names, samples = resdf$samples)
   resdfList <- stats::setNames(split(resdf2, seq(nrow(resdf2))), rownames(resdf2))
   newList <- lapply(resdfList, FUN = function(x){
@@ -128,7 +144,13 @@ getTissueTPM <- function(genesOfInterest,
                 Species,
                 " WHERE row_names IN ('",
                 paste(genesOfInterestFinal, collapse = "','"), "')")
-  resdf <- pool::dbGetQuery(pool, sql)
+
+  resdf <- try(silent = T, eval({
+    DBI::dbGetQuery(conn, sql)
+  }))
+  if ("try-error" %in% class(resdf)) {
+    stop("ERROR IN DB CONNECTION: ", resdf)
+  }
   # Parse TPM frame
   resdf2 <- stringr::str_split_fixed(resdf$values, stringr::fixed(","), n = Inf)
   resdf2 <- apply(t(resdf2), 1:2, as.numeric)

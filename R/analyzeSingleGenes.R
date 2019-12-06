@@ -43,6 +43,7 @@
 #' @param topPlots Logical. If TRUE, myGSEA() will build gsea plots for top correlated genesets.
 #' @param pool an object created by pool::dbPool to accessing SQL database.
 #' It will be created if not supplied.
+#' @param makePool Logical. Should a pool be created if one is not supplied? Default: FALSE.
 #' @return A named list of correlation values, corGSEA results,
 #' and visualizations for each gene of interest.
 #'
@@ -74,7 +75,8 @@ analyzeSingleGenes <- function(genesOfInterest,
                                outputPrefix = "CorrelationAnalyzeR_Output",
                                sampler = FALSE, runGSEA = TRUE,
                                topPlots = TRUE, returnDataOnly = TRUE,
-                               pool = NULL) {
+                               pool = NULL,
+                               makePool = FALSE) {
 
   # # Bug testing
   # genesOfInterest <- c("BRCA1")
@@ -91,7 +93,8 @@ analyzeSingleGenes <- function(genesOfInterest,
   # TERM2GENE = NULL
   # returnDataOnly = TRUE
   # pool = NULL
-
+  # makePool = TRUE
+  # nperm = 2000
 
   getPhBreaks <- function(mat, palette = NULL) {
     # From https://stackoverflow.com/questions/31677923/set-0-point-for-pheatmap-in-r
@@ -107,36 +110,40 @@ analyzeSingleGenes <- function(genesOfInterest,
   }
 
 
-
-  if (is.null(pool)) {
-    retryCounter <- 1
-    cat("\nEstablishing connection to database ... \n")
-    while(is.null(pool)) {
-      pool <- try(silent = T, eval({
-        pool::dbPool(
-          drv = RMySQL::MySQL(),
-          user = "public-rds-user", port = 3306,
-          dbname="bishoplabdb",
-          password='public-user-password',
-          host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
-        )
-      }))
-      if ("try-error" %in% class(pool)) {
-        if (retryCounter == 3) {
-          stop("Unable to connect to database. Check internet connection and please contanct",
-               " package maintainer if you believe this is an error.")
-        }
-        warning(paste0("Failed to establish connection to database ... retrying now ... ",
-                       (4-retryCounter), " attempts left."),
-                immediate. = T)
-        pool <- NULL
-        retryCounter <- retryCounter + 1
-      }
+  if (! is.null(pool)) {
+    if (! pool$valid) {
+      pool <- NULL
     }
+  }
+  if (is.null(pool)) {
+    if (makePool) {
+      retryCounter <- 1
+      cat("\nEstablishing connection to database ... \n")
+      while(is.null(pool)) {
+        pool <- try(silent = T, eval({
+          pool::dbPool(
+            drv = RMySQL::MySQL(max.con = 150),
+            user = "public-rds-user", port = 3306,
+            dbname="bishoplabdb",
+            password='public-user-password',
+            host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
+          )
+        }))
+        if ("try-error" %in% class(pool)) {
+          if (retryCounter == 3) {
+            stop("Unable to connect to database. Check internet connection and please contanct",
+                 " package maintainer if you believe this is an error.")
+          }
+          warning(paste0("Failed to establish connection to database ... retrying now ... ",
+                         (4-retryCounter), " attempts left."),
+                  immediate. = T)
+          pool <- NULL
+          retryCounter <- retryCounter + 1
+        }
+      }
 
-    on.exit(function() {
-      pool::poolClose(pool)
-    })
+      on.exit(pool::poolClose(pool))
+    }
   }
 
 

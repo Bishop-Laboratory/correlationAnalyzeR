@@ -28,12 +28,55 @@ getCorrelationData <- function(Species, Sample_Type,
 
   # Species = "hsapiens"
   # Sample_Type = "normal"
-  # Tissue = c("all", "female0asdreproductive")
-  # geneList = c("A1BG", "A1BG")
+  # Tissue = c("all")
+  # geneList = c("A1BG")
+  # pool = NULL
+
+  if (! is.null(pool)) {
+    if (! pool$valid) {
+      pool <- NULL
+    } else {
+      conn <- pool::poolCheckout(pool)
+      doPool <- TRUE
+      on.exit(pool::poolReturn(conn))
+    }
+  }
+
+  if (is.null(pool)) {
+    doPool <- FALSE
+    conn <- NULL
+    retryCounter <- 1
+    cat("\nEstablishing connection to database ... \n")
+    while(is.null(conn)) {
+      conn <- try(silent = T, eval({
+        DBI::dbConnect(
+          drv = RMySQL::MySQL(),
+          user = "public-rds-user", port = 3306,
+          dbname="bishoplabdb",
+          password='public-user-password',
+          host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
+        )
+      }))
+      if ("try-error" %in% class(conn)) {
+        if (retryCounter == 3) {
+          stop("Unable to connect to database. Check internet connection and please contanct",
+               " package maintainer if you believe this is an error.")
+        }
+        warning(paste0("Failed to establish connection to database ... retrying now ... ",
+                       (4-retryCounter), " attempts left."),
+                immediate. = T)
+        conn <- NULL
+        retryCounter <- retryCounter + 1
+        Sys.sleep(1)
+      }
+    }
+    on.exit(DBI::dbDisconnect(conn))
+  }
 
   # Make sure all tissue entries are appropriate
   goodConditions <- correlationAnalyzeR::getTissueTypes(Species = Species,
                                                         pool = pool)
+
   goodTissues <- unique(gsub(goodConditions,
                              pattern = "(.*) - (.*)",
                              replacement = "\\1"))
@@ -48,42 +91,6 @@ getCorrelationData <- function(Species, Sample_Type,
          " Run correlationAnalyzeR::getTissueTypes() to see available tissue - sample groups.")
   }
 
-
-  if (! is.null(pool)) {
-    if (! pool$valid) {
-      pool <- NULL
-    }
-  }
-  if (is.null(pool)) {
-    retryCounter <- 1
-    cat("\nEstablishing connection to database ... \n")
-    while(is.null(pool)) {
-      pool <- try(silent = T, eval({
-        pool::dbPool(
-          drv = RMySQL::MySQL(),
-          user = "public-rds-user", port = 3306,
-          dbname="bishoplabdb",
-          password='public-user-password',
-          host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
-        )
-      }))
-      if ("try-error" %in% class(pool)) {
-        if (retryCounter == 3) {
-          stop("Unable to connect to database. Check internet connection and please contanct",
-               " package maintainer if you believe this is an error.")
-        }
-        warning(paste0("Failed to establish connection to database ... retrying now ... ",
-                       (4-retryCounter), " attempts left."),
-                immediate. = T)
-        pool <- NULL
-        retryCounter <- retryCounter + 1
-      }
-    }
-
-    on.exit(function() {
-      pool::poolClose(pool)
-    })
-  }
 
 
   if (Species == "hsapiens") {
@@ -124,48 +131,10 @@ getCorrelationData <- function(Species, Sample_Type,
                   " WHERE row_names IN ('",
                   paste(geneList, collapse = "','"), "')")
     resdf <- try(silent = T, eval({
-      pool::dbGetQuery(pool, sql)
+      DBI::dbGetQuery(conn, sql)
     }))
     if ("try-error" %in% class(resdf)) {
-      pool::poolClose(pool)
-      pool <- NULL
-      if (is.null(pool)) {
-        retryCounter <- 1
-        cat("\nEstablishing connection to database ... \n")
-        while(is.null(pool)) {
-          pool <- try(silent = T, eval({
-            pool::dbPool(
-              drv = RMySQL::MySQL(),
-              user = "public-rds-user", port = 3306,
-              dbname="bishoplabdb",
-              password='public-user-password',
-              host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
-            )
-          }))
-          if ("try-error" %in% class(pool)) {
-            if (retryCounter == 3) {
-              stop("Unable to connect to database. Check internet connection and please contanct",
-                   " package maintainer if you believe this is an error.")
-            }
-            warning(paste0("Failed to establish connection to database ... retrying now ... ",
-                           (4-retryCounter), " attempts left."),
-                    immediate. = T)
-            pool <- NULL
-            retryCounter <- retryCounter + 1
-          }
-        }
-
-        on.exit(function() {
-          pool::poolClose(pool)
-        })
-      }
-      resdf <- try(silent = T, eval({
-        pool::dbGetQuery(pool, sql)
-      }))
-      if ("try-error" %in% class(resdf)) {
-        stop("Unable to connect to the database at the moment. If you",
-             " believe this is an error, please contact the package maintainer.")
-      }
+      stop("ERROR IN DB CONNECTION: ", resdf)
     }
     resdf2 <- stringr::str_split_fixed(resdf$values, stringr::fixed(","), n = Inf)
     resdf2 <- apply(t(resdf2), 1:2, as.numeric)
@@ -192,48 +161,10 @@ getCorrelationData <- function(Species, Sample_Type,
                     " WHERE row_names IN ('",
                     geneName, "')")
       resdf <- try(silent = T, eval({
-        pool::dbGetQuery(pool, sql)
+        DBI::dbGetQuery(conn, sql)
       }))
       if ("try-error" %in% class(resdf)) {
-        pool::poolClose(pool)
-        pool <- NULL
-        if (is.null(pool)) {
-          retryCounter <- 1
-          cat("\nEstablishing connection to database ... \n")
-          while(is.null(pool)) {
-            pool <- try(silent = T, eval({
-              pool::dbPool(
-                drv = RMySQL::MySQL(),
-                user = "public-rds-user", port = 3306,
-                dbname="bishoplabdb",
-                password='public-user-password',
-                host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
-              )
-            }))
-            if ("try-error" %in% class(pool)) {
-              if (retryCounter == 3) {
-                stop("Unable to connect to database. Check internet connection and please contanct",
-                     " package maintainer if you believe this is an error.")
-              }
-              warning(paste0("Failed to establish connection to database ... retrying now ... ",
-                             (4-retryCounter), " attempts left."),
-                      immediate. = T)
-              pool <- NULL
-              retryCounter <- retryCounter + 1
-            }
-          }
-
-          on.exit(function() {
-            pool::poolClose(pool)
-          })
-        }
-        resdf <- try(silent = T, eval({
-          pool::dbGetQuery(pool, sql)
-        }))
-        if ("try-error" %in% class(resdf)) {
-          stop("Unable to connect to the database at the moment. If you",
-               " believe this is an error, please contact the package maintainer.")
-        }
+        stop("ERROR IN DB CONNECTION: ", resdf)
       }
       resdf2 <- stringr::str_split_fixed(resdf$values, stringr::fixed(","), n = Inf)
       resdf2 <- apply(t(resdf2), 1:2, as.numeric)

@@ -47,6 +47,7 @@
 #' and significance testing results if applicable. Default: TRUE.
 #' @param pool an object created by pool::dbPool to accessing SQL database.
 #' It will be created if not supplied.
+#' @param makePool Logical. Should a pool be created if one is not supplied? Default: FALSE.
 #' @return A list containing correlation values and signficance testing results
 #'
 #' @examples
@@ -72,7 +73,8 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
                                   autoRug = TRUE,
                                   plotTitle = TRUE,
                                   returnDataOnly = TRUE,
-                                  pool = NULL) {
+                                  pool = NULL,
+                                  makePool = FALSE) {
 
   # pairedGenesList = list("ATM" = "HALLMARK_OXIDATIVE_PHOSPHORYLATION")
   # Species = c("hsapiens", "mmusculus")
@@ -89,35 +91,40 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
   # plotTitle = TRUE
   # returnDataOnly = TRUE
 
-  if (is.null(pool)) {
-    retryCounter <- 1
-    cat("\nEstablishing connection to database ... \n")
-    while(is.null(pool)) {
-      pool <- try(silent = T, eval({
-        pool::dbPool(
-          drv = RMySQL::MySQL(),
-          user = "public-rds-user", port = 3306,
-          dbname="bishoplabdb",
-          password='public-user-password',
-          host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
-        )
-      }))
-      if ("try-error" %in% class(pool)) {
-        if (retryCounter == 3) {
-          stop("Unable to connect to database. Check internet connection and please contanct",
-               " package maintainer if you believe this is an error.")
-        }
-        warning(paste0("Failed to establish connection to database ... retrying now ... ",
-                       (4-retryCounter), " attempts left."),
-                immediate. = T)
-        pool <- NULL
-        retryCounter <- retryCounter + 1
-      }
+  if (! is.null(pool)) {
+    if (! pool$valid) {
+      pool <- NULL
     }
+  }
+  if (is.null(pool)) {
+    if (makePool) {
+      retryCounter <- 1
+      cat("\nEstablishing connection to database ... \n")
+      while(is.null(pool)) {
+        pool <- try(silent = T, eval({
+          pool::dbPool(
+            drv = RMySQL::MySQL(max.con = 150),
+            user = "public-rds-user", port = 3306,
+            dbname="bishoplabdb",
+            password='public-user-password',
+            host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
+          )
+        }))
+        if ("try-error" %in% class(pool)) {
+          if (retryCounter == 3) {
+            stop("Unable to connect to database. Check internet connection and please contanct",
+                 " package maintainer if you believe this is an error.")
+          }
+          warning(paste0("Failed to establish connection to database ... retrying now ... ",
+                         (4-retryCounter), " attempts left."),
+                  immediate. = T)
+          pool <- NULL
+          retryCounter <- retryCounter + 1
+        }
+      }
 
-    on.exit(function() {
-      pool::poolClose(pool)
-    })
+      on.exit(pool::poolClose(pool))
+    }
   }
 
 
