@@ -129,3 +129,140 @@
 #
 #
 #
+
+#
+#
+#
+# library(dplyr)
+#
+#
+# Species <- "hsapiens"
+# if (Species == "hsapiens") {
+#   msigSpec <- "Homo sapiens"
+# } else {
+#   msigSpec <- "Mus musculus"
+# }
+# MDF <- msigdbr::msigdbr(species = msigSpec)
+# MDF$gs_subcat <- gsub(MDF$gs_subcat, pattern = "CP:", replacement = "", perl = TRUE)
+# MDF$gs_cat <- paste0(MDF$gs_cat, ":", MDF$gs_subcat)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = ":$", replacement = "", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C1", replacement = "Cytogenic bands", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C6", replacement = "Oncogenic signatures", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C7", replacement = "Immunological signatures", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C2:", replacement = "", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C5", replacement = "GO", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "H", replacement = "Hallmark", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "CP", replacement = "Canonical pathways", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "CGP", replacement = "Perturbations", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C4:CGN", replacement = "Cancer gene neighborhoods", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C4:CM", replacement = "Cancer modules", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C3:MIR", replacement = "miRNA targets", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C3:TFT", replacement = "TF targets", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "BIOCARTA", replacement = "BioCarta", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "REACTOME", replacement = "Reactome", perl = TRUE)
+# MDFHuman <- MDF %>%
+#   select(gs_name, gs_cat, human_gene_symbol)
+# Species <- "mmusculus"
+# if (Species == "hsapiens") {
+#   msigSpec <- "Homo sapiens"
+# } else {
+#   msigSpec <- "Mus musculus"
+# }
+# MDF <- msigdbr::msigdbr(species = msigSpec)
+# MDF$gs_subcat <- gsub(MDF$gs_subcat, pattern = "CP:", replacement = "", perl = TRUE)
+# MDF$gs_cat <- paste0(MDF$gs_cat, ":", MDF$gs_subcat)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = ":$", replacement = "", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C1", replacement = "Cytogenic bands", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C6", replacement = "Oncogenic signatures", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C7", replacement = "Immunological signatures", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C2:", replacement = "", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C5", replacement = "GO", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "H", replacement = "Hallmark", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "CP", replacement = "Canonical pathways", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "CGP", replacement = "Perturbations", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C4:CGN", replacement = "Cancer gene neighborhoods", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C4:CM", replacement = "Cancer modules", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C3:MIR", replacement = "miRNA targets", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C3:TFT", replacement = "TF targets", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "BIOCARTA", replacement = "BioCarta", perl = TRUE)
+# MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "REACTOME", replacement = "Reactome", perl = TRUE)
+# MDFMouse <- MDF %>%
+#   select(gs_name, gs_cat, human_gene_symbol, gene_symbol)
+#
+# MDF <- full_join(MDFHuman, MDFMouse, by = colnames(MDFHuman))
+# MDF <- MDF %>% distinct()
+# colnames(MDF)[c(3:4)] <- c("human_gene_symbol", "mouse_gene_symbol")
+#
+#
+# # Get TERM2GENE from MDF object
+# MDFtoTERM2GENE <- function(MDF, GSEA_Type, species) {
+#
+#   # # Bug testing
+#   # GSEA_Type <- "Basic"
+#   # species <- "hsapiens"
+#
+#   if (species == "hsapiens") {
+#     toGrab <- 3
+#   } else {
+#     toGrab <- 4
+#   }
+#   print(GSEA_Type)
+#   # Filter for pathways of interest
+#   optionsNow <- c("Basic", "All", unique(MDF$gs_cat))
+#   GSEA_Type <- gsub(GSEA_Type, pattern = "miRNAs",
+#                     replacement = "miRNA targets", perl = TRUE)
+#   GSEA_Type <- gsub(GSEA_Type, pattern = "Transcription factors",
+#                     replacement = "TF targets", perl = TRUE)
+#   GSEA_Type <- gsub(GSEA_Type, pattern = "Biological process",
+#                     replacement = "GO:BP", perl = TRUE)
+#   GSEA_Type <- gsub(GSEA_Type, pattern = "Cellular component",
+#                     replacement = "GO:CC", perl = TRUE)
+#   GSEA_Type <- gsub(GSEA_Type, pattern = "Molecular function",
+#                     replacement = "GO:MF", perl = TRUE)
+#   GSEA_Type <- gsub(GSEA_Type, pattern = "Molecular perturbations",
+#                     replacement = "Perturbations", perl = TRUE)
+#   GSEA_Type <- gsub(GSEA_Type, pattern = "Immuno signatures",
+#                     replacement = "Immunological signatures", perl = TRUE)
+#   GSEA_Type <- gsub(GSEA_Type, pattern = "Onco signatures",
+#                     replacement = "Oncogenic signatures", perl = TRUE)
+#   GSEA_Type <- gsub(GSEA_Type, pattern = "Oncogene neighborhoods",
+#                     replacement = "Cancer gene neighborhoods", perl = TRUE)
+#
+#
+#   if (! all(GSEA_Type %in% optionsNow)) {
+#     stop("\nPlease enter a valid GSEA_Type. Use ?getTERM2GENE to see available options.\n")
+#   }
+#   categories <- c()
+#   if ("Basic" %in% GSEA_Type) {
+#     categories <- c(categories, "Hallmark", "Perturbations", "BioCarta",
+#                     "GO:BP", "KEGG", "Canonical pathways", "Reactome", "GO:MF", "GO:CC", "PID")
+#   }
+#   if ("All" %in% GSEA_Type) {
+#     categories <- c(categories, optionsNow)
+#   }
+#   categories <- unique(c(categories, GSEA_Type))
+#   colnames(MDF)[toGrab] <- "gene_symbol"
+#   TERM2GENE <- MDF %>%
+#     filter(.data$gs_cat %in% categories) %>%
+#     select(.data$gs_name, .data$gene_symbol) %>%
+#     filter(! is.na(.data$gene_symbol)) %>%
+#     distinct()
+#
+#   return(TERM2GENE)
+# }
+#
+# TERM2GENE <- MDFtoTERM2GENE(MDF = MDF, GSEA_Type = "Canonical pathways",
+#                             species = "hsapiens")
+# pairedRes <- correlationAnalyzeR::analyzeGenePairs(genesOfInterest = c("BRCA1", "BRCA1"),
+#                                                    Sample_Type = c("normal", "cancer"),
+#                                                    Tissue = c("all", "all"),
+#                                                    returnDataOnly = T,
+#                                                    TERM2GENE = TERM2GENE,
+#                                                    topPlots = F,
+#                                                    # nperm = 500, sampler = T,
+#                                                    runGSEA = T)
+#
+#
+
+
+

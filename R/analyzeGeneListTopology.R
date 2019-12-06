@@ -7,9 +7,8 @@
 #' @param Species Species to obtain gene names for.
 #'     Either 'hsapiens' or 'mmusculus'
 #'
-#' @param pathwayType Whether pathway enrichment should consider all msigdb annotations
-#'     or just those in the most popular categories. Should be one of either
-#'     'simple' or 'complex'.
+#' @param pathwayType Which pathway annotations should be considered? Options listed in
+#' correlationAnalyzeR::GSEA_categories. See details of getTERM2GENE for more info.
 #'
 #' @param Sample_Type Type of RNA Seq samples used to create correlation data.
 #' Either "all", "normal", or "cancer". Can be a single value for all genes,
@@ -76,7 +75,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
                                                             "variantGenes",
                                                             "coCorrelativeGenes",
                                                             "pathwayEnrich"),
-                                    pathwayType = c("simple", "complex"),
+                                    pathwayType = c("simple"),
                                     setComparisonCutoff = "Auto",
                                     pathwayEnrichment = FALSE,
                                     pValueCutoff = .05,
@@ -86,6 +85,7 @@ analyzeGenesetTopology <-  function(genesOfInterest,
                                     outputPrefix = "CorrelationAnalyzeR_Output",
                                     returnDataOnly = TRUE,
                                     pool = NULL) {
+
 
   # pool::poolClose(pool)
   # pool = NULL
@@ -103,8 +103,6 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   # Tissue = "all"
   # Sample_Type = c("normal")
   # Species = c("hsapiens")
-
-
 
 
   if (is.null(pool)) {
@@ -209,12 +207,18 @@ analyzeGenesetTopology <-  function(genesOfInterest,
 
   resList[["Correlation_Data"]] <- corrDF
 
+  colLengths <- ifelse(Species[1] == "hsapiens", yes = 28685, no = 24924)
+  pVals <- apply(as.matrix(corrDF), MARGIN = 1:2, n = colLengths, FUN = function(x, n) {
+    dt(abs(x)/sqrt((1-x^2)/(n-2)), df = 2)
+  })
+  pVals <- as.data.frame(pVals)
+
+  resList[["P values"]] <- pVals
 
   # Comparison Cutoff scaled to gene list size
   if (setComparisonCutoff == "Auto") {
     setComparisonCutoff <- round(length(genesOfInterest)/2.5)
   }
-
 
   # Cross comparison code block
   cat("\nStarting cross comparison\n")
@@ -406,7 +410,10 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   # Begin topological distance analysis
   if ("PCA" %in% crossComparisonType & length(intGenes) <= 10) {
     # Principle component analysis
-    pca <- stats::prcomp(resultsMat)
+    rv <- metaMA::rowVars(resultsMat)
+    select <- order(rv, decreasing=TRUE)[seq_len(min(2500, length(rv)))]
+    topVarMat <- resultsMat[select,]
+    pca <- stats::prcomp(topVarMat)
     dd <- data.frame(summary(pca)$importance)
     percentVar <- as.numeric(round(100 * dd[2,]))
     percentVar <- percentVar[1:2]
@@ -430,7 +437,10 @@ analyzeGenesetTopology <-  function(genesOfInterest,
 
   } else if ("PCA" %in% crossComparisonType & (length(intGenes) <= 100 || ! alternativeTSNE)) {
     # Principle component analysis without colors
-    pca <- stats::prcomp(resultsMat)
+    rv <- metaMA::rowVars(resultsMat)
+    select <- order(rv, decreasing=TRUE)[seq_len(min(2500, length(rv)))]
+    topVarMat <- resultsMat[select,]
+    pca <- stats::prcomp(topVarMat)
     dd <- data.frame(summary(pca)$importance)
     percentVar <- as.numeric(round(100 * dd[2,]))
     percentVar <- percentVar[1:2]

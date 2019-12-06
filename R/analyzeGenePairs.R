@@ -11,12 +11,10 @@
 #' Run getTissueTypes() to see available list. Default: c("all", "all")
 #' @param Species Species to obtain gene names for.
 #'     Either 'hsapiens' or 'mmusculus'. Default: "hsapiens".
-#' @param GSEA_Type Whether GSEA should consider all msigdb annotations,
-#'     or just those in the most popular categories. Should be one of either
-#'     'simple' or 'complex'.
+#' @param GSEA_Type Which GSEA annotations should be considered? Options listed in
+#' correlationAnalyzeR::pathwayCategories -- See details of getTERM2GENE for more info.
 #' @param nperm Number of permutations to run in GSEA. Default is 2000
-#' @param sampler If TRUE, will only return 100,000 random genesets from either
-#' simple or complex TERM2GENEs. Useful for reducing GSEA computational burden.
+#' @param sampler If TRUE, will only return 100,000 random genesets. Useful for reducing GSEA computational burden.
 #' @param crossCompareMode Use this mode to generate comparisons
 #' across all tissue and disease types. If both genes for genesOfInterest are the
 #' same -- will compare normal vs cancer for that gene in each available tissue. Else, will
@@ -60,7 +58,7 @@ analyzeGenePairs <- function(genesOfInterest,
                              Sample_Type = c("normal", "normal"),
                              Tissue = c("all", "all"),
                              Species = c("hsapiens", "mmusculus"),
-                             GSEA_Type = c("simple", "complex"),
+                             GSEA_Type = c("simple"),
                              outputPrefix = "CorrelationAnalyzeR_Output_Paired",
                              crossCompareMode = FALSE,
                              runGSEA = TRUE,
@@ -69,7 +67,7 @@ analyzeGenePairs <- function(genesOfInterest,
                              topPlots = FALSE, returnDataOnly = TRUE,
                              pool = NULL) {
 
-  # genesOfInterest <- c("KRAS", "GPX4")
+  # genesOfInterest <- c("BRCA1", "BRCA1")
   # Species <- "hsapiens"
   # crossCompareMode = FALSE
   # returnDataOnly = TRUE
@@ -77,10 +75,12 @@ analyzeGenePairs <- function(genesOfInterest,
   # outputPrefix = "CorrelationAnalyzeR_Output_Paired"
   # runGSEA = TRUE
   # topPlots = FALSE
-  # Sample_Type = c("normal", "normal")
+  # Sample_Type = c("normal", "cancer")
   # Tissue = c("all", "all")
-  # GSEA_Type = c("simple", "complex")
+  # TERM2GENE = NULL
+  # GSEA_Type = c("none")
   # pool = NULL
+  # runGSEA = FALSE
   # sampler = FALSE
   # nperm = 2000
 
@@ -229,7 +229,7 @@ analyzeGenePairs <- function(genesOfInterest,
       plotOne <- ggpubr::ggboxplot(data = geneTPMDFToPlot1,
                                    x = fillStr, #facet.by = "Gene",
                                    title = paste0(geneOne,
-                                                  " expression across tissues"),
+                                                  " expression across tissue groups"),
                                    ylab = "log2(TPM + 1)",
                                    fill = fillStr,
                                    y = "TPM") +
@@ -240,7 +240,7 @@ analyzeGenePairs <- function(genesOfInterest,
       plotTwo <- ggpubr::ggboxplot(data = geneTPMDFToPlot2,
                                    x = fillStr, #facet.by = "Gene",
                                    title = paste0(geneTwo,
-                                                  " expression across tissues"),
+                                                  " expression across conditions"),
                                    ylab = "log2(TPM + 1)",
                                    fill = fillStr,
                                    y = "TPM") +
@@ -255,19 +255,29 @@ analyzeGenePairs <- function(genesOfInterest,
       geneTPMDF[,5] <- log2(geneTPMDF[,5] + 1)
       geneTPMDFToPlot <- geneTPMDF
       colnames(geneTPMDFToPlot)[length(colnames(geneTPMDFToPlot))] <- "TPM"
-      plot <- ggpubr::ggboxplot(data = geneTPMDFToPlot,
-                                   x = "Group", #facet.by = "Gene",
-                                   title = paste0(geneUnique[1],
-                                                  " expression across tissues"),
-                                   ylab = "log2(TPM + 1)",
-                                   fill = "Group",
-                                   y = "TPM") +
+
+      goodTiss <- unique(geneTPMDFToPlot$Tissue[which(geneTPMDFToPlot$sampleType == "Cancer")])
+      goodTiss2 <- unique(geneTPMDFToPlot$Tissue[which(geneTPMDFToPlot$sampleType == "Normal")])
+      goodTissFinal <- goodTiss[which(goodTiss %in% goodTiss2)]
+      geneTPMDF2 <- geneTPMDFToPlot[which(geneTPMDFToPlot$Tissue %in% goodTissFinal),]
+      maxHeight <- max(geneTPMDF2$TPM)
+      TPMBPproto <- ggpubr::ggboxplot(data = geneTPMDF2,
+                                      x = "Tissue",
+                                      title = paste0(geneUnique[1],
+                                                     " expression across tissues"),
+                                      ylab = "log2(TPM + 1)",
+                                      fill = "sampleType", legend = "right",
+                                      y = "TPM") +
+        ggpubr::stat_compare_means(ggplot2::aes_string(group = "sampleType"),
+                                   label.y = (maxHeight * 1.15),
+                                   hide.ns = TRUE, label = "p.signif")
+      plot <- TPMBPproto +
         ggpubr::rotate_x_text(angle = 45) +
-        ggpubr::rremove("legend") +
-        ggpubr::rremove("xlab")
+        ggpubr::rremove("xlab") + ggpubr::rremove("legend.title")
       colnames(geneTPMDF)[c(5)] <- paste0(colnames(geneTPMDF)[c(5)], "_log2TPM")
       crossCompareResTPM[["TPM_boxPlot"]] <- plot
     }
+
     crossCompareResTPM[["TPM_DF"]] <- geneTPMDF
 
     # Do paired to get correlation data
@@ -279,12 +289,14 @@ analyzeGenePairs <- function(genesOfInterest,
       Species = Species, GSEA_Type = GSEA_Type
     )
     n <- length(names(pairRes))
-    oldNames <- names(pairRes)[1:(n-1)]
+    oldNames <- names(pairRes)[1:(n-2)]
     newNames <- gsub(oldNames, pattern = ", ", replacement = "_")
     newNames <- gsub(newNames, pattern = " - ", replacement = "_")
     newNames <- gsub(newNames, pattern = " ", replacement = "0")
     correlations <- pairRes$correlations
+    pVals <- pairRes[["P values"]]
     colnames(correlations) <- newNames
+    colnames(pVals) <- newNames
     resList <- list()
     resList[["pairResList"]] <- list()
     for (i in 1:length(colnames(correlations))) {
@@ -358,6 +370,7 @@ analyzeGenePairs <- function(genesOfInterest,
     correlations <- correlations[order(correlations$variance,
                                        decreasing = TRUE),]
     resList[["Correlations"]] <- correlations
+    resList[["P values"]] <- pVals
     resList[["crossCompareTPM"]] <- crossCompareResTPM
     resList[["mode"]] <- mode
     return(resList)
@@ -381,6 +394,7 @@ analyzeGenePairs <- function(genesOfInterest,
 
   # Compare correlations -- scatter plot
   correlations <- pairRes$correlations
+  pVals <- pairRes[["P values"]]
   geneOne <- genesOfInterest[1]
   tissueOneRaw <- Tissue[1]
   tissueOne <- gsub(tissueOneRaw, pattern = "0", replacement = " ")
@@ -401,6 +415,20 @@ analyzeGenePairs <- function(genesOfInterest,
                          stringr::str_to_title(sampleTwo))
   longName <- ifelse((tissueOne != tissueTwo | sampleOne != sampleTwo),
                      yes = TRUE, no = FALSE)
+  if (geneOne != geneTwo) {
+    geneOneTitleGP <- geneOneTitle
+    geneTwoTitleGP <- geneTwoTitle
+  } else {
+    geneOneTitleGP <- paste0("Gene correlation (", stringr::str_to_title(tissueOne),
+                            " - ",
+                            stringr::str_to_title(sampleOne),
+                            ")")
+    geneTwoTitleGP <- paste0("Gene correlation (", stringr::str_to_title(tissueTwo),
+                             " - ",
+                             stringr::str_to_title(sampleTwo),
+                             ")")
+  }
+
 
 
   pairRes[["compared"]] <- list()
@@ -412,6 +440,9 @@ analyzeGenePairs <- function(genesOfInterest,
   correlations <- correlations[order(correlations$variance,
                                      decreasing = TRUE),]
   pairRes[["compared"]][["correlations"]] <- correlations
+
+  pairRes[["compared"]][["P values"]] <- pVals
+
   cn <- colnames(correlations)
   correlations2 <- correlations[which(! rownames(correlations) %in%
                                         colnames(correlations)),]
@@ -456,96 +487,123 @@ analyzeGenePairs <- function(genesOfInterest,
   corHeatSim <- corHeat[, c(1, 2)]
   colnames(corHeatSim) <- c(geneOne, geneTwo)
 
+  if (runGSEA) {
+    # GSEA compare -- heatmap
+    compPaths <- merge( x= pairRes[[geneOneTitle]][["GSEA"]][["eres"]],
+                        y = pairRes[[geneTwoTitle]][["GSEA"]][["eres"]],
+                        by = c("ID", "Description"))
 
-  # GSEA compare -- heatmap
-  compPaths <- merge( x= pairRes[[geneOneTitle]][["GSEA"]][["eres"]],
-                      y = pairRes[[geneTwoTitle]][["GSEA"]][["eres"]],
-                      by = c("ID", "Description"))
+    compPaths <- compPaths[,c(1, 5, 6, 7, 8, 11, 12, 13, 14)]
+    if(longName) {
+      colnames(compPaths) <- gsub(x = colnames(compPaths),pattern =  ".x",
+                                  replacement =  paste0("_", geneOne,
+                                                        "_", gsub(tissueOne, pattern = " ", replacement = "_"),
+                                                        "_", sampleOne))
+      colnames(compPaths) <- gsub(x = colnames(compPaths),pattern =  ".y",
+                                  replacement =  paste0("_", geneTwo,
+                                                        "_", gsub(tissueTwo, pattern = " ", replacement = "_"),
+                                                        "_", sampleTwo))
+    } else {
+      colnames(compPaths) <- gsub(x = colnames(compPaths),pattern =  ".x",
+                                  replacement =  paste0("_", geneOne))
+      colnames(compPaths) <- gsub(x = colnames(compPaths),pattern =  ".y",
+                                  replacement =  paste0("_", geneTwo))
+    }
+    # Divergence of pathways
+    compPaths$NES_average <- rowMeans(compPaths[,c(2, 6)])
+    compPaths$NES_variance <- matrixStats::rowVars(as.matrix(compPaths[,c(2, 6)]))
+    compPaths <- compPaths[order(compPaths$NES_variance, decreasing = TRUE),]
+    cn <- colnames(compPaths)
+    cnes <- cn[grep(x = cn, pattern = "NES")]
 
-  compPaths <- compPaths[,c(1, 5, 6, 7, 8, 11, 12, 13, 14)]
-  if(longName) {
-    colnames(compPaths) <- gsub(x = colnames(compPaths),pattern =  ".x",
-                                replacement =  paste0("_", geneOne,
-                                                      "_", gsub(tissueOne, pattern = " ", replacement = "_"),
-                                                      "_", sampleOne))
-    colnames(compPaths) <- gsub(x = colnames(compPaths),pattern =  ".y",
-                                replacement =  paste0("_", geneTwo,
-                                                      "_", gsub(tissueTwo, pattern = " ", replacement = "_"),
-                                                      "_", sampleTwo))
-  } else {
-    colnames(compPaths) <- gsub(x = colnames(compPaths),pattern =  ".x",
-                                replacement =  paste0("_", geneOne))
-    colnames(compPaths) <- gsub(x = colnames(compPaths),pattern =  ".y",
-                                replacement =  paste0("_", geneTwo))
+    compHeatOne <- compPaths %>%
+      dplyr::filter(eval(parse(text = cnes[1])) > 0) %>%
+      top_n(15, .data$NES_variance)  %>% slice(1:15)
+    compHeatTwo <- compPaths %>%
+      dplyr::filter(eval(parse(text = cnes[2])) > 0 & ! .data$ID %in% compHeatOne$ID) %>%
+      top_n(15, .data$NES_variance) %>% slice(1:15)
+    compHeat <- unique(rbind(compHeatOne, compHeatTwo))
+    if (! length(compHeat$ID)) {
+      compHeatOne <- compPaths %>%
+        dplyr::filter(eval(parse(text = cnes[1])) < 0) %>%
+        top_n(15, .data$NES_variance)  %>% slice(1:15)
+      compHeatTwo <- compPaths %>%
+        dplyr::filter(eval(parse(text = cnes[2])) < 0 & ! .data$ID %in% compHeatOne$ID) %>%
+        top_n(15, .data$NES_variance) %>% slice(1:15)
+      compHeat <- unique(rbind(compHeatOne, compHeatTwo))
+    }
+    if (! length(compHeat$ID)) {
+      compHeat <- compPaths
+    }
+    n <- length(compHeat$ID)
+    titleID <- compHeat$ID
+    titleID <- correlationAnalyzeR::fixStrings(titleID)
+    titleID[which(nchar(titleID) > 40)] <- paste0(substr(titleID[which(nchar(titleID) > 40)],
+                                                         1, 40), "...")
+    dups <- which(duplicated(titleID))
+    if (length(dups)) {
+      ends <- substr(compPaths$ID[dups],
+                     nchar(compPaths$ID[dups])-3,
+                     nchar(compPaths$ID[dups]))
+      titleID[dups] <- paste0(substr(titleID[dups], 1, 34), "...", tolower(ends) )
+    }
+
+    dups <- which(duplicated(titleID))
+    if (length(dups)) {
+      titleID[dups] <- paste0(substr(titleID[dups], 1, 34),
+                              "...", replicate(expr = paste0(sample(letters, 3),
+                                                             collapse = ""),
+                                               n = length(dups)))
+    }
+    compHeatVar <- compHeat[,c(2, 6)]
+    rownames(compHeatVar) <- titleID[1:n]
+
+
+    # Similarity of pathways
+    compHeatOne <- compPaths %>%
+      dplyr::filter(eval(parse(text = cnes[1])) > 0) %>%
+      top_n(15, -.data$NES_variance)  %>% slice(1:15)
+    compHeatTwo <- compPaths %>%
+      dplyr::filter(eval(parse(text = cnes[2])) > 0 & ! .data$ID %in% compHeatOne$ID) %>%
+      top_n(15, -.data$NES_variance) %>% slice(1:15)
+    compHeat <- unique(rbind(compHeatOne, compHeatTwo))
+    if (! length(compHeat$ID)) {
+      compHeatOne <- compPaths %>%
+        dplyr::filter(eval(parse(text = cnes[1])) < 0) %>%
+        top_n(15, .data$NES_variance)  %>% slice(1:15)
+      compHeatTwo <- compPaths %>%
+        dplyr::filter(eval(parse(text = cnes[2])) < 0 & ! .data$ID %in% compHeatOne$ID) %>%
+        top_n(15, .data$NES_variance) %>% slice(1:15)
+      compHeat <- unique(rbind(compHeatOne, compHeatTwo))
+    }
+    if (! length(compHeat$ID)) {
+      compHeat <- compPaths
+    }
+
+    n <- length(compHeat$ID)
+    titleID <- compHeat$ID
+    titleID <- correlationAnalyzeR::fixStrings(titleID)
+    titleID[which(nchar(titleID) > 40)] <- paste0(substr(titleID[which(nchar(titleID) > 40)],
+                                                         1, 40), "...")
+    dups <- which(duplicated(titleID))
+    if (length(dups)) {
+      ends <- substr(compPaths$ID[dups],
+                     nchar(compPaths$ID[dups])-3,
+                     nchar(compPaths$ID[dups]))
+      titleID[dups] <- paste0(substr(titleID[dups], 1, 34), "...", tolower(ends) )
+    }
+
+    dups <- which(duplicated(titleID))
+    if (length(dups)) {
+      titleID[dups] <- paste0(substr(titleID[dups], 1, 34),
+                              "...", replicate(expr = paste0(sample(letters, 3),
+                                                             collapse = ""),
+                                               n = length(dups)))
+    }
+    compHeatSim <- compHeat[,c(2, 6)]
+    rownames(compHeatSim) <- titleID[1:n]
   }
-  # Divergence of pathways
-  compPaths$NES_average <- rowMeans(compPaths[,c(2, 6)])
-  compPaths$NES_variance <- matrixStats::rowVars(as.matrix(compPaths[,c(2, 6)]))
-  compPaths <- compPaths[order(compPaths$NES_variance, decreasing = TRUE),]
-  cn <- colnames(compPaths)
-  cnes <- cn[grep(x = cn, pattern = "NES")]
 
-  compHeatOne <- compPaths %>%
-    dplyr::filter(eval(parse(text = cnes[1])) > 0) %>%
-    top_n(15, .data$NES_variance)  %>% slice(1:15)
-  compHeatTwo <- compPaths %>%
-    dplyr::filter(eval(parse(text = cnes[2])) > 0 & ! .data$ID %in% compHeatOne$ID) %>%
-    top_n(15, .data$NES_variance) %>% slice(1:15)
-  compHeat <- unique(rbind(compHeatOne, compHeatTwo))
-  n <- length(compHeat$ID)
-  titleID <- compHeat$ID
-  titleID <- correlationAnalyzeR::fixStrings(titleID)
-  titleID[which(nchar(titleID) > 40)] <- paste0(substr(titleID[which(nchar(titleID) > 40)],
-                                                       1, 40), "...")
-  dups <- which(duplicated(titleID))
-  if (length(dups)) {
-    ends <- substr(compPaths$ID[dups],
-                   nchar(compPaths$ID[dups])-3,
-                   nchar(compPaths$ID[dups]))
-    titleID[dups] <- paste0(substr(titleID[dups], 1, 34), "...", tolower(ends) )
-  }
-
-  dups <- which(duplicated(titleID))
-  if (length(dups)) {
-    titleID[dups] <- paste0(substr(titleID[dups], 1, 34),
-                            "...", replicate(expr = paste0(sample(letters, 3),
-                                                           collapse = ""),
-                                             n = length(dups)))
-  }
-  compHeatVar <- compHeat[,c(2, 6)]
-  rownames(compHeatVar) <- titleID[1:n]
-
-
-  # Similarity of pathways
-  compHeatOne <- compPaths %>%
-    dplyr::filter(eval(parse(text = cnes[1])) > 0) %>%
-    top_n(15, -.data$NES_variance)  %>% slice(1:15)
-  compHeatTwo <- compPaths %>%
-    dplyr::filter(eval(parse(text = cnes[2])) > 0 & ! .data$ID %in% compHeatOne$ID) %>%
-    top_n(15, -.data$NES_variance) %>% slice(1:15)
-  compHeat <- unique(rbind(compHeatOne, compHeatTwo))
-  n <- length(compHeat$ID)
-  titleID <- compHeat$ID
-  titleID <- correlationAnalyzeR::fixStrings(titleID)
-  titleID[which(nchar(titleID) > 40)] <- paste0(substr(titleID[which(nchar(titleID) > 40)],
-                                                       1, 40), "...")
-  dups <- which(duplicated(titleID))
-  if (length(dups)) {
-    ends <- substr(compPaths$ID[dups],
-                   nchar(compPaths$ID[dups])-3,
-                   nchar(compPaths$ID[dups]))
-    titleID[dups] <- paste0(substr(titleID[dups], 1, 34), "...", tolower(ends) )
-  }
-
-  dups <- which(duplicated(titleID))
-  if (length(dups)) {
-    titleID[dups] <- paste0(substr(titleID[dups], 1, 34),
-                            "...", replicate(expr = paste0(sample(letters, 3),
-                                                           collapse = ""),
-                                             n = length(dups)))
-  }
-  compHeatSim <- compHeat[,c(2, 6)]
-  rownames(compHeatSim) <- titleID[1:n]
 
 
   # Get TPM
@@ -636,8 +694,8 @@ analyzeGenePairs <- function(genesOfInterest,
   gs <- ggpubr::ggscatter(correlationsScatter,
                           title = titleStr,
                           x = "x", y = "y",
-                          ylab = geneTwoTitle,
-                          xlab = geneOneTitle,
+                          ylab = geneTwoTitleGP,
+                          xlab = geneOneTitleGP,
                           label.rectangle = FALSE,
                           size = .5,
                           repel = TRUE, label = rownames(correlationsScatter),
@@ -667,8 +725,8 @@ analyzeGenePairs <- function(genesOfInterest,
     ggplot2::geom_smooth(colour="black", size = 1.25,
                          method='lm') +
     ggplot2::labs(title = titleStr) +
-    ggplot2::ylab(geneTwoTitle) +
-    ggplot2::xlab(geneOneTitle) +
+    ggplot2::ylab(geneTwoTitleGP) +
+    ggplot2::xlab(geneOneTitleGP) +
     ggplot2::annotate("text", x = 0, y = 1.2,
                       label = labb,
                       parse = TRUE) +
@@ -685,14 +743,17 @@ analyzeGenePairs <- function(genesOfInterest,
                                  labels_col = c(geneOneTitleHeat, geneTwoTitleHeat),
                                  cluster_rows = TRUE, cluster_cols = FALSE)
   pairRes[["compared"]][["correlationVarianceHeatmap"]] <- ggplotify::as.ggplot(phCorVar)
-  breaks <- getPhBreaks(compHeatVar)
-  phGSEAVar <- pheatmap::pheatmap(compHeatVar, silent = TRUE, angle_col = 45,
-                                  breaks = breaks[[2]],
-                                  main = "Top differentially correlated pathways",
-                                  labels_col = c(geneOneTitleHeat, geneTwoTitleHeat),
-                                  cluster_rows = TRUE,
-                                  cluster_cols = FALSE)
-  pairRes[["compared"]][["pathwayVarianceHeatmap"]] <- ggplotify::as.ggplot(phGSEAVar)
+  if (runGSEA) {
+    breaks <- getPhBreaks(compHeatVar)
+    phGSEAVar <- pheatmap::pheatmap(compHeatVar, silent = TRUE, angle_col = 45,
+                                    breaks = breaks[[2]],
+                                    main = "Top differentially correlated pathways",
+                                    labels_col = c(geneOneTitleHeat, geneTwoTitleHeat),
+                                    cluster_rows = TRUE,
+                                    cluster_cols = FALSE)
+    pairRes[["compared"]][["pathwayVarianceHeatmap"]] <- ggplotify::as.ggplot(phGSEAVar)
+  }
+
   breaks <- getPhBreaks(corHeatSim)
   phCorSim <- pheatmap::pheatmap(corHeatSim, silent = TRUE, angle_col = 45,
                                  breaks = breaks[[2]],
@@ -700,31 +761,20 @@ analyzeGenePairs <- function(genesOfInterest,
                                  labels_col = c(geneOneTitleHeat, geneTwoTitleHeat),
                                  cluster_rows = TRUE, cluster_cols = FALSE)
   pairRes[["compared"]][["correlationSimilarityHeatmap"]] <- ggplotify::as.ggplot(phCorSim)
-  breaks <- getPhBreaks(compHeatSim)
-  phGSEASim <- pheatmap::pheatmap(compHeatSim, silent = TRUE, angle_col = 45,
-                                  breaks = breaks[[2]],
-                                  main = "Top similarly correlated pathways",
-                                  labels_col = c(geneOneTitleHeat, geneTwoTitleHeat),
-                                  cluster_rows = TRUE,
-                                  cluster_cols = FALSE)
-  pairRes[["compared"]][["pathwaySimilarityHeatmap"]] <- ggplotify::as.ggplot(phGSEASim)
+  if (runGSEA) {
+    breaks <- getPhBreaks(compHeatSim)
+    phGSEASim <- pheatmap::pheatmap(compHeatSim, silent = TRUE, angle_col = 45,
+                                    breaks = breaks[[2]],
+                                    main = "Top similarly correlated pathways",
+                                    labels_col = c(geneOneTitleHeat, geneTwoTitleHeat),
+                                    cluster_rows = TRUE,
+                                    cluster_cols = FALSE)
+    pairRes[["compared"]][["pathwaySimilarityHeatmap"]] <- ggplotify::as.ggplot(phGSEASim)
+    pairRes[["compared"]][["correlatedPathwaysDataFrame"]] <- compPaths
 
-
-  if (! returnDataOnly) {
-    ggplot2::ggsave(phGSEA, 7.5, width = 6,
-                    filename = file.path(outputPrefix,
-                                         "GSEA_compared_heatmap.png"))
-    ggplot2::ggsave(phCor, 7.5, width = 4.5,
-                    filename = file.path(outputPrefix,
-                                         "correlations_compared_heatmap.png"))
-    ggplot2::ggsave(gs, filename = file.path(outputPrefix,
-                                             "correlationScatterCompare.png"))
-    ggplot2::ggsave(gp, filename = file.path(outputPrefix,
-                                             "correlationScatterBinCompare.png"))
   }
 
 
-  pairRes[["compared"]][["correlatedPathwaysDataFrame"]] <- compPaths
   # Return results
   return(pairRes)
 

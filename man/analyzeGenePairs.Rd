@@ -6,7 +6,7 @@
 \usage{
 analyzeGenePairs(genesOfInterest, Sample_Type = c("normal", "normal"),
   Tissue = c("all", "all"), Species = c("hsapiens", "mmusculus"),
-  GSEA_Type = c("simple", "complex"),
+  GSEA_Type = c("simple"),
   outputPrefix = "CorrelationAnalyzeR_Output_Paired",
   crossCompareMode = FALSE, runGSEA = TRUE, TERM2GENE = NULL,
   nperm = 2000, sampler = FALSE, topPlots = FALSE,
@@ -24,9 +24,8 @@ Run getTissueTypes() to see available list. Default: c("all", "all")}
 \item{Species}{Species to obtain gene names for.
 Either 'hsapiens' or 'mmusculus'. Default: "hsapiens".}
 
-\item{GSEA_Type}{Whether GSEA should consider all msigdb annotations,
-or just those in the most popular categories. Should be one of either
-'simple' or 'complex'.}
+\item{GSEA_Type}{Which GSEA annotations should be considered? Options listed in
+correlationAnalyzeR::pathwayCategories -- See details of getTERM2GENE for more info.}
 
 \item{outputPrefix}{Prefix for saved files -- the directory name to store output files in. If
 folder does not exist, it will be created.}
@@ -44,8 +43,7 @@ generated automatically. Only applicable if GSEA is to be run.}
 
 \item{nperm}{Number of permutations to run in GSEA. Default is 2000}
 
-\item{sampler}{If TRUE, will only return 100,000 random genesets from either
-simple or complex TERM2GENEs. Useful for reducing GSEA computational burden.}
+\item{sampler}{If TRUE, will only return 100,000 random genesets. Useful for reducing GSEA computational burden.}
 
 \item{topPlots}{Logical. If TRUE, myGSEA() will build gsea plots for top correlated genesets.}
 

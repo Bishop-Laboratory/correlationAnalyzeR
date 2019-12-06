@@ -7,7 +7,7 @@
 analyzeGenesetTopology(genesOfInterest, Species = c("hsapiens",
   "mmusculus"), Sample_Type = c("normal", "cancer"), Tissue = "all",
   crossComparisonType = c("PCA", "variantGenes", "coCorrelativeGenes",
-  "pathwayEnrich"), pathwayType = c("simple", "complex"),
+  "pathwayEnrich"), pathwayType = c("simple"),
   setComparisonCutoff = "Auto", pathwayEnrichment = FALSE,
   pValueCutoff = 0.05, numTopGenesToPlot = "Auto",
   alternativeTSNE = TRUE, numClusters = "Auto",
@@ -31,9 +31,8 @@ Run getTissueTypes() to see available tissues.}
 
 \item{crossComparisonType}{The type of topology tests to run. (see details)}
 
-\item{pathwayType}{Whether pathway enrichment should consider all msigdb annotations
-or just those in the most popular categories. Should be one of either
-'simple' or 'complex'.}
+\item{pathwayType}{Which pathway annotations should be considered? Options listed in
+correlationAnalyzeR::GSEA_categories. See details of getTERM2GENE for more info.}
 
 \item{setComparisonCutoff}{Only relevant for co-correlation analysis -- the number of genes which
 must aggree for a gene to be considered co-correlative within the input gene list.}

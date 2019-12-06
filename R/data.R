@@ -72,3 +72,8 @@
 #' @docType data
 #' @keywords data
 "sampleTPMOrderMouse"
+
+#' A vector containing the names of valid TERM2GENE categories for GSEA_Type or pathwayType input.
+#' @docType data
+#' @keywords data
+"pathwayCategories"

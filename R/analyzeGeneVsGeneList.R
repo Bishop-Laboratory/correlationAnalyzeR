@@ -74,7 +74,6 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
                                   returnDataOnly = TRUE,
                                   pool = NULL) {
 
-
   # pairedGenesList = list("ATM" = "HALLMARK_OXIDATIVE_PHOSPHORYLATION")
   # Species = c("hsapiens", "mmusculus")
   # Sample_Type = c("normal", "cancer")
@@ -195,6 +194,11 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
                                                         Sample_Type = Sample_Type[1],
                                                         geneList = intGenes,
                                                         pool = pool)
+  colLengths <- ifelse(Species[1] == "hsapiens", yes = 28685, no = 24924)
+  pVals <- apply(as.matrix(corrDFFull), MARGIN = 1:2, n = colLengths, FUN = function(x, n) {
+    dt(abs(x)/sqrt((1-x^2)/(n-2)), df = 2)
+  })
+  pVals <- as.data.frame(pVals)
 
   # Main code
   for (i in 1:length(colnames(corrDFFull))) {
@@ -481,9 +485,11 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
     # Return results based on whether sigTest is true
     if (! sigTest) {
       resList[[i]] <- list("Correlation_Values" = res,
+                           "P values" = pVals,
                            "Correlation_histogram" = his)
     } else {
       resList[[i]] <- list("Correlation_Values" = res,
+                           "P values" = pVals,
                            "Correlation_histogram" = his,
                            "sigTest" =  list("means" = meanVec,
                                              "meansPlot" = pMeans,
@@ -495,6 +501,8 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
     names(resList)[i] <- gene
 
   }
+  resList[["P values"]] <- pVals
+  resList[["correlations"]] <- corrDFFull
   return(resList)
 }
 

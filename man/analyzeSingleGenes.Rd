@@ -5,9 +5,9 @@
 \title{Analyze Single Genes}
 \usage{
 analyzeSingleGenes(genesOfInterest, Species = c("hsapiens", "mmusculus"),
-  GSEA_Type = c("simple", "complex"), Sample_Type = "normal",
-  Tissue = "all", crossCompareMode = FALSE, nperm = 2000,
-  TERM2GENE = NULL, whichCompareGroups = c("all", "normal", "cancer"),
+  GSEA_Type = c("simple"), Sample_Type = "normal", Tissue = "all",
+  crossCompareMode = FALSE, nperm = 2000, TERM2GENE = NULL,
+  whichCompareGroups = c("all", "normal", "cancer"),
   outputPrefix = "CorrelationAnalyzeR_Output", sampler = FALSE,
   runGSEA = TRUE, topPlots = TRUE, returnDataOnly = TRUE,
   pool = NULL)
@@ -18,9 +18,8 @@ analyzeSingleGenes(genesOfInterest, Species = c("hsapiens", "mmusculus"),
 \item{Species}{Species to obtain gene names for.
 Either 'hsapiens' or 'mmusculus'}
 
-\item{GSEA_Type}{Whether GSEA should consider all msigdb annotations,
-or just those in the most popular categories. Should be one of either
-'simple' or 'complex'.}
+\item{GSEA_Type}{Which GSEA annotations should be considered? Options listed in
+correlationAnalyzeR::pathwayCategories -- See details of getTERM2GENE for more info.}
 
 \item{Sample_Type}{Type of RNA Seq samples used to create correlation data.
 Either "all", "normal", or "cancer". Can be a single value for all genes,

@@ -7,9 +7,8 @@
 #' @param Species Species to obtain gene names for.
 #' Either 'hsapiens' or 'mmusculus'
 #'
-#' @param GSEA_Type Whether GSEA should consider all msigdb annotations,
-#' or just those in the most popular categories. Should be one of either
-#' 'simple' or 'complex'.
+#' @param GSEA_Type Which GSEA annotations should be considered? Options listed in
+#' correlationAnalyzeR::pathwayCategories -- See details of getTERM2GENE for more info.
 #'
 #' @param Sample_Type Type of RNA Seq samples used to create correlation data.
 #' Either "all", "normal", or "cancer". Can be a single value for all genes,
@@ -65,7 +64,7 @@
 #' @export
 analyzeSingleGenes <- function(genesOfInterest,
                                Species = c("hsapiens", "mmusculus"),
-                               GSEA_Type = c("simple", "complex"),
+                               GSEA_Type = c("simple"),
                                Sample_Type = "normal",
                                Tissue = "all",
                                crossCompareMode = FALSE,
@@ -78,19 +77,36 @@ analyzeSingleGenes <- function(genesOfInterest,
                                pool = NULL) {
 
   # # Bug testing
-  # genesOfInterest <- c("NONO")
-  # Species = c("hsapiens", "mmusculus")
+  # genesOfInterest <- c("BRCA1")
+  # Species = c( "hsapiens")
   # GSEA_Type = c("simple", "complex")
   # Sample_Type = "normal"
   # Tissue = "all"
-  # crossCompareMode = TRUE
-  # whichCompareGroups = c("all", "normal", "cancer")
+  # crossCompareMode = FALSE
+  # whichCompareGroups = c("all")
   # outputPrefix = "CorrelationAnalyzeR_Output"
   # runGSEA = TRUE
   # topPlots = FALSE
   # sampler = FALSE
+  # TERM2GENE = NULL
   # returnDataOnly = TRUE
   # pool = NULL
+
+
+  getPhBreaks <- function(mat, palette = NULL) {
+    # From https://stackoverflow.com/questions/31677923/set-0-point-for-pheatmap-in-r
+    if (is.null(palette)) {
+      palette <- grDevices::colorRampPalette(rev(
+        RColorBrewer::brewer.pal(n = 7, name =
+                                   "RdYlBu")))(100)
+    }
+    n <- length(palette)
+    breaks <- c(seq(min(mat), 0, length.out=ceiling(n/2) + 1),
+                seq(max(mat)/n, max(mat), length.out=floor(n/2)))
+    return(list(palette, breaks))
+  }
+
+
 
   if (is.null(pool)) {
     retryCounter <- 1
@@ -147,7 +163,9 @@ analyzeSingleGenes <- function(genesOfInterest,
   }
 
   # Check genes to make sure they exist
-  avGenes <- correlationAnalyzeR::getAvailableGenes(Species = Species, pool = pool)
+  avGenes <- correlationAnalyzeR::getAvailableGenes(Species = Species,
+                                                    pool = pool)
+
   badGenes <- genesOfInterest[which(! genesOfInterest %in% avGenes)]
   if (length(badGenes) > 0) {
     stop(paste0("\n\t\t\t'", paste(badGenes, collapse = ", "), "' not found
@@ -238,29 +256,61 @@ analyzeSingleGenes <- function(genesOfInterest,
       colnames(newDF) <- topNameNow
       namesVecNow <- namesVec[inds]
       resList[[i]][["correlations"]] <- newDF
+      newDF <- newDF[which(rownames(newDF) != geneNow),]
       newDFNorm <- preprocessCore::normalize.quantiles(as.matrix(newDF))
       newDFNorm <- as.data.frame(newDFNorm)
       rownames(newDFNorm) <- rownames(newDF)
       colnames(newDFNorm) <- colnames(newDF)
       newDFNorm$Variance <- matrixStats::rowVars(as.matrix(newDFNorm))
-      newDFNorm <- newDFNorm[order(newDFNorm$Variance, decreasing = TRUE),]
       n <- length(colnames(newDFNorm))
-      pMat <- newDFNorm[c(1:30),c(-n)]
-      pMatBig <- newDFNorm[c(1:500),c(-n)]
+      newDFNorm$Average <- rowMeans(newDFNorm[,c(1:(n-1))])
+      newDFNorm21 <- newDFNorm[order(newDFNorm$Average, decreasing = TRUE),]
+      newDFNorm21 <- newDFNorm21[c(1:1500),]
+      newDFNorm21 <- newDFNorm21[order(newDFNorm21$Variance, decreasing = FALSE),]
+      n <- length(colnames(newDFNorm21))
+      pMatCo1 <- newDFNorm21[c(1:15),c(1:(n-2))]
+      pMatCoBig1 <- newDFNorm21[c(1:250),c(1:(n-2))]
+      newDFNorm22 <- newDFNorm[order(newDFNorm$Average, decreasing = FALSE),]
+      newDFNorm22 <- newDFNorm22[c(1:1500),]
+      newDFNorm22 <- newDFNorm22[order(newDFNorm22$Variance, decreasing = FALSE),]
+      n <- length(colnames(newDFNorm22))
+      pMatCo2 <- newDFNorm22[c(1:15),c(1:(n-2))]
+      pMatCoBig2 <- newDFNorm22[c(1:250),c(1:(n-2))]
+      pMatCo <- unique(rbind(pMatCo1, pMatCo2))
+      pMatCoBig <- unique(rbind(pMatCoBig1, pMatCoBig2))
+      newDFNorm <- newDFNorm[order(newDFNorm$Variance, decreasing = TRUE),]
+      pMatVar <- newDFNorm[c(1:30),c(1:(n-2))]
+      pMatVarBig <- newDFNorm[c(1:500),c(1:(n-2))]
       titleName <- ifelse(whichCompareGroups == "all", paste0(geneNow,
                                                               " correlations across conditions"),
                           no = ifelse(whichCompareGroups == "normal",
                                       paste0(geneNow,
-                                             " correlations across tissue types"),
+                                             " correlations across normal tissues"),
                                       no = paste0(geneNow,
                                                   " correlations across tumor tissues")))
-
-      phSmall <- pheatmap::pheatmap(pMat, silent = TRUE,
-                                    angle_col = 45, #main = titleName,
+      titleNameExp <- ifelse(whichCompareGroups == "all", paste0(geneNow,
+                                                              " expression across conditions"),
+                          no = ifelse(whichCompareGroups == "normal",
+                                      paste0(geneNow,
+                                             " expression in normal tissues"),
+                                      no = paste0(geneNow,
+                                                  " expression in tumor tissues")))
+      breaks <- getPhBreaks(pMatVar)
+      phSmallVar <- pheatmap::pheatmap(pMatVar, silent = TRUE,
+                                    angle_col = 45, breaks = breaks[[2]],
                                     labels_col = namesVecNow)
-      phBig <- pheatmap::pheatmap(pMatBig, silent = TRUE, angle_col = 45,
-                                  show_rownames = FALSE, #main = titleName,
+      breaks <- getPhBreaks(pMatCo)
+      phSmallCo <- pheatmap::pheatmap(pMatCo, silent = TRUE,
+                                       angle_col = 45, breaks = breaks[[2]],
+                                       labels_col = namesVecNow)
+      breaks <- getPhBreaks(pMatVarBig)
+      phBigVar <- pheatmap::pheatmap(pMatVarBig, silent = TRUE, angle_col = 45,
+                                  show_rownames = FALSE, breaks = breaks[[2]],
                                   labels_col = namesVecNow)
+      breaks <- getPhBreaks(pMatCoBig)
+      phBigCo <- pheatmap::pheatmap(pMatCoBig, silent = TRUE, angle_col = 45,
+                                     show_rownames = FALSE, breaks = breaks[[2]],
+                                     labels_col = namesVecNow)
 
       # Get TPM for gene
       geneTPMList <- correlationAnalyzeR::getTissueTPM(genesOfInterest = geneNow,
@@ -285,22 +335,64 @@ analyzeSingleGenes <- function(genesOfInterest,
       availTissue <- stringr::str_to_title(availTissue)
       # all(geneTPMDF$group %in% availTissue) -- should be TRUE
       geneTPMDF <- geneTPMDF[order(match(geneTPMDF$group, availTissue)),]
-      TPMBP <- ggpubr::ggboxplot(data = geneTPMDF,
-                                 x = "group",
-                                 title = paste0(geneNow, " expression across groups"),
-                                 ylab = "log2(TPM + 1)",
-                                 fill = "group",
-                                 y = "value") +
-        ggpubr::rotate_x_text(angle = 45) +
-        ggpubr::rremove("legend") +
-        ggpubr::rremove("xlab")
+      if (! whichCompareGroups == "all") {
+        if (whichCompareGroups == "normal") {
+          geneTPMDF$group <- gsub(geneTPMDF$group,
+                                  pattern = "(.*) - (.*)",
+                                  replacement = "\\1")
+        } else {
+          geneTPMDF$group <- gsub(geneTPMDF$group,
+                                  pattern = "(.*) - (.*)",
+                                  replacement = "\\1")
+        }
+        TPMBPproto <- ggpubr::ggboxplot(data = geneTPMDF,
+                                        x = "group",
+                                        title = titleNameExp,
+                                        ylab = "log2(TPM + 1)",
+                                        fill = "group",
+                                        y = "value")
+        TPMBP <- TPMBPproto +
+          ggpubr::rotate_x_text(angle = 45) +
+          ggpubr::rremove("legend") +
+          ggpubr::rremove("xlab")
+      } else {
+        geneTPMDF$tissue <- gsub(geneTPMDF$group,
+                                pattern = "(.*) - (.*)",
+                                replacement = "\\1")
+        geneTPMDF$sample <- gsub(geneTPMDF$group,
+                                pattern = "(.*) - (.*)",
+                                replacement = "\\2")
+        goodTiss <- unique(geneTPMDF$tissue[which(geneTPMDF$sample == "Cancer")])
+        goodTiss2 <- unique(geneTPMDF$tissue[which(geneTPMDF$sample == "Normal")])
+        goodTissFinal <- goodTiss[which(goodTiss %in% goodTiss2)]
+        geneTPMDF2 <- geneTPMDF[which(geneTPMDF$tissue %in% goodTissFinal),]
+        maxHeight <- max(geneTPMDF2$value)
+        TPMBPproto <- ggpubr::ggboxplot(data = geneTPMDF2,
+                                        x = "tissue",
+                                        title = titleNameExp,
+                                        ylab = "log2(TPM + 1)",
+                                        fill = "sample", legend = "right",
+                                        y = "value") +
+          ggpubr::stat_compare_means(ggplot2::aes_string(group = "sample"),
+                                     label.y = (maxHeight * 1.15),
+                                     hide.ns = TRUE, label = "p.signif")
+        TPMBP <- TPMBPproto +
+          ggpubr::rotate_x_text(angle = 45) +
+          ggpubr::rremove("xlab") + ggpubr::rremove("legend.title")
+      }
+
+
       colnames(geneTPMDF)[3] <- paste0(geneNow, "_log2TPM")
       resList[[i]][["TPM_DF"]] <- geneTPMDF
       resList[[i]][["TPM_boxPlot"]] <- TPMBP
-      resList[[i]][["heatmapSmall"]] <- phSmall
-      resList[[i]][["heatmapSmallData"]] <- pMat
-      resList[[i]][["heatmapBig"]] <- phBig
-      resList[[i]][["heatmapBigData"]] <- pMatBig
+      resList[[i]][["heatmapSmallCo"]] <- phSmallCo
+      resList[[i]][["heatmapSmallDataCo"]] <- pMatCo
+      resList[[i]][["heatmapBigCo"]] <- phBigCo
+      resList[[i]][["heatmapBigDataCo"]] <- pMatCoBig
+      resList[[i]][["heatmapSmallVar"]] <- phSmallVar
+      resList[[i]][["heatmapSmallDataVar"]] <- pMatVar
+      resList[[i]][["heatmapBigVar"]] <- phBigVar
+      resList[[i]][["heatmapBigDataVar"]] <- pMatVarBig
     }
     return(resList)
   }
@@ -371,6 +463,20 @@ analyzeSingleGenes <- function(genesOfInterest,
 
   }
   resList[["correlations"]] <- corrDF
+  colLengths <- ifelse(Species[1] == "hsapiens", yes = 28685, no = 24924)
+  pDF <- apply(corrDF, MARGIN = 1:2, n = colLengths, FUN = function(x, n) {
+
+    ## Using R to Z conversion method
+    # z <- 0.5 * log((1+x)/(1-x))
+    # zse <- 1/sqrt(colLengths-3)
+    # p <- min(pnorm(z, sd=zse), pnorm(z, lower.tail=F, sd=zse))*2
+
+    # Using the t statistic method
+    dt(abs(x)/sqrt((1-x^2)/(n-2)), df = 2)
+
+  })
+  resList[["P values"]] <- as.data.frame(pDF)
+
   # Return results
   return(resList)
 }

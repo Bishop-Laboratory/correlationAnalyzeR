@@ -28,8 +28,25 @@ getCorrelationData <- function(Species, Sample_Type,
 
   # Species = "hsapiens"
   # Sample_Type = "normal"
-  # Tissue = c("all", "brain")
+  # Tissue = c("all", "female0asdreproductive")
   # geneList = c("A1BG", "A1BG")
+
+  # Make sure all tissue entries are appropriate
+  goodConditions <- correlationAnalyzeR::getTissueTypes(Species = Species,
+                                                        pool = pool)
+  goodTissues <- unique(gsub(goodConditions,
+                             pattern = "(.*) - (.*)",
+                             replacement = "\\1"))
+  goodSamples <- unique(gsub(goodConditions,
+                             pattern = "(.*) - (.*)",
+                             replacement = "\\2"))
+
+  if (! all(Sample_Type %in% goodSamples)) {
+    stop("Sample type must be either 'normal' or 'cancer'")
+  } else if (! all(Tissue %in% goodTissues)) {
+    stop("Tissue types must be selected from available options.",
+         " Run correlationAnalyzeR::getTissueTypes() to see available tissue - sample groups.")
+  }
 
 
   if (! is.null(pool)) {
@@ -142,13 +159,13 @@ getCorrelationData <- function(Species, Sample_Type,
           pool::poolClose(pool)
         })
       }
-    }
-    resdf <- try(silent = T, eval({
-      pool::dbGetQuery(pool, sql)
-    }))
-    if ("try-error" %in% class(resdf)) {
-      stop("Unable to connect to the database at the moment. If you",
-           " believe this is an error, please contact the package maintainer.")
+      resdf <- try(silent = T, eval({
+        pool::dbGetQuery(pool, sql)
+      }))
+      if ("try-error" %in% class(resdf)) {
+        stop("Unable to connect to the database at the moment. If you",
+             " believe this is an error, please contact the package maintainer.")
+      }
     }
     resdf2 <- stringr::str_split_fixed(resdf$values, stringr::fixed(","), n = Inf)
     resdf2 <- apply(t(resdf2), 1:2, as.numeric)
@@ -174,7 +191,6 @@ getCorrelationData <- function(Species, Sample_Type,
                     tolower(Sample_TypeNow), "_", tolower(TissueNow2),
                     " WHERE row_names IN ('",
                     geneName, "')")
-      resdf <- pool::dbGetQuery(pool, sql)
       resdf <- try(silent = T, eval({
         pool::dbGetQuery(pool, sql)
       }))
@@ -211,13 +227,13 @@ getCorrelationData <- function(Species, Sample_Type,
             pool::poolClose(pool)
           })
         }
-      }
-      resdf <- try(silent = T, eval({
-        pool::dbGetQuery(pool, sql)
-      }))
-      if ("try-error" %in% class(resdf)) {
-        stop("Unable to connect to the database at the moment. If you",
-             " believe this is an error, please contact the package maintainer.")
+        resdf <- try(silent = T, eval({
+          pool::dbGetQuery(pool, sql)
+        }))
+        if ("try-error" %in% class(resdf)) {
+          stop("Unable to connect to the database at the moment. If you",
+               " believe this is an error, please contact the package maintainer.")
+        }
       }
       resdf2 <- stringr::str_split_fixed(resdf$values, stringr::fixed(","), n = Inf)
       resdf2 <- apply(t(resdf2), 1:2, as.numeric)
