@@ -10,7 +10,7 @@ analyzeGenePairs(genesOfInterest, Sample_Type = c("normal", "normal"),
   outputPrefix = "CorrelationAnalyzeR_Output_Paired",
   crossCompareMode = FALSE, runGSEA = TRUE, TERM2GENE = NULL,
   nperm = 2000, sampler = FALSE, topPlots = FALSE,
-  returnDataOnly = TRUE, pool = NULL)
+  returnDataOnly = TRUE, pool = NULL, makePool = FALSE)
 }
 \arguments{
 \item{genesOfInterest}{A length-two vector with genes to compare.}
@@ -52,6 +52,8 @@ and will not generate any folders or files.}
 
 \item{pool}{an object created by pool::dbPool to accessing SQL database.
 It will be created if not supplied.}
+
+\item{makePool}{Logical. Should a pool be created if one is not supplied? Default: FALSE.}
 }
 \value{
 A named list containing visualizations and correlation data from paired analysis.

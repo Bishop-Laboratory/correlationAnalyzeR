@@ -10,7 +10,7 @@ analyzeSingleGenes(genesOfInterest, Species = c("hsapiens", "mmusculus"),
   whichCompareGroups = c("all", "normal", "cancer"),
   outputPrefix = "CorrelationAnalyzeR_Output", sampler = FALSE,
   runGSEA = TRUE, topPlots = TRUE, returnDataOnly = TRUE,
-  pool = NULL)
+  pool = NULL, makePool = FALSE)
 }
 \arguments{
 \item{genesOfInterest}{A vector of genes to analyze.}
@@ -57,6 +57,8 @@ values and will not generate any folders or files.}
 
 \item{pool}{an object created by pool::dbPool to accessing SQL database.
 It will be created if not supplied.}
+
+\item{makePool}{Logical. Should a pool be created if one is not supplied? Default: FALSE.}
 }
 \value{
 A named list of correlation values, corGSEA results,

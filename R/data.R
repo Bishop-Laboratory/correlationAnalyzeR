@@ -26,12 +26,23 @@
 #
 # load("data/sampleTPMOrderMouse.rda")
 # usethis::use_data(sampleTPMOrderMouse, internal = F, overwrite = T)
+#
+# load("data/MSIGDB_Geneset_Small_Names.rda")
+# usethis::use_data(MSIGDB_Geneset_Small_Names, internal = F, overwrite = T)
+
+
 
 #' A vector of valid MSIGDB geneset names
 #'@source msigdbr()
 #'@docType data
 #'@keywords data
 "MSIGDB_Geneset_Names"
+
+#' A vector of valid MSIGDB geneset names with fewer then 500 genes associated with them
+#'@source msigdbr()
+#'@docType data
+#'@keywords data
+"MSIGDB_Geneset_Small_Names"
 
 #' A vector of blacklisted tissue-disease categories for human samples
 #' @docType data

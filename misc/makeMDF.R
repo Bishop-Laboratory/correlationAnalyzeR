@@ -20,4 +20,5 @@ mdf <- mdf %>% select(-gs_subcat)
 MDF <- mdf %>% distinct()
 # save(MDF, file = "misc/MDF.rda", compression_level = 9)
 
-
+term2geneCount <- as.data.frame(table(MDF$gs_name), stringsAsFactors = FALSE)
+GlobalData$MSIGDB_Geneset_Small_Names <- term2geneCount$Var1[which(term2geneCount$Freq < 501)]

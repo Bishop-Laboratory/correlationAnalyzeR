@@ -12,7 +12,7 @@ analyzeGenesetTopology(genesOfInterest, Species = c("hsapiens",
   pValueCutoff = 0.05, numTopGenesToPlot = "Auto",
   alternativeTSNE = TRUE, numClusters = "Auto",
   outputPrefix = "CorrelationAnalyzeR_Output", returnDataOnly = TRUE,
-  pool = NULL)
+  pool = NULL, makePool = FALSE)
 }
 \arguments{
 \item{genesOfInterest}{A vector of genes to analyze or the name of an official MSIGDB term.}
@@ -56,6 +56,8 @@ large input gene lists. This is highly recommended as 100+ member gene lists can
 
 \item{pool}{an object created by pool::dbPool to accessing SQL database.
 It will be created if not supplied.}
+
+\item{makePool}{Logical. Should a pool be created if one is not supplied? Default: FALSE.}
 }
 \value{
 A list of correlations for input genes, and the results of chosen analysis + visualizations.
