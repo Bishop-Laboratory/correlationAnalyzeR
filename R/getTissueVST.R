@@ -31,7 +31,7 @@ getTissueVST <- function(genesOfInterest,
 
   # genesOfInterest = c("ATM")
   # Species = "hsapiens"
-  # Tissues = c("female_reproductive")
+  # Tissues = c("male_reproductive")
   # Sample_Type = c("all")
   # useBlackList = TRUE
   # pool = NULL
@@ -94,7 +94,7 @@ getTissueVST <- function(genesOfInterest,
     ofInterest <- possibleRetrieval
   } else {
     ofInterest <- possibleRetrieval[grep(x = possibleRetrieval,
-                                         pattern = paste0(Tissues, collapse = "|"))]
+                                         pattern = paste0("_", Tissues, collapse = "|"))]
     if (! length(ofInterest)) {
       stop("No valid tissue types returned. Please check that your tissue types are ",
            "correct by running getTissueTypes()")

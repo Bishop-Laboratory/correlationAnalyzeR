@@ -67,7 +67,7 @@ analyzeGenePairs <- function(genesOfInterest,
 
   # genesOfInterest <- c("STAG2", "STAG2")
   # Species <- "hsapiens"
-  # crossCompareMode = TRUE
+  # crossCompareMode = FALSE
   # returnDataOnly = TRUE
   # returnDataOnly = TRUE
   # outputPrefix = "CorrelationAnalyzeR_Output_Paired"
@@ -82,7 +82,7 @@ analyzeGenePairs <- function(genesOfInterest,
   # nperm = 2000
   # makePool = FALSE
   # Sample_Type = c("normal", "cancer")
-  # Tissue = c("all", "all")
+  # Tissue = c("brain", "male_reproductive")
 
 
   getPhBreaks <- function(mat, palette = NULL) {
@@ -690,7 +690,9 @@ analyzeGenePairs <- function(genesOfInterest,
   } else {
     if (tissueOne != "all") {
       VSTDFOne <- VSTDF[grep(VSTDF$Group,
-                             pattern = tissueOne),]
+                             pattern = gsub(tissueOne,
+                                            pattern = "_",
+                                            replacement = " ")),]
     } else {
       VSTDFOne <- VSTDF
     }
@@ -700,7 +702,9 @@ analyzeGenePairs <- function(genesOfInterest,
 
     if (tissueTwo != "all") {
       VSTDFTwo <- VSTDF[grep(VSTDF$Group,
-                             pattern = tissueTwo),]
+                             pattern = gsub(tissueTwo,
+                                            pattern = "_",
+                                            replacement = " ")),]
     } else {
       VSTDFTwo <- VSTDF
     }
@@ -709,10 +713,14 @@ analyzeGenePairs <- function(genesOfInterest,
 
     if (geneOne != geneTwo) {
       uiNameOne <- paste0(
-        stringr::str_to_title(tissueOne), "-",
+        stringr::str_to_title(gsub(tissueOne,
+                                   pattern = "_",
+                                   replacement = " ")), "-",
         stringr::str_to_title(sampleOne))
       uiNameTwo <- paste0(
-        stringr::str_to_title(tissueTwo), "-",
+        stringr::str_to_title(gsub(tissueTwo,
+                                   pattern = "_",
+                                   replacement = " ")), "-",
         stringr::str_to_title(sampleTwo))
       VSTDFOne <- VSTDFOne[,c(-4)]
       VSTDFOne$Gene <- colnames(VSTDFOne)[3]
@@ -728,6 +736,25 @@ analyzeGenePairs <- function(genesOfInterest,
         capStr <- paste0("In ", tolower(uiNameOne), " samples")
       }
       fillStr <- "Gene"
+      VSTDFFinal <- rbind(VSTDFOne, VSTDFTwo)
+      VSTDFFinal$Group <- stringr::str_to_title(gsub(VSTDFFinal$Group, pattern = "_",
+                                                     replacement = " - "))
+      VSTplot <- ggpubr::ggboxplot(data = VSTDFFinal,
+                                   x = fillStr, #facet.by = "Gene",
+                                   title = titleStr,
+                                   caption = capStr,
+                                   ylab = "Expression (VST counts)",
+                                   fill = fillStr,
+                                   y = "VST") +
+        ggpubr::rremove("legend") +
+        ggpubr::rremove("xlab") +
+        ggplot2::scale_y_continuous(limits = c(.95*min(VSTDFFinal$VST), 1.1*max(VSTDFFinal$VST))) +
+        ggplot2::theme(axis.title.y = ggplot2::element_text(size = 20),
+                       title = ggplot2::element_text(size = 22),
+                       plot.margin = ggplot2::margin(10, 10, 10, 10),
+                       axis.text.x = ggplot2::element_text(size = 16)) +
+        ggpubr::stat_compare_means(comparisons = list(unique(as.data.frame(VSTDFFinal)[, which(colnames(VSTDFFinal) == fillStr)])),
+                                   size = 5)
     } else {
       capStr <- NULL
       VSTDFOne$Gene <- paste0(colnames(VSTDFOne)[3], "_", VSTDFOne$Group)
@@ -736,26 +763,27 @@ analyzeGenePairs <- function(genesOfInterest,
       colnames(VSTDFOne)[3] <- "VST"
       titleStr <- paste0(geneOne, " expression")
       fillStr <- "Group"
+      VSTDFFinal <- unique(rbind(VSTDFOne, VSTDFTwo))
+      VSTDFFinal$Group <- stringr::str_to_title(gsub(VSTDFFinal$Group, pattern = "_",
+                                                     replacement = " - "))
+      groupOrder <- unique(VSTDFFinal$Group[order(VSTDFFinal$Group)])
+      VSTplot <- ggpubr::ggboxplot(data = VSTDFFinal,
+                                   x = fillStr, #facet.by = "Gene",
+                                   title = titleStr,
+                                   caption = capStr, order = groupOrder,
+                                   ylab = "Expression (VST counts)",
+                                   fill = fillStr,
+                                   y = "VST") +
+        ggpubr::rremove("legend") +
+        ggpubr::rremove("xlab") +
+        ggplot2::scale_y_continuous(limits = c(.95*min(VSTDFFinal$VST), 1.1*max(VSTDFFinal$VST))) +
+        ggpubr::rotate_x_text(45) +
+        ggplot2::theme(axis.title.y = ggplot2::element_text(size = 20),
+                       title = ggplot2::element_text(size = 22),
+                       plot.margin = ggplot2::margin(10, 10, 10, 25),
+                       axis.text.x = ggplot2::element_text(size = 16))
     }
-    VSTDFFinal <- rbind(VSTDFOne, VSTDFTwo)
-    VSTDFFinal$Group <- stringr::str_to_title(gsub(VSTDFFinal$Group, pattern = "_",
-                                                   replacement = " - "))
-    VSTplot <- ggpubr::ggboxplot(data = VSTDFFinal,
-                                 x = fillStr, #facet.by = "Gene",
-                                 title = titleStr,
-                                 caption = capStr,
-                                 ylab = "Expression (VST counts)",
-                                 fill = fillStr,
-                                 y = "VST") +
-      ggpubr::rremove("legend") +
-      ggpubr::rremove("xlab") +
-      ggplot2::scale_y_continuous(limits = c(.95*min(VSTDFFinal$VST), 1.1*max(VSTDFFinal$VST))) +
-      ggplot2::theme(axis.title.y = ggplot2::element_text(size = 20),
-                     title = ggplot2::element_text(size = 22),
-                     plot.margin = ggplot2::margin(10, 10, 10, 10),
-                     axis.text.x = ggplot2::element_text(size = 16)) +
-      ggpubr::stat_compare_means(comparisons = list(unique(as.data.frame(VSTDFFinal)[, which(colnames(VSTDFFinal) == fillStr)])),
-                                 size = 5)
+
   }
 
 
