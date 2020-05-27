@@ -4,13 +4,22 @@
 \alias{analyzeGenePairs}
 \title{Analyze Gene Pairs}
 \usage{
-analyzeGenePairs(genesOfInterest, Sample_Type = c("normal", "normal"),
-  Tissue = c("all", "all"), Species = c("hsapiens", "mmusculus"),
+analyzeGenePairs(
+  genesOfInterest,
+  Sample_Type = c("normal", "normal"),
+  Tissue = c("all", "all"),
   GSEA_Type = c("simple"),
   outputPrefix = "CorrelationAnalyzeR_Output_Paired",
-  crossCompareMode = FALSE, runGSEA = TRUE, TERM2GENE = NULL,
-  nperm = 2000, sampler = FALSE, topPlots = FALSE,
-  returnDataOnly = TRUE, pool = NULL, makePool = FALSE)
+  crossCompareMode = FALSE,
+  runGSEA = TRUE,
+  TERM2GENE = NULL,
+  nperm = 2000,
+  sampler = FALSE,
+  topPlots = FALSE,
+  returnDataOnly = TRUE,
+  pool = NULL,
+  makePool = FALSE
+)
 }
 \arguments{
 \item{genesOfInterest}{A length-two vector with genes to compare.}
@@ -20,9 +29,6 @@ Choose "all", "normal", or "cancer". Default: c("normal", "normal")}
 
 \item{Tissue}{A length-two vector of tissue types corresponding to genesOfInterest.
 Run getTissueTypes() to see available list. Default: c("all", "all")}
-
-\item{Species}{Species to obtain gene names for.
-Either 'hsapiens' or 'mmusculus'. Default: "hsapiens".}
 
 \item{GSEA_Type}{Which GSEA annotations should be considered? Options listed in
 correlationAnalyzeR::pathwayCategories -- See details of getTERM2GENE for more info.}
@@ -34,7 +40,7 @@ folder does not exist, it will be created.}
 across all tissue and disease types. If both genes for genesOfInterest are the
 same -- will compare normal vs cancer for that gene in each available tissue. Else, will
 perform comparison of two different genes in all tissue-disease groups.
-Will only consider user input for returnDataOnly, outputPrefix, Species, and genesOfInterest.}
+Will only consider user input for returnDataOnly, outputPrefix, and genesOfInterest.}
 
 \item{runGSEA}{If TRUE will run GSEA using gene correlation values.}
 
@@ -67,18 +73,16 @@ to view compared correrlations across all available tissue types.
 \examples{
 genesOfInterest <- c("ATM", "SLC7A11")
 correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
-                              Species = "hsapiens",
                               GSEA_Type = "simple", returnDataOnly = TRUE,
                               Sample_Type = c("normal", "normal"),
                               Tissue = c("brain", "brain"))
 genesOfInterest <- c("BRCA1", "BRCA1")
 correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
-                              Species = "hsapiens",
                               GSEA_Type = "simple", returnDataOnly = TRUE,
                               Sample_Type = c("normal", "cancer"),
                               Tissue = c("respiratory", "respiratory"))
 genesOfInterest <- c("NFKB1", "SOX10")
 correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
-                              Species = "hsapiens", returnDataOnly = TRUE,
+                              returnDataOnly = TRUE,
                               crossCompareMode = TRUE)
 }

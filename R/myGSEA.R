@@ -217,11 +217,11 @@ GSEA2 <- function(TERM2GENE, ranks,
   if (nproc == "auto") {
     nproc = parallel::detectCores()
   }
-  TERMList <- TERM2GENE %>% split(x = .$gene_symbol, f = .$gs_name)
-  EGMT <- fgsea::fgsea(pathways = TERMList, nproc = nproc,
+  TERMList <- TERM2GENE %>% split(x = TERM2GENE$gene_symbol, f = TERM2GENE$gs_name)
+  EGMT <- suppressWarnings(fgsea::fgsea(pathways = TERMList, nproc = nproc,
                        maxSize = 500,
                        minSize = 15,
-                       stats = ranks, nperm = nperm)
+                       stats = ranks, nperm = nperm))
   res <- data.frame(
     ID = as.character(EGMT$pathway),
     Description = as.character(EGMT$pathway),

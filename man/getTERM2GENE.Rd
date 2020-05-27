@@ -4,8 +4,12 @@
 \alias{getTERM2GENE}
 \title{Obtains TERM2GENE object for corGSEA}
 \usage{
-getTERM2GENE(GSEA_Type = c("simple"), Species = c("hsapiens",
-  "mmusculus"), sampler = FALSE)
+getTERM2GENE(
+  GSEA_Type = c("simple"),
+  Species = c("hsapiens", "mmusculus"),
+  sampler = FALSE,
+  listReturn = FALSE
+)
 }
 \arguments{
 \item{GSEA_Type}{Which pathway annotations should be considered? Options listed in
@@ -16,6 +20,8 @@ Either 'hsapiens' or 'mmusculus'}
 
 \item{sampler}{If TRUE, will only return 100,000 random genesets from either
 simple or complex TERM2GENEs. Useful for reducing GSEA computational burden.}
+
+\item{listReturn}{If TRUE, will return annotations as a list object.}
 }
 \value{
 A tbl object with columns "gs_name" and "gene_symbol"
@@ -94,7 +100,7 @@ published studies in human and mouse immunology."
 \strong{complex}: This includes all possible gene sets.
 }
 \examples{
-correlationAnalyzeR::getTERM2GENE(Species = "hsapiens", GSEA_Type = "simple")
-correlationAnalyzeR::getTERM2GENE(Species = "hsapiens", GSEA_Type = c("Hallmark", "KEGG"))
+correlationAnalyzeR::getTERM2GENE(GSEA_Type = "simple")
+correlationAnalyzeR::getTERM2GENE(GSEA_Type = c("Hallmark", "KEGG"))
 
 }

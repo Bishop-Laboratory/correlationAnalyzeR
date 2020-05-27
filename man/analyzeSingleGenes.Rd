@@ -4,19 +4,26 @@
 \alias{analyzeSingleGenes}
 \title{Analyze Single Genes}
 \usage{
-analyzeSingleGenes(genesOfInterest, Species = c("hsapiens", "mmusculus"),
-  GSEA_Type = c("simple"), Sample_Type = "normal", Tissue = "all",
-  crossCompareMode = FALSE, nperm = 2000, TERM2GENE = NULL,
+analyzeSingleGenes(
+  genesOfInterest,
+  GSEA_Type = c("simple"),
+  Sample_Type = "normal",
+  Tissue = "all",
+  crossCompareMode = FALSE,
+  nperm = 2000,
+  TERM2GENE = NULL,
   whichCompareGroups = c("all", "normal", "cancer"),
-  outputPrefix = "CorrelationAnalyzeR_Output", sampler = FALSE,
-  runGSEA = TRUE, topPlots = TRUE, returnDataOnly = TRUE,
-  pool = NULL, makePool = FALSE)
+  outputPrefix = "CorrelationAnalyzeR_Output",
+  sampler = FALSE,
+  runGSEA = TRUE,
+  topPlots = TRUE,
+  returnDataOnly = TRUE,
+  pool = NULL,
+  makePool = FALSE
+)
 }
 \arguments{
 \item{genesOfInterest}{A vector of genes to analyze.}
-
-\item{Species}{Species to obtain gene names for.
-Either 'hsapiens' or 'mmusculus'}
 
 \item{GSEA_Type}{Which GSEA annotations should be considered? Options listed in
 correlationAnalyzeR::pathwayCategories -- See details of getTERM2GENE for more info.}
@@ -33,7 +40,7 @@ Run getTissueTypes() to see available tissues.}
 \item{crossCompareMode}{Instead of normal single gene analysis, will generate
 correlations for single gene across all tissue-disease groups. GSEA will not be run.
 Will only consider user input for returnDataOnly, whichCompareGroups,
-outputPrefix, Species, and genesOfInterest.}
+outputPrefix, and genesOfInterest.}
 
 \item{nperm}{Number of permutations to run in GSEA. Default is 2000}
 
@@ -70,14 +77,13 @@ Obtains correlations and corGSEA results for each gene of interest
 \examples{
 genesOfInterest <- c("ATM", "SLC7A11")
 correlationAnalyzeR::analyzeSingleGenes(genesOfInterest = genesOfInterest,
-                              Species = "hsapiens", returnDataOnly = TRUE,
+                              returnDataOnly = TRUE,
                               GSEA_Type = "simple",
                               Sample_Type = c("normal", "cancer"),
                               Tissue = c("respiratory", "pancreas"))
 
-genesOfInterest <- c("Brca1")
+genesOfInterest <- c("BRCA1")
 correlationAnalyzeR::analyzeSingleGenes(genesOfInterest = genesOfInterest,
-                              Species = "mmusculus",
                               GSEA_Type = "simple", returnDataOnly = TRUE,
                               crossCompareMode = TRUE,
                               whichCompareGroups = "normal")

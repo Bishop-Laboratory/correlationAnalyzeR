@@ -4,12 +4,9 @@
 \alias{getCorrelationData}
 \title{Get Gene Correlation Data}
 \usage{
-getCorrelationData(Species, Sample_Type, Tissue, geneList, pool = NULL)
+getCorrelationData(Sample_Type, Tissue, geneList, pool = NULL)
 }
 \arguments{
-\item{Species}{Species to obtain gene names for.
-Either 'hsapiens' or 'mmusculus'}
-
 \item{Sample_Type}{Type of RNA Seq samples used to create correlation data.
 Either "all", "normal", or "cancer". Can be a single value for all genes,
 or a vector corresponding to geneList.}
@@ -31,9 +28,8 @@ A correlation data frame object
 Obtain correlation data by querying MySQL database
 }
 \examples{
-correlationAnalyzeR::getCorrelationData(Species = "hsapiens",
-                                    Sample_Type = "normal",
-                                    Tissue = "blood",
-                                    geneList = c("ATM", "BRCA1"))
+correlationAnalyzeR::getCorrelationData(Sample_Type = "normal",
+                                       Tissue = "kidney",
+                                       geneList = c("ATM", "BRCA1"))
 
 }

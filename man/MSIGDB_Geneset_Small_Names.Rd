@@ -4,7 +4,9 @@
 \name{MSIGDB_Geneset_Small_Names}
 \alias{MSIGDB_Geneset_Small_Names}
 \title{A vector of valid MSIGDB geneset names with fewer then 500 genes associated with them}
-\format{An object of class \code{character} of length 21940.}
+\format{
+An object of class \code{character} of length 21940.
+}
 \source{
 msigdbr()
 }

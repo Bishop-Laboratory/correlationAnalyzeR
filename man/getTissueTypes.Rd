@@ -4,13 +4,9 @@
 \alias{getTissueTypes}
 \title{Get available tissue types}
 \usage{
-getTissueTypes(Species = c("hsapiens", "mmusculus"),
-  useBlackList = FALSE, pool = NULL)
+getTissueTypes(useBlackList = FALSE, pool = NULL)
 }
 \arguments{
-\item{Species}{Species to obtain tissue types for.
-Either 'hsapiens' or 'mmusculus'}
-
 \item{useBlackList}{Should black-listed tissue/disease categories for this species
 be removed from the returned list? Improves the quality of analysis by removing
 categories with low sample numbers and high observed variance.}
@@ -25,6 +21,6 @@ Vector containing available tissue types.
 Finds tissue types with available correlation data for a given species
 }
 \examples{
-correlationAnalyzeR::getTissueTypes("hsapiens")
+correlationAnalyzeR::getTissueTypes()
 
 }

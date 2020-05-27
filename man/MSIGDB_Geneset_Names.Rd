@@ -4,7 +4,9 @@
 \name{MSIGDB_Geneset_Names}
 \alias{MSIGDB_Geneset_Names}
 \title{A vector of valid MSIGDB geneset names}
-\format{An object of class \code{character} of length 17810.}
+\format{
+An object of class \code{character} of length 17810.
+}
 \source{
 msigdbr()
 }

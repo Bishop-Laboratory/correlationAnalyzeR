@@ -6,9 +6,6 @@
 #' vectors of secondary genes to test against OR a string containing the
 #' official MSIGDB name for a gene set of interest.
 #'
-#' @param Species Species to obtain gene names for.
-#' Either 'hsapiens' or 'mmusculus'
-#'
 #' @param Sample_Type Type of RNA Seq samples used to create correlation data.
 #' Either "all", "normal", or "cancer". Can be a single value for all genes,
 #' or a vector corresponding to genesOfInterest.
@@ -55,13 +52,13 @@
 #'                         "SON" = c("AURKB", "SFPQ", "DHX9"))
 #'
 #'correlationAnalyzeR::geneVsGeneListAnalyze(pairedGenesList = pairedGenesList,
-#'                               Species = "hsapiens", returnDataOnly = TRUE,
+#'                               returnDataOnly = TRUE,
 #'                               Sample_Type = "normal",
 #'                               Tissue = "brain")
 #'
 #' @export
 geneVsGeneListAnalyze <- function(pairedGenesList,
-                                  Species = c("hsapiens", "mmusculus"),
+                                  #Species = c("hsapiens", "mmusculus"),
                                   Sample_Type = c("normal", "cancer"),
                                   Tissue = "all",
                                   outputPrefix = "CorrelationAnalyzeR_Output",
@@ -91,6 +88,8 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
   # plotTitle = TRUE
   # returnDataOnly = TRUE
 
+  Species = "hsapiens"
+
   if (! is.null(pool)) {
     if (! pool$valid) {
       pool <- NULL
@@ -99,15 +98,15 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
   if (is.null(pool)) {
     if (makePool) {
       retryCounter <- 1
-      cat("\nEstablishing connection to database ... \n")
+      # cat("\nEstablishing connection to database ... \n")
       while(is.null(pool)) {
         pool <- try(silent = T, eval({
           pool::dbPool(
-            drv = RMySQL::MySQL(max.con = 150),
-            user = "public-rds-user", port = 3306,
-            dbname="bishoplabdb",
+            drv = RMySQL::MySQL(),
+            user = "public-rds-user@m2600az-db01p.mysql.database.azure.com", port = 3306,
+            dbname="correlation_analyzer",
             password='public-user-password',
-            host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
+            host="m2600az-db01p.mysql.database.azure.com"
           )
         }))
         if ("try-error" %in% class(pool)) {
@@ -148,7 +147,8 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
   resList <- list()
 
   # Check primary genes to make sure they exist
-  avGenes <- correlationAnalyzeR::getAvailableGenes(Species = Species, pool = pool)
+  avGenes <- correlationAnalyzeR::getAvailableGenes(#Species = Species,
+                                                    pool = pool)
   intGenes <- names(pairedGenesList)
   badGenes <- intGenes[which(! intGenes %in% avGenes)]
   if (length(badGenes) > 0) {
@@ -186,7 +186,6 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
                                                    Species = Species)
     for(i in 1:length(termGenes_secondary)) {
       term <- termGenes_secondary[i]
-      print(term)
       nameStr <- names(term)
       termGenes <- TERM2GENE$gene_symbol[which(TERM2GENE$gs_name == term)]
       termGenes <- termGenes[which(termGenes %in% avGenes)] # Ensure actionable genes
@@ -196,14 +195,13 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
 
 
   # Call getCorrelationData to get all required files
-  corrDFFull <- correlationAnalyzeR::getCorrelationData(Species = Species[1],
+  corrDFFull <- correlationAnalyzeR::getCorrelationData(#Species = Species[1],
                                                         Tissue = Tissue[1],
                                                         Sample_Type = Sample_Type[1],
                                                         geneList = intGenes,
                                                         pool = pool)
-  colLengths <- ifelse(Species[1] == "hsapiens", yes = 28685, no = 24924)
-  pVals <- apply(as.matrix(corrDFFull), MARGIN = 1:2, n = colLengths, FUN = function(x, n) {
-    dt(abs(x)/sqrt((1-x^2)/(n-2)), df = 2)
+  pVals <- apply(as.matrix(corrDFFull), MARGIN = 1:2, n = length(corrDFFull[,1]), FUN = function(x, n) {
+    stats::dt(abs(x)/sqrt((1-x^2)/(n-2)), df = 2)
   })
   pVals <- as.data.frame(pVals)
 

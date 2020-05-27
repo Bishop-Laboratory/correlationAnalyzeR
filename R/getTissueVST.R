@@ -1,16 +1,13 @@
-#' Get TPM values for tissues and gene of interest
+#' Get VST values for tissues and gene of interest
 #'
-#' Downloads TPM values for tissues of interest
+#' Downloads VST values for tissues of interest
 #'
 #' @param genesOfInterest A length-two vector with genes to compare.
 #'
-#' @param Species Species to obtain tissue types for.
-#'     Either 'hsapiens' or 'mmusculus'
-#'
-#' @param Tissues Which tissue type should TPM be collected for? See available options
+#' @param Tissues Which tissue type should VST be collected for? See available options
 #' with getTissueTypes().
 #'
-#' @param Sample_Type Type of RNA Seq samples to obtain TPM for? See available options
+#' @param Sample_Type Type of RNA Seq samples to obtain VST for? See available options
 #' with getTissueTypes().
 #'
 #' @param useBlackList Should black-listed tissue/disease categories for this species
@@ -18,26 +15,28 @@
 #' categories with low sample numbers and high observed variance.
 #' @param pool an object created by pool::dbPool to accessing SQL database.
 #' It will be created if not supplied.
-#' @return List of TPM matrices for each selected tissue-disease combination.
+#' @return List of VST matrices for each selected tissue-disease combination.
 #'
 #' @examples
-#' res <- getTissueTPM(genesOfInterest = c("BRCA1", "ATM"),
-#'                     Species = "hsapiens",
+#' res <- getTissueVST(genesOfInterest = c("BRCA1", "ATM"),
 #'                     Tissues = c("brain", "respiratory"),
 #'                     Sample_Type = "all",
 #'                     useBlackList = TRUE)
 #' @export
-getTissueTPM <- function(genesOfInterest,
-                         Species = c("hsapiens", "mmusculus"),
+getTissueVST <- function(genesOfInterest,
+                         # Species = c("hsapiens", "mmusculus"),
                          Tissues = "all",
-                         Sample_Type = c("all", "normal", "cancer"),
+                         Sample_Type = c("normal", "cancer"),
                          useBlackList = TRUE, pool = NULL) {
 
-  # genesOfInterest = c("BRCA1", "ATM")
+  # genesOfInterest = c("ATM")
   # Species = "hsapiens"
-  # Tissues = "all"
-  # Sample_Type = "all"
+  # Tissues = c("female_reproductive")
+  # Sample_Type = c("all")
   # useBlackList = TRUE
+  # pool = NULL
+
+  Species = "hsapiens"
 
   if (! is.null(pool)) {
     if (! pool$valid) {
@@ -53,15 +52,15 @@ getTissueTPM <- function(genesOfInterest,
     doPool <- FALSE
     conn <- NULL
     retryCounter <- 1
-    cat("\nEstablishing connection to database ... \n")
+    # cat("\nEstablishing connection to database ... \n")
     while(is.null(conn)) {
       conn <- try(silent = T, eval({
         DBI::dbConnect(
           drv = RMySQL::MySQL(),
-          user = "public-rds-user", port = 3306,
-          dbname="bishoplabdb",
+          user = "public-rds-user@m2600az-db01p.mysql.database.azure.com", port = 3306,
+          dbname="correlation_analyzer",
           password='public-user-password',
-          host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
+          host="m2600az-db01p.mysql.database.azure.com"
         )
       }))
       if ("try-error" %in% class(conn)) {
@@ -81,21 +80,17 @@ getTissueTPM <- function(genesOfInterest,
     on.exit(DBI::dbDisconnect(conn))
   }
 
-  if (Species[1] == "hsapiens") {
-    samples <- correlationAnalyzeR::sampleTPMOrderHuman
-    possibleGenes <- correlationAnalyzeR::humanGenesTPM
-  } else {
-    samples <- correlationAnalyzeR::sampleTPMOrderMouse
-    possibleGenes <- correlationAnalyzeR::mouseGenesTPM
-  }
+  samples <- correlationAnalyzeR::sampleVSTOrderHuman
+  possibleGenes <- correlationAnalyzeR::humanGenesVST
+
   # Get samples for each tissue group
-  possibleTissues <- correlationAnalyzeR::getTissueTypes(Species = Species,
+  possibleTissues <- correlationAnalyzeR::getTissueTypes(#Species = Species,
                                                          useBlackList = useBlackList,
                                                          pool = pool)
   possibleTissues1 <- gsub(possibleTissues, pattern = " - .*", replacement = "")
   possibleTissues2 <- gsub(possibleTissues, pattern = ".* - ", replacement = "")
   possibleRetrieval <- paste0(possibleTissues2, "_", possibleTissues1)
-  if (Tissues == "all") {
+  if (any(Tissues == "all")) {
     ofInterest <- possibleRetrieval
   } else {
     ofInterest <- possibleRetrieval[grep(x = possibleRetrieval,
@@ -105,8 +100,7 @@ getTissueTPM <- function(genesOfInterest,
            "correct by running getTissueTypes()")
     }
   }
-  ofInterest <- gsub(x = ofInterest, pattern = "respiratory", replacement = "repiratory")
-  if (Sample_Type != "all") {
+  if (all(Sample_Type != "all")) {
     ofInterest <- ofInterest[grep(x = ofInterest,
                                   pattern = paste0(Sample_Type, collapse = "|"))]
   }
@@ -114,33 +108,17 @@ getTissueTPM <- function(genesOfInterest,
   genesOfInterestBad <- genesOfInterest[which(! genesOfInterest %in% possibleGenes)]
   genesOfInterestFinal <- genesOfInterest[which(genesOfInterest %in% possibleGenes)]
   if (! length(genesOfInterestFinal)) {
-    stop(paste0(genesOfInterestBad, collapse = ", "), " not found in TPM data.",
-         " view data(humanTPMGenes) or data(mouseTPMGenes) to see available gene list")
+    stop(paste0(genesOfInterestBad, collapse = ", "), " not found in VST data.",
+         " view data(humanVSTGenes) or data(mouseVSTGenes) to see available gene list")
   } else if (length(genesOfInterestBad)) {
-    warning(paste0(genesOfInterestBad, collapse = ", "), " not found in TPM data.",
-            " view data(humanTPMGenes) or data(mouseTPMGenes) to see available gene list")
+    warning(paste0(genesOfInterestBad, collapse = ", "), " not found in VST data.",
+            " view data(humanVSTGenes) or data(mouseVSTGenes) to see available gene list")
   }
 
-  sql <- paste0("SELECT * FROM ",
-                Species, "_sample_group_key ",
-                " WHERE row_names IN ('",
-                paste(ofInterest, collapse = "','"), "')")
-  resdf <- try(silent = T, eval({
-    DBI::dbGetQuery(conn, sql)
-  }))
-  if ("try-error" %in% class(resdf)) {
-    stop("ERROR IN DB CONNECTION: ", resdf)
-  }
-  resdf2 <- data.frame(row.names = resdf$row_names, samples = resdf$samples)
-  resdfList <- stats::setNames(split(resdf2, seq(nrow(resdf2))), rownames(resdf2))
-  newList <- lapply(resdfList, FUN = function(x){
-    newX <- as.character(x[,1])
-    newX <- unlist(strsplit(newX, split = ","))
-  })
 
 
-  # Gather TPM across samples for genes of interest
-  sql <- paste0("SELECT * FROM TPM_",
+  # Gather VST across samples for genes of interest
+  sql <- paste0("SELECT * FROM VSD_",
                 Species,
                 " WHERE row_names IN ('",
                 paste(genesOfInterestFinal, collapse = "','"), "')")
@@ -151,24 +129,31 @@ getTissueTPM <- function(genesOfInterest,
   if ("try-error" %in% class(resdf)) {
     stop("ERROR IN DB CONNECTION: ", resdf)
   }
-  # Parse TPM frame
+  # Parse VST frame
   resdf2 <- stringr::str_split_fixed(resdf$values, stringr::fixed(","), n = Inf)
   resdf2 <- apply(t(resdf2), 1:2, as.numeric)
   resdf2 <- as.data.frame(resdf2)
   colnames(resdf2) <- resdf$row_names
   resdf2 <- cbind(samples, resdf2)
   rownames(resdf2) <- NULL
-  # Return TPM frame for each specified group
+  # Return VST frame for each specified group
   resFrameList <- list()
+  newList <- unlist(correlationAnalyzeR::human_grouplist, recursive = F)
+  groups <- gsub(names(newList), pattern = "\\.", replacement = " - ")
+  newList <- newList[! groups %in% correlationAnalyzeR::blackListHuman]
+  groupNow2 <- c()
   for (i in 1:length(newList)) {
     samplesNow <- newList[[i]]
-    groupNow <- names(newList)[i]
+    groupNow <- gsub(names(newList)[i], pattern = "\\.", replacement = " - ")
+    name2 <- gsub(names(newList)[i], pattern = "(.+)\\.(.+)", replacement = "\\2_\\1")
+    groupNow2 <- c(groupNow2, gsub(name2, pattern = "\\.| ", replacement = "_"))
     frameNow <- resdf2[which(resdf2$samples %in% samplesNow),, drop = FALSE]
     resFrameList[[i]] <- frameNow
     names(resFrameList)[i] <- groupNow
   }
-  names(resFrameList) <- gsub(x = names(resFrameList),
-                              pattern = "repiratory", replacement = "respiratory")
+
+  keepInd <- which(groupNow2 %in% ofInterest)
+  resFrameList <- resFrameList[keepInd]
 
   return(resFrameList)
 }

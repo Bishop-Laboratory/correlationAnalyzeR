@@ -4,9 +4,6 @@
 #'
 #' @param genesOfInterest A vector of genes to analyze.
 #'
-#' @param Species Species to obtain gene names for.
-#' Either 'hsapiens' or 'mmusculus'
-#'
 #' @param GSEA_Type Which GSEA annotations should be considered? Options listed in
 #' correlationAnalyzeR::pathwayCategories -- See details of getTERM2GENE for more info.
 #'
@@ -22,7 +19,7 @@
 #' @param crossCompareMode Instead of normal single gene analysis, will generate
 #' correlations for single gene across all tissue-disease groups. GSEA will not be run.
 #' Will only consider user input for returnDataOnly, whichCompareGroups,
-#' outputPrefix, Species, and genesOfInterest.
+#' outputPrefix, and genesOfInterest.
 #'
 #' @param whichCompareGroups For crossCompareMode, select "all", "normal", or "cancer"
 #' to analyze correlations from the corresponding groups.
@@ -50,21 +47,20 @@
 #' @examples
 #' genesOfInterest <- c("ATM", "SLC7A11")
 #' correlationAnalyzeR::analyzeSingleGenes(genesOfInterest = genesOfInterest,
-#'                               Species = "hsapiens", returnDataOnly = TRUE,
+#'                               returnDataOnly = TRUE,
 #'                               GSEA_Type = "simple",
 #'                               Sample_Type = c("normal", "cancer"),
 #'                               Tissue = c("respiratory", "pancreas"))
 #'
-#' genesOfInterest <- c("Brca1")
+#' genesOfInterest <- c("BRCA1")
 #' correlationAnalyzeR::analyzeSingleGenes(genesOfInterest = genesOfInterest,
-#'                               Species = "mmusculus",
 #'                               GSEA_Type = "simple", returnDataOnly = TRUE,
 #'                               crossCompareMode = TRUE,
 #'                               whichCompareGroups = "normal")
 #'
 #' @export
 analyzeSingleGenes <- function(genesOfInterest,
-                               Species = c("hsapiens", "mmusculus"),
+                               # Species = c("hsapiens", "mmusculus"),
                                GSEA_Type = c("simple"),
                                Sample_Type = "normal",
                                Tissue = "all",
@@ -79,22 +75,25 @@ analyzeSingleGenes <- function(genesOfInterest,
                                makePool = FALSE) {
 
   # # Bug testing
-  # genesOfInterest <- c("BRCA1")
-  # Species = c( "hsapiens")
-  # GSEA_Type = c("simple", "complex")
+  # genesOfInterest <- c("SRY")
+  # GSEA_Type = c("simple")
   # Sample_Type = "normal"
   # Tissue = "all"
-  # crossCompareMode = FALSE
-  # whichCompareGroups = c("all")
-  # outputPrefix = "CorrelationAnalyzeR_Output"
-  # runGSEA = TRUE
-  # topPlots = FALSE
-  # sampler = FALSE
+  # crossCompareMode = TRUE
+  # nperm = 2000
   # TERM2GENE = NULL
+  # whichCompareGroups = c("all", "normal", "cancer")
+  # outputPrefix = "CorrelationAnalyzeR_Output"
+  # sampler = FALSE
+  # runGSEA = TRUE
+  # topPlots = TRUE
   # returnDataOnly = TRUE
   # pool = NULL
-  # makePool = TRUE
-  # nperm = 2000
+  # makePool = FALSE
+
+
+
+  Species = "hsapiens"
 
   getPhBreaks <- function(mat, palette = NULL) {
     # From https://stackoverflow.com/questions/31677923/set-0-point-for-pheatmap-in-r
@@ -118,15 +117,15 @@ analyzeSingleGenes <- function(genesOfInterest,
   if (is.null(pool)) {
     if (makePool) {
       retryCounter <- 1
-      cat("\nEstablishing connection to database ... \n")
+      # cat("\nEstablishing connection to database ... \n")
       while(is.null(pool)) {
         pool <- try(silent = T, eval({
           pool::dbPool(
-            drv = RMySQL::MySQL(max.con = 150),
-            user = "public-rds-user", port = 3306,
-            dbname="bishoplabdb",
+            drv = RMySQL::MySQL(),
+            user = "public-rds-user@m2600az-db01p.mysql.database.azure.com", port = 3306,
+            dbname="correlation_analyzer",
             password='public-user-password',
-            host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
+            host="m2600az-db01p.mysql.database.azure.com"
           )
         }))
         if ("try-error" %in% class(pool)) {
@@ -170,7 +169,7 @@ analyzeSingleGenes <- function(genesOfInterest,
   }
 
   # Check genes to make sure they exist
-  avGenes <- correlationAnalyzeR::getAvailableGenes(Species = Species,
+  avGenes <- correlationAnalyzeR::getAvailableGenes(#Species = Species,
                                                     pool = pool)
 
   badGenes <- genesOfInterest[which(! genesOfInterest %in% avGenes)]
@@ -212,7 +211,7 @@ analyzeSingleGenes <- function(genesOfInterest,
           " due to black-listing of cancer groups.\n")
       cat("\nContinuing with normal tissues ... \n")
     }
-    availTissue <- correlationAnalyzeR::getTissueTypes(Species = Species,
+    availTissue <- correlationAnalyzeR::getTissueTypes(#Species = Species,
                                                        pool = pool,
                                                        useBlackList = TRUE)
     runGSEA <- F
@@ -220,6 +219,9 @@ analyzeSingleGenes <- function(genesOfInterest,
     if(whichCompareGroups != "all") {
       availTissue <- availTissue[grep(availTissue,
                                       pattern = whichCompareGroups)]
+    } else {
+      availTissue <- availTissue[grep(availTissue,
+                                      pattern = "all", invert = T)]
     }
     availTissue <- strsplit(availTissue, split = " - ")
     Tissue <- vapply(availTissue, FUN = "[[", FUN.VALUE = "character", 1)
@@ -232,15 +234,12 @@ analyzeSingleGenes <- function(genesOfInterest,
   }
 
   # Call downloadData to get all required files
-  corrDF <- correlationAnalyzeR::getCorrelationData(Species = Species,
+  corrDF <- suppressWarnings(correlationAnalyzeR::getCorrelationData(#Species = Species,
                                                     Tissue = Tissue, pool = pool,
                                                     Sample_Type = Sample_Type,
-                                                    geneList = genesOfInterest)
-  if (Species == "hsapiens") {
-    geneNames <- correlationAnalyzeR::hsapiens_corrSmall_geneNames
-  } else {
-    geneNames <- correlationAnalyzeR::mmusculus_corrSmall_geneNames
-  }
+                                                    geneList = genesOfInterest
+                                                    ))
+  geneNames <- correlationAnalyzeR::hsapiens_corrSmall_geneNames
   rownames(corrDF) <- geneNames
   if(crossCompareMode) {
     tissue2 <- gsub(Tissue, pattern = "0", replacement = " ")
@@ -259,6 +258,7 @@ analyzeSingleGenes <- function(genesOfInterest,
       names(resList)[i] <- geneNow
       inds <- which(genesOfInterest == geneNow)
       newDF <- corrDF[,inds]
+      newDF[,which(is.na(newDF[1,]))] <- 0
       topNameNow <- topName[inds]
       colnames(newDF) <- topNameNow
       namesVecNow <- namesVec[inds]
@@ -319,79 +319,99 @@ analyzeSingleGenes <- function(genesOfInterest,
                                      show_rownames = FALSE, breaks = breaks[[2]],
                                      labels_col = namesVecNow)
 
-      # Get TPM for gene
-      geneTPMList <- correlationAnalyzeR::getTissueTPM(genesOfInterest = geneNow,
-                                                       Species = Species,
+      # Get VST for gene
+      geneVSTList <- correlationAnalyzeR::getTissueVST(genesOfInterest = geneNow,
+                                                       # Species = Species,
                                                        Tissues = "all", pool = pool,
                                                        Sample_Type = whichCompareGroups[1],
                                                        useBlackList = TRUE)
-      # Make TPM plot
-      geneTPMDF <- data.table::rbindlist(geneTPMList, idcol = "group")
-      colnames(geneTPMDF)[3] <- "value"
-      geneTPMDF$value <- log2(geneTPMDF$value + 1)
-      rawGroup <- geneTPMDF$group
-      rawGroup1 <- gsub(rawGroup, pattern = "_.*", replacement = "")
-      rawGroup2 <- gsub(rawGroup, pattern = ".*_", replacement = "")
-      rawGroup2 <- gsub(rawGroup2, pattern = "0", replacement = " ")
-      geneTPMDF$group <- paste0(rawGroup2, " - ", rawGroup1)
-      geneTPMDF$group <- stringr::str_to_title(geneTPMDF$group)
-      availTissue <- correlationAnalyzeR::getTissueTypes(Species = Species,
+      # Make VST plot
+      geneVSTDF <- data.table::rbindlist(geneVSTList, idcol = "group")
+      colnames(geneVSTDF)[3] <- "value"
+      if(whichCompareGroups != "all") {
+        geneVSTDF <- geneVSTDF[grep(geneVSTDF$group,
+                                        pattern = whichCompareGroups),]
+      }
+      geneVSTDF$group <- stringr::str_to_title(geneVSTDF$group)
+
+      availTissue <- correlationAnalyzeR::getTissueTypes(#Species = Species,
                                                          pool = pool,
                                                          useBlackList = TRUE)
-      availTissue <- gsub(availTissue, pattern = "0", replacement = " ")
       availTissue <- stringr::str_to_title(availTissue)
-      # all(geneTPMDF$group %in% availTissue) -- should be TRUE
-      geneTPMDF <- geneTPMDF[order(match(geneTPMDF$group, availTissue)),]
-      if (! whichCompareGroups == "all") {
+      if (whichCompareGroups != "all") {
         if (whichCompareGroups == "normal") {
-          geneTPMDF$group <- gsub(geneTPMDF$group,
+          geneVSTDF$group <- gsub(geneVSTDF$group,
                                   pattern = "(.*) - (.*)",
                                   replacement = "\\1")
         } else {
-          geneTPMDF$group <- gsub(geneTPMDF$group,
+          geneVSTDF$group <- gsub(geneVSTDF$group,
                                   pattern = "(.*) - (.*)",
                                   replacement = "\\1")
         }
-        TPMBPproto <- ggpubr::ggboxplot(data = geneTPMDF,
-                                        x = "group",
+        meds <- sapply(unique(geneVSTDF$group), FUN = function(groupNow) {
+          stats::median(geneVSTDF$value[geneVSTDF$group == groupNow])
+        })
+        meds <- meds[order(meds)]
+        VSTBPproto <- ggpubr::ggboxplot(data = geneVSTDF,
+                                        x = "group", order = names(meds),
                                         title = titleNameExp,
-                                        ylab = "log2(TPM + 1)",
+                                        ylab = "Expression (VST counts)",
                                         fill = "group",
                                         y = "value")
-        TPMBP <- TPMBPproto +
+        VSTBP <- VSTBPproto +
+          ggplot2::scale_fill_manual(values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(9, "OrRd"))(length(meds))) +
           ggpubr::rotate_x_text(angle = 45) +
+          ggplot2::theme(
+            axis.title.y = ggplot2::element_text(size = 16),
+            title = ggplot2::element_text(size = 22),
+            plot.margin = ggplot2::margin(10, 25, 10, 25)
+          ) +
           ggpubr::rremove("legend") +
           ggpubr::rremove("xlab")
       } else {
-        geneTPMDF$tissue <- gsub(geneTPMDF$group,
+        geneVSTDF$tissue <- gsub(geneVSTDF$group,
                                 pattern = "(.*) - (.*)",
                                 replacement = "\\1")
-        geneTPMDF$sample <- gsub(geneTPMDF$group,
+        geneVSTDF$sample <- gsub(geneVSTDF$group,
                                 pattern = "(.*) - (.*)",
                                 replacement = "\\2")
-        goodTiss <- unique(geneTPMDF$tissue[which(geneTPMDF$sample == "Cancer")])
-        goodTiss2 <- unique(geneTPMDF$tissue[which(geneTPMDF$sample == "Normal")])
+        goodTiss <- unique(geneVSTDF$tissue[which(geneVSTDF$sample == "Cancer")])
+        goodTiss2 <- unique(geneVSTDF$tissue[which(geneVSTDF$sample == "Normal")])
         goodTissFinal <- goodTiss[which(goodTiss %in% goodTiss2)]
-        geneTPMDF2 <- geneTPMDF[which(geneTPMDF$tissue %in% goodTissFinal),]
-        maxHeight <- max(geneTPMDF2$value)
-        TPMBPproto <- ggpubr::ggboxplot(data = geneTPMDF2,
-                                        x = "tissue",
-                                        title = titleNameExp,
-                                        ylab = "log2(TPM + 1)",
+        geneVSTDF2 <- geneVSTDF[which(geneVSTDF$tissue %in% goodTissFinal),]
+        geneVSTDF2 <- geneVSTDF2[geneVSTDF2$sample != "All",]
+        maxHeight <- max(geneVSTDF2$value)
+        meds <- sapply(unique(geneVSTDF2$tissue), FUN = function(groupNow) {
+          stats::median(geneVSTDF2$value[geneVSTDF2$tissue == groupNow &
+                                    geneVSTDF2$sample == "Cancer"]) -
+            stats::median(geneVSTDF2$value[geneVSTDF2$tissue == groupNow &
+                                      geneVSTDF2$sample == "Normal"])
+        })
+        meds <- meds[order(abs(meds))]
+        VSTBPproto <- ggpubr::ggboxplot(data = geneVSTDF2,
+                                        x = "tissue", order = names(meds),
+                                        title = titleNameExp[1],
+                                        ylab = "Expression (VST counts)",
                                         fill = "sample", legend = "right",
                                         y = "value") +
           ggpubr::stat_compare_means(ggplot2::aes_string(group = "sample"),
                                      label.y = (maxHeight * 1.15),
                                      hide.ns = TRUE, label = "p.signif")
-        TPMBP <- TPMBPproto +
+        VSTBP <- VSTBPproto +
           ggpubr::rotate_x_text(angle = 45) +
+          ggplot2::theme(
+            axis.title.y = ggplot2::element_text(size = 16),
+            title = ggplot2::element_text(size = 22),
+            plot.margin = ggplot2::margin(10, 25, 10, 25)
+          ) +
           ggpubr::rremove("xlab") + ggpubr::rremove("legend.title")
+
       }
 
 
-      colnames(geneTPMDF)[3] <- paste0(geneNow, "_log2TPM")
-      resList[[i]][["TPM_DF"]] <- geneTPMDF
-      resList[[i]][["TPM_boxPlot"]] <- TPMBP
+      colnames(geneVSTDF)[3] <- paste0(geneNow, "_VST")
+      resList[[i]][["VST_DF"]] <- geneVSTDF
+      resList[[i]][["VST_boxPlot"]] <- VSTBP
       resList[[i]][["heatmapSmallCo"]] <- phSmallCo
       resList[[i]][["heatmapSmallDataCo"]] <- pMatCo
       resList[[i]][["heatmapBigCo"]] <- phBigCo
@@ -470,8 +490,7 @@ analyzeSingleGenes <- function(genesOfInterest,
 
   }
   resList[["correlations"]] <- corrDF
-  colLengths <- ifelse(Species[1] == "hsapiens", yes = 28685, no = 24924)
-  pDF <- apply(corrDF, MARGIN = 1:2, n = colLengths, FUN = function(x, n) {
+  pDF <- apply(corrDF, MARGIN = 1:2, n = length(corrDF[,1]), FUN = function(x, n) {
 
     ## Using R to Z conversion method
     # z <- 0.5 * log((1+x)/(1-x))
@@ -479,7 +498,7 @@ analyzeSingleGenes <- function(genesOfInterest,
     # p <- min(pnorm(z, sd=zse), pnorm(z, lower.tail=F, sd=zse))*2
 
     # Using the t statistic method
-    dt(abs(x)/sqrt((1-x^2)/(n-2)), df = 2)
+    stats::dt(abs(x)/sqrt((1-x^2)/(n-2)), df = 2)
 
   })
   resList[["P values"]] <- as.data.frame(pDF)

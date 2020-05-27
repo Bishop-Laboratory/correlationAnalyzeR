@@ -4,7 +4,9 @@
 \name{pathwayCategories}
 \alias{pathwayCategories}
 \title{A vector containing the names of valid TERM2GENE categories for GSEA_Type or pathwayType input.}
-\format{An object of class \code{character} of length 19.}
+\format{
+An object of class \code{character} of length 19.
+}
 \usage{
 pathwayCategories
 }

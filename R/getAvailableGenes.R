@@ -2,21 +2,23 @@
 #'
 #' Finds available genes within correlation data
 #'
-#' @param Species Species to obtain gene names for.
-#'     Either 'hsapiens' or 'mmusculus'
 #' @param pool an object created by pool::dbPool to accessing SQL database.
 #' It will be created if not supplied.
 #' @return A vector of genes with associated correlation data
 #'
 #' @examples
-#' correlationAnalyzeR::getAvailableGenes("hsapiens")
+#' correlationAnalyzeR::getAvailableGenes()
 #'
 #' @export
-getAvailableGenes <- function(Species = c("hsapiens", "mmusculus"), pool = NULL) {
+getAvailableGenes <- function(# Species = c("hsapiens", "mmusculus"),
+                              pool = NULL) {
 
   # # Bug testing
   # Species <- "hsapiens"
   # pool <- NULL
+
+
+  Species <- "hsapiens"
 
   if (! is.null(pool)) {
     if (! pool$valid) {
@@ -38,7 +40,7 @@ getAvailableGenes <- function(Species = c("hsapiens", "mmusculus"), pool = NULL)
   Tissue = "brain"
   # Download a sample file which contains all gene identifiers
 
-  geneNamesDF <- correlationAnalyzeR::getCorrelationData(Species = Species[1],
+  geneNamesDF <- correlationAnalyzeR::getCorrelationData(#Species = Species[1],
                                                          Sample_Type = Sample_Type,
                                                          Tissue = Tissue,
                                                          geneList = gene, pool = pool)

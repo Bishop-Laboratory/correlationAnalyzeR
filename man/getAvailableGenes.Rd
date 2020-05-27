@@ -4,12 +4,9 @@
 \alias{getAvailableGenes}
 \title{Get Available Genes}
 \usage{
-getAvailableGenes(Species = c("hsapiens", "mmusculus"), pool = NULL)
+getAvailableGenes(pool = NULL)
 }
 \arguments{
-\item{Species}{Species to obtain gene names for.
-Either 'hsapiens' or 'mmusculus'}
-
 \item{pool}{an object created by pool::dbPool to accessing SQL database.
 It will be created if not supplied.}
 }
@@ -20,6 +17,6 @@ A vector of genes with associated correlation data
 Finds available genes within correlation data
 }
 \examples{
-correlationAnalyzeR::getAvailableGenes("hsapiens")
+correlationAnalyzeR::getAvailableGenes()
 
 }

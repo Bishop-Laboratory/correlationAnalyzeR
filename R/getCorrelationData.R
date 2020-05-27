@@ -2,8 +2,6 @@
 #'
 #' Obtain correlation data by querying MySQL database
 #'
-#' @param Species Species to obtain gene names for.
-#'     Either 'hsapiens' or 'mmusculus'
 #' @param Sample_Type Type of RNA Seq samples used to create correlation data.
 #' Either "all", "normal", or "cancer". Can be a single value for all genes,
 #' or a vector corresponding to geneList.
@@ -17,20 +15,23 @@
 #' @return A correlation data frame object
 #'
 #' @examples
-#'correlationAnalyzeR::getCorrelationData(Species = "hsapiens",
-#'                                     Sample_Type = "normal",
-#'                                     Tissue = "blood",
-#'                                     geneList = c("ATM", "BRCA1"))
+#'correlationAnalyzeR::getCorrelationData(Sample_Type = "normal",
+#'                                        Tissue = "kidney",
+#'                                        geneList = c("ATM", "BRCA1"))
 #'
 #' @export
-getCorrelationData <- function(Species, Sample_Type,
+getCorrelationData <- function(#Species,
+                               Sample_Type,
                                Tissue, geneList, pool = NULL) {
 
   # Species = "hsapiens"
-  # Sample_Type = "normal"
-  # Tissue = c("all")
-  # geneList = c("A1BG")
+  # Sample_Type = "all"
+  # Tissue = c("female_reproductive")
+  # geneList = c("BRCA1")
   # pool = NULL
+
+
+  Species <- "hsapiens"
 
   if (! is.null(pool)) {
     if (! pool$valid) {
@@ -46,15 +47,15 @@ getCorrelationData <- function(Species, Sample_Type,
     doPool <- FALSE
     conn <- NULL
     retryCounter <- 1
-    cat("\nEstablishing connection to database ... \n")
+    # cat("\nEstablishing connection to database ... \n")
     while(is.null(conn)) {
       conn <- try(silent = T, eval({
         DBI::dbConnect(
           drv = RMySQL::MySQL(),
-          user = "public-rds-user", port = 3306,
-          dbname="bishoplabdb",
+          user = "public-rds-user@m2600az-db01p.mysql.database.azure.com", port = 3306,
+          dbname="correlation_analyzer",
           password='public-user-password',
-          host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
+          host="m2600az-db01p.mysql.database.azure.com"
         )
       }))
       if ("try-error" %in% class(conn)) {
@@ -74,8 +75,8 @@ getCorrelationData <- function(Species, Sample_Type,
   }
 
   # Make sure all tissue entries are appropriate
-  goodConditions <- correlationAnalyzeR::getTissueTypes(Species = Species,
-                                                        pool = pool)
+  goodConditions <- getTissueTypes(#Species = Species,
+                                   pool = pool)
 
   goodTissues <- unique(gsub(goodConditions,
                              pattern = "(.*) - (.*)",
@@ -91,13 +92,7 @@ getCorrelationData <- function(Species, Sample_Type,
          " Run correlationAnalyzeR::getTissueTypes() to see available tissue - sample groups.")
   }
 
-
-
-  if (Species == "hsapiens") {
-    geneNames <- correlationAnalyzeR::hsapiens_corrSmall_geneNames
-  } else {
-    geneNames <- correlationAnalyzeR::mmusculus_corrSmall_geneNames
-  }
+  geneNames <- correlationAnalyzeR::hsapiens_corrSmall_geneNames
   # Queries from multiple db at once
   if (length(Tissue) == 1) {
     Tissue <- rep(Tissue, length(geneList))
@@ -119,15 +114,10 @@ getCorrelationData <- function(Species, Sample_Type,
   }
 
   if (length(unique(Tissue)) == 1 & length(unique(Sample_Type)) == 1) {
-    if (Tissue == "respiratory") {
-      TissueNow <- "repiratory"
-    } else {
-      TissueNow <- Tissue
-    }
     sql <- paste0("SELECT * FROM correlations_",
                   Species, "_",
                   tolower(unique(Sample_Type)), "_",
-                  tolower(unique(TissueNow)),
+                  tolower(unique(Tissue)),
                   " WHERE row_names IN ('",
                   paste(geneList, collapse = "','"), "')")
     resdf <- try(silent = T, eval({
@@ -149,15 +139,10 @@ getCorrelationData <- function(Species, Sample_Type,
     for ( i in 1:length(geneList) ) {
       geneName <- geneList[i]
       TissueNow <- Tissue[i]
-      if (TissueNow == "respiratory") {
-        TissueNow2 <- "repiratory"
-      } else {
-        TissueNow2 <- TissueNow
-      }
       Sample_TypeNow <- Sample_Type[i]
       sql <- paste0("SELECT * FROM correlations_",
                     Species, "_",
-                    tolower(Sample_TypeNow), "_", tolower(TissueNow2),
+                    tolower(Sample_TypeNow), "_", tolower(TissueNow),
                     " WHERE row_names IN ('",
                     geneName, "')")
       resdf <- try(silent = T, eval({

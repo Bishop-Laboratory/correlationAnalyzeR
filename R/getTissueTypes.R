@@ -2,9 +2,6 @@
 #'
 #' Finds tissue types with available correlation data for a given species
 #'
-#' @param Species Species to obtain tissue types for.
-#'     Either 'hsapiens' or 'mmusculus'
-#'
 #' @param useBlackList Should black-listed tissue/disease categories for this species
 #' be removed from the returned list? Improves the quality of analysis by removing
 #' categories with low sample numbers and high observed variance.
@@ -13,16 +10,18 @@
 #' @return Vector containing available tissue types.
 #'
 #' @examples
-#' correlationAnalyzeR::getTissueTypes("hsapiens")
+#' correlationAnalyzeR::getTissueTypes()
 #'
 #' @export
-getTissueTypes <- function(Species = c("hsapiens", "mmusculus"),
+getTissueTypes <- function(#Species = c("hsapiens", "mmusculus"),
                            useBlackList = FALSE, pool = NULL) {
 
   # # bug testing
   # Species = "hsapiens"
   # useBlackList = TRUE
   # pool = NULL
+
+  Species = "hsapiens"
 
   if (! is.null(pool)) {
     if (! pool$valid) {
@@ -38,15 +37,14 @@ getTissueTypes <- function(Species = c("hsapiens", "mmusculus"),
     doPool <- FALSE
     conn <- NULL
     retryCounter <- 1
-    cat("\nEstablishing connection to database ... \n")
     while(is.null(conn)) {
       conn <- try(silent = T, eval({
         DBI::dbConnect(
           drv = RMySQL::MySQL(),
-          user = "public-rds-user", port = 3306,
-          dbname="bishoplabdb",
+          user = "public-rds-user@m2600az-db01p.mysql.database.azure.com", port = 3306,
+          dbname="correlation_analyzer",
           password='public-user-password',
-          host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
+          host="m2600az-db01p.mysql.database.azure.com"
         )
       }))
       if ("try-error" %in% class(conn)) {
@@ -66,29 +64,17 @@ getTissueTypes <- function(Species = c("hsapiens", "mmusculus"),
     on.exit(DBI::dbDisconnect(conn))
   }
 
-
-
   Species <- Species[1]
   tabs <- DBI::dbListTables(conn)
   tabs <- tabs[grep(tabs, pattern = paste0("correlations_", Species))]
   tabs <- gsub(tabs, pattern = paste0("correlations_", Species, "_"),
                replacement = "")
-  tabs <- gsub(tabs, pattern = "repiratory",
-               replacement = "respiratory")
   if (useBlackList) {
-    blackListHuman <- correlationAnalyzeR::blackListHuman
-    blackListMouse <- correlationAnalyzeR::blackListMouse
-    if (Species == "hsapiens") {
-      blackList <- blackListHuman
-    } else {
-      blackList <- blackListMouse
-    }
-
+    blackList <- correlationAnalyzeR::blackListHuman
     tabs <- tabs[grep(x = tabs, pattern = paste(blackList, collapse = "|"), invert = TRUE)]
   }
-  tabs <- strsplit(tabs, split = "_")
-  tissues <- vapply(tabs, "[[", FUN.VALUE = "character", 2)
-  types <- vapply(tabs, "[[", FUN.VALUE = "character", 1)
+  tissues <- gsub(tabs, pattern = "^([a-z]+)_([a-z_]+)$", replacement = "\\2")
+  types <- gsub(tabs, pattern = "^([a-z]+)_([a-z_]+)$", replacement = "\\1")
   result <- paste0(tissues, " - ", types)
   result <- result[order(result)]
   return(result)

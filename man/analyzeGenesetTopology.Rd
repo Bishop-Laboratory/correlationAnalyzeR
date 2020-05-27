@@ -4,21 +4,26 @@
 \alias{analyzeGenesetTopology}
 \title{Analyze Gene List Topology}
 \usage{
-analyzeGenesetTopology(genesOfInterest, Species = c("hsapiens",
-  "mmusculus"), Sample_Type = c("normal", "cancer"), Tissue = "all",
-  crossComparisonType = c("PCA", "variantGenes", "coCorrelativeGenes",
-  "pathwayEnrich"), pathwayType = c("simple"),
-  setComparisonCutoff = "Auto", pathwayEnrichment = FALSE,
-  pValueCutoff = 0.05, numTopGenesToPlot = "Auto",
-  alternativeTSNE = TRUE, numClusters = "Auto",
-  outputPrefix = "CorrelationAnalyzeR_Output", returnDataOnly = TRUE,
-  pool = NULL, makePool = FALSE)
+analyzeGenesetTopology(
+  genesOfInterest,
+  Sample_Type = c("normal", "cancer"),
+  Tissue = "all",
+  crossComparisonType = c("PCA", "variantGenes", "coCorrelativeGenes", "pathwayEnrich"),
+  pathwayType = c("simple"),
+  setComparisonCutoff = "Auto",
+  pathwayEnrichment = FALSE,
+  pValueCutoff = 0.05,
+  numTopGenesToPlot = "Auto",
+  alternativeTSNE = TRUE,
+  numClusters = "Auto",
+  outputPrefix = "CorrelationAnalyzeR_Output",
+  returnDataOnly = TRUE,
+  pool = NULL,
+  makePool = FALSE
+)
 }
 \arguments{
 \item{genesOfInterest}{A vector of genes to analyze or the name of an official MSIGDB term.}
-
-\item{Species}{Species to obtain gene names for.
-Either 'hsapiens' or 'mmusculus'}
 
 \item{Sample_Type}{Type of RNA Seq samples used to create correlation data.
 Either "all", "normal", or "cancer". Can be a single value for all genes,
@@ -80,7 +85,6 @@ Cross Comparison Types:
 genesOfInterest <- c("CDK12", "AURKB", "SFPQ", "NFKB1", "BRCC3", "BRCA2", "PARP1",
                      "DHX9", "SON", "AURKA", "SETX", "BRCA1", "ATMIN")
 correlationAnalyzeR::analyzeGenesetTopology(genesOfInterest = genesOfInterest,
-                                 Species = "hsapiens",
                                  Sample_Type = "cancer", returnDataOnly = TRUE,
                                  Tissue = "brain",
                                  crossComparisonType = c("variantGenes", "PCA"))

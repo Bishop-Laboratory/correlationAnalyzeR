@@ -4,21 +4,28 @@
 \alias{geneVsGeneListAnalyze}
 \title{Analyze gene vs gene list relationship}
 \usage{
-geneVsGeneListAnalyze(pairedGenesList, Species = c("hsapiens",
-  "mmusculus"), Sample_Type = c("normal", "cancer"), Tissue = "all",
-  outputPrefix = "CorrelationAnalyzeR_Output", plotLabels = TRUE,
-  sigTest = TRUE, nPerm = 2000, plotMaxMinCorr = TRUE,
-  onlyTop = FALSE, topCutoff = 0.5, autoRug = TRUE,
-  plotTitle = TRUE, returnDataOnly = TRUE, pool = NULL,
-  makePool = FALSE)
+geneVsGeneListAnalyze(
+  pairedGenesList,
+  Sample_Type = c("normal", "cancer"),
+  Tissue = "all",
+  outputPrefix = "CorrelationAnalyzeR_Output",
+  plotLabels = TRUE,
+  sigTest = TRUE,
+  nPerm = 2000,
+  plotMaxMinCorr = TRUE,
+  onlyTop = FALSE,
+  topCutoff = 0.5,
+  autoRug = TRUE,
+  plotTitle = TRUE,
+  returnDataOnly = TRUE,
+  pool = NULL,
+  makePool = FALSE
+)
 }
 \arguments{
 \item{pairedGenesList}{A list, named with primary genes of interest with
 vectors of secondary genes to test against OR a string containing the
 official MSIGDB name for a gene set of interest.}
-
-\item{Species}{Species to obtain gene names for.
-Either 'hsapiens' or 'mmusculus'}
 
 \item{Sample_Type}{Type of RNA Seq samples used to create correlation data.
 Either "all", "normal", or "cancer". Can be a single value for all genes,
@@ -73,7 +80,7 @@ pairedGenesList <- list("TP53" = c("BRCA1", "CDK12", "PARP1"),
                         "SON" = c("AURKB", "SFPQ", "DHX9"))
 
 correlationAnalyzeR::geneVsGeneListAnalyze(pairedGenesList = pairedGenesList,
-                              Species = "hsapiens", returnDataOnly = TRUE,
+                              returnDataOnly = TRUE,
                               Sample_Type = "normal",
                               Tissue = "brain")
 

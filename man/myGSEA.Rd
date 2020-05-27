@@ -4,9 +4,17 @@
 \alias{myGSEA}
 \title{Wrapper for clusterProlifer's GSEA()}
 \usage{
-myGSEA(ranks, TERM2GENE, padjustedCutoff = 0.05, returnDataOnly = TRUE,
-  nperm = 2000, topPlots = FALSE, outDir, Condition = "GSEA Results",
-  plotFile = "GSEA_results")
+myGSEA(
+  ranks,
+  TERM2GENE,
+  padjustedCutoff = 0.05,
+  returnDataOnly = TRUE,
+  nperm = 2000,
+  topPlots = FALSE,
+  outDir,
+  Condition = "GSEA Results",
+  plotFile = "GSEA_results"
+)
 }
 \arguments{
 \item{ranks}{Numeric of gene 'scores' ordered by decreasing value and

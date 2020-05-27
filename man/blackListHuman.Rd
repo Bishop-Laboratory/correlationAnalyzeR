@@ -4,7 +4,9 @@
 \name{blackListHuman}
 \alias{blackListHuman}
 \title{A vector of blacklisted tissue-disease categories for human samples}
-\format{An object of class \code{character} of length 10.}
+\format{
+An object of class \code{character} of length 6.
+}
 \usage{
 blackListHuman
 }

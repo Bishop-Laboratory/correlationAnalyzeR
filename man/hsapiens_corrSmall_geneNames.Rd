@@ -4,7 +4,9 @@
 \name{hsapiens_corrSmall_geneNames}
 \alias{hsapiens_corrSmall_geneNames}
 \title{A vector of valid human genes to extract correlations from}
-\format{An object of class \code{character} of length 28685.}
+\format{
+An object of class \code{character} of length 28722.
+}
 \usage{
 hsapiens_corrSmall_geneNames
 }

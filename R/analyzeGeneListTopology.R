@@ -4,9 +4,6 @@
 #'
 #' @param genesOfInterest A vector of genes to analyze or the name of an official MSIGDB term.
 #'
-#' @param Species Species to obtain gene names for.
-#'     Either 'hsapiens' or 'mmusculus'
-#'
 #' @param pathwayType Which pathway annotations should be considered? Options listed in
 #' correlationAnalyzeR::GSEA_categories. See details of getTERM2GENE for more info.
 #'
@@ -49,7 +46,6 @@
 #' genesOfInterest <- c("CDK12", "AURKB", "SFPQ", "NFKB1", "BRCC3", "BRCA2", "PARP1",
 #'                      "DHX9", "SON", "AURKA", "SETX", "BRCA1", "ATMIN")
 #' correlationAnalyzeR::analyzeGenesetTopology(genesOfInterest = genesOfInterest,
-#'                                  Species = "hsapiens",
 #'                                  Sample_Type = "cancer", returnDataOnly = TRUE,
 #'                                  Tissue = "brain",
 #'                                  crossComparisonType = c("variantGenes", "PCA"))
@@ -69,7 +65,7 @@
 #' @import dplyr
 #' @export
 analyzeGenesetTopology <-  function(genesOfInterest,
-                                    Species = c("hsapiens", "mmusculus"),
+                                    # Species = c("hsapiens", "mmusculus"),
                                     Sample_Type = c("normal", "cancer"),
                                     Tissue = "all",
                                     crossComparisonType = c("PCA",
@@ -91,7 +87,8 @@ analyzeGenesetTopology <-  function(genesOfInterest,
 
   # pool::poolClose(pool)
   # pool = NULL
-  # genesOfInterest <- "HALLMARK_OXIDATIVE_PHOSPHORYLATION"
+  # # genesOfInterest <- "HALLMARK_OXIDATIVE_PHOSPHORYLATION"
+  # genesOfInterest <- c("ATM", "BRCA1", "STAG2", "NFE2L2")
   # crossComparisonType = c("PCA")
   # pathwayType = c("simple")
   # returnDataOnly = TRUE
@@ -104,8 +101,12 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   # setComparisonCutoff = "Auto"
   # Tissue = "all"
   # Sample_Type = c("normal")
+  # makePool = FALSE
   # Species = c("hsapiens")
 
+
+
+  Species = "hsapiens"
 
   if (! is.null(pool)) {
     if (! pool$valid) {
@@ -115,15 +116,15 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   if (is.null(pool)) {
     if (makePool) {
       retryCounter <- 1
-      cat("\nEstablishing connection to database ... \n")
+      # cat("\nEstablishing connection to database ... \n")
       while(is.null(pool)) {
         pool <- try(silent = T, eval({
           pool::dbPool(
-            drv = RMySQL::MySQL(max.con = 150),
-            user = "public-rds-user", port = 3306,
-            dbname="bishoplabdb",
+            drv = RMySQL::MySQL(),
+            user = "public-rds-user@m2600az-db01p.mysql.database.azure.com", port = 3306,
+            dbname="correlation_analyzer",
             password='public-user-password',
-            host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
+            host="m2600az-db01p.mysql.database.azure.com"
           )
         }))
         if ("try-error" %in% class(pool)) {
@@ -152,7 +153,8 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   resList <- list()
 
   # Get available gene names
-  avGenes <- correlationAnalyzeR::getAvailableGenes(Species, pool = pool)
+  avGenes <- correlationAnalyzeR::getAvailableGenes(#Species,
+                                                    pool = pool)
 
   # Check genes to make sure they exist -- only a warning
   intGenes <- genesOfInterest
@@ -192,7 +194,6 @@ analyzeGenesetTopology <-  function(genesOfInterest,
 
     for(i in 1:length(termlist)) {
       term <- termlist[i]
-      print(term)
       nameStr <- names(term)
       termGenes <- TERM2GENE$gene_symbol[which(TERM2GENE$gs_name == term)]
       termGenes <- termGenes[which(termGenes %in% avGenes)] # Ensure actionable genes
@@ -206,17 +207,16 @@ analyzeGenesetTopology <-  function(genesOfInterest,
   # timestamp()
   Sample_Type <- rep(Sample_Type[1], length(genesOfInterest))
   Tissue <- rep(Tissue[1], length(genesOfInterest))
-  corrDF <- correlationAnalyzeR::getCorrelationData(Species = Species,
+  corrDF <- correlationAnalyzeR::getCorrelationData(#Species = Species,
                                                     Tissue = Tissue, pool = pool,
                                                     Sample_Type = Sample_Type,
                                                     geneList = genesOfInterest)
   # timestamp()
 
   resList[["Correlation_Data"]] <- corrDF
-
-  colLengths <- ifelse(Species[1] == "hsapiens", yes = 28685, no = 24924)
-  pVals <- apply(as.matrix(corrDF), MARGIN = 1:2, n = colLengths, FUN = function(x, n) {
-    dt(abs(x)/sqrt((1-x^2)/(n-2)), df = 2)
+  # T-test method of correlation p vals
+  pVals <- apply(as.matrix(corrDF), MARGIN = 1:2, n = length(corrDF[,1]), FUN = function(x, n) {
+    stats::dt(abs(x)/sqrt((1-x^2)/(n-2)), df = 2)
   })
   pVals <- as.data.frame(pVals)
 

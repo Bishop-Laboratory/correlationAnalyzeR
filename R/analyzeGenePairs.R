@@ -9,8 +9,6 @@
 #' Choose "all", "normal", or "cancer". Default: c("normal", "normal")
 #' @param Tissue A length-two vector of tissue types corresponding to genesOfInterest.
 #' Run getTissueTypes() to see available list. Default: c("all", "all")
-#' @param Species Species to obtain gene names for.
-#'     Either 'hsapiens' or 'mmusculus'. Default: "hsapiens".
 #' @param GSEA_Type Which GSEA annotations should be considered? Options listed in
 #' correlationAnalyzeR::pathwayCategories -- See details of getTERM2GENE for more info.
 #' @param nperm Number of permutations to run in GSEA. Default is 2000
@@ -19,7 +17,7 @@
 #' across all tissue and disease types. If both genes for genesOfInterest are the
 #' same -- will compare normal vs cancer for that gene in each available tissue. Else, will
 #' perform comparison of two different genes in all tissue-disease groups.
-#' Will only consider user input for returnDataOnly, outputPrefix, Species, and genesOfInterest.
+#' Will only consider user input for returnDataOnly, outputPrefix, and genesOfInterest.
 #' @param outputPrefix Prefix for saved files -- the directory name to store output files in. If
 #' folder does not exist, it will be created.
 #' @param runGSEA If TRUE will run GSEA using gene correlation values.
@@ -35,19 +33,17 @@
 #' @examples
 #' genesOfInterest <- c("ATM", "SLC7A11")
 #' correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
-#'                               Species = "hsapiens",
 #'                               GSEA_Type = "simple", returnDataOnly = TRUE,
 #'                               Sample_Type = c("normal", "normal"),
 #'                               Tissue = c("brain", "brain"))
 #' genesOfInterest <- c("BRCA1", "BRCA1")
 #' correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
-#'                               Species = "hsapiens",
 #'                               GSEA_Type = "simple", returnDataOnly = TRUE,
 #'                               Sample_Type = c("normal", "cancer"),
 #'                               Tissue = c("respiratory", "respiratory"))
 #' genesOfInterest <- c("NFKB1", "SOX10")
 #' correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
-#'                               Species = "hsapiens", returnDataOnly = TRUE,
+#'                               returnDataOnly = TRUE,
 #'                               crossCompareMode = TRUE)
 #' @importFrom rlang .data
 #' @import dplyr
@@ -58,7 +54,7 @@
 analyzeGenePairs <- function(genesOfInterest,
                              Sample_Type = c("normal", "normal"),
                              Tissue = c("all", "all"),
-                             Species = c("hsapiens", "mmusculus"),
+                             #Species = c("hsapiens", "mmusculus"),
                              GSEA_Type = c("simple"),
                              outputPrefix = "CorrelationAnalyzeR_Output_Paired",
                              crossCompareMode = FALSE,
@@ -69,9 +65,9 @@ analyzeGenePairs <- function(genesOfInterest,
                              pool = NULL,
                              makePool = FALSE) {
 
-  # genesOfInterest <- c("BRCA1", "BRCA1")
+  # genesOfInterest <- c("STAG2", "STAG2")
   # Species <- "hsapiens"
-  # crossCompareMode = FALSE
+  # crossCompareMode = TRUE
   # returnDataOnly = TRUE
   # returnDataOnly = TRUE
   # outputPrefix = "CorrelationAnalyzeR_Output_Paired"
@@ -80,11 +76,13 @@ analyzeGenePairs <- function(genesOfInterest,
   # Sample_Type = c("normal", "cancer")
   # Tissue = c("all", "all")
   # TERM2GENE = NULL
-  # GSEA_Type = c("none")
+  # GSEA_Type = c("simple")
   # pool = NULL
-  # runGSEA = FALSE
   # sampler = FALSE
   # nperm = 2000
+  # makePool = FALSE
+  # Sample_Type = c("normal", "cancer")
+  # Tissue = c("all", "all")
 
 
   getPhBreaks <- function(mat, palette = NULL) {
@@ -108,15 +106,15 @@ analyzeGenePairs <- function(genesOfInterest,
   if (is.null(pool)) {
     if (makePool) {
       retryCounter <- 1
-      cat("\nEstablishing connection to database ... \n")
+      # cat("\nEstablishing connection to database ... \n")
       while(is.null(pool)) {
         pool <- try(silent = T, eval({
           pool::dbPool(
-            drv = RMySQL::MySQL(max.con = 150),
-            user = "public-rds-user", port = 3306,
-            dbname="bishoplabdb",
+            drv = RMySQL::MySQL(),
+            user = "public-rds-user@m2600az-db01p.mysql.database.azure.com", port = 3306,
+            dbname="correlation_analyzer",
             password='public-user-password',
-            host="bishoplabdb.cyss3bq5juml.us-west-2.rds.amazonaws.com"
+            host="m2600az-db01p.mysql.database.azure.com"
           )
         }))
         if ("try-error" %in% class(pool)) {
@@ -150,24 +148,24 @@ analyzeGenePairs <- function(genesOfInterest,
   if (crossCompareMode) {
 
     cat("\nRunning cross comparison mode ... \n")
-    availTissue <- correlationAnalyzeR::getTissueTypes(Species = Species,
+    availTissue <- correlationAnalyzeR::getTissueTypes(#Species = Species,
                                                        pool = pool,
                                                        useBlackList = TRUE)
     runGSEA <- F
     if (genesOfInterest[1] == genesOfInterest[2]) {
       cat("\nGene one is the same as gene two ... \n")
-      if (Species == "mmusculus") {
-        stop("\nOnly normal tissues available for mouse",
-             " due to black-listing of cancer groups for low quality.",
-             "\nEnter two different genes or choose human ... \n")
-      }
+      # if (Species == "mmusculus") {
+      #   stop("\nOnly normal tissues available for mouse",
+      #        " due to black-listing of cancer groups for low quality.",
+      #        "\nEnter two different genes or choose human ... \n")
+      # }
       cat("\nWill perform normal vs cancer comparison on",
           genesOfInterest[1], "... \n")
       mode <- "cross_normalVsCancer"
       df <- as.data.frame(table(gsub(availTissue,
                                      pattern = " - .*",
                                      replacement = "")), stringsAsFactors = FALSE)
-      goodTissues <- df$Var1[which(df$Freq == 2)]
+      goodTissues <- df$Var1[which(df$Freq == 3)]
       Tissue <- rep(goodTissues, each = 2)
       Sample_Type <- rep(c("normal", "cancer"), length(goodTissues))
       genesVec <- rep(genesOfInterest[1], length(Sample_Type))
@@ -179,113 +177,113 @@ analyzeGenePairs <- function(genesOfInterest,
           geneOne, "and",
           geneTwo, "across all available tissue-disease conditions... \n")
       mode <- "cross_geneVsGene"
+      availTissue <- availTissue[grep(availTissue, pattern = "all", invert = T)]
       availTissue <- strsplit(availTissue, split = " - ")
-      Tissue <- vapply(availTissue, FUN = "[[", FUN.VALUE = "character", 1)
-      genesVec <- rep(genesOfInterest, length(Tissue))
-      Tissue <- rep(Tissue, each = 2)
-      Sample_Type <- vapply(availTissue, FUN = "[[", FUN.VALUE = "character", 2)
-      Sample_Type <- rep(Sample_Type, each = 2)
+      TissueO <- vapply(availTissue, FUN = "[[", FUN.VALUE = "character", 1)
+      Tissue <- rep(TissueO, 2)
+      Sample_TypeO <- vapply(availTissue, FUN = "[[", FUN.VALUE = "character", 2)
+      Sample_Type <- rep(Sample_TypeO, 2)
+      genesVec <- rep(genesOfInterest, each =  length(TissueO))
+
     }
-    # Get TPM for each gene
+    # Get VST for each gene
     geneUnique <- unique(genesVec)
-    geneTPMList <- correlationAnalyzeR::getTissueTPM(genesOfInterest = geneUnique,
-                                                     Species = Species,
+    geneVSTList <- correlationAnalyzeR::getTissueVST(genesOfInterest = geneUnique,
+                                                     #Species = Species,
                                                      Tissues = "all",
                                                      pool = pool,
                                                      Sample_Type = "all",
                                                      useBlackList = TRUE)
-    geneTPMDF <- data.table::rbindlist(geneTPMList, idcol = "group")
-    rawGroup <- geneTPMDF$group
-    rawGroup1 <- stringr::str_to_title(gsub(rawGroup,
-                                            pattern = "_.*",
-                                            replacement = ""))
-    rawGroup2 <- gsub(rawGroup, pattern = ".*_", replacement = "")
-    rawGroup2 <- stringr::str_to_title(gsub(rawGroup2,
-                                            pattern = "0",
-                                            replacement = " "))
-    geneTPMDF <- cbind(paste0(rawGroup2,
-                              " - ",
-                              rawGroup1),
-                       rawGroup2,
-                       rawGroup1,
-                       geneTPMDF[,c(-1)])
-    colnames(geneTPMDF)[c(1:4)] <- c("Group", "Tissue", "sampleType", "Samples")
-    availTissue <- correlationAnalyzeR::getTissueTypes(Species = Species,
-                                                       pool = pool,
-                                                       useBlackList = TRUE)
-    availTissue <- gsub(availTissue, pattern = "0", replacement = " ")
-    availTissue <- stringr::str_to_title(availTissue)
-    # all(geneTPMDF$Group %in% availTissue) #-- should be TRUE
-    geneTPMDF <- geneTPMDF[order(match(geneTPMDF$Group, availTissue)),]
-    # Make TPM plot
-    crossCompareResTPM <- list()
+    geneVSTDF <- data.table::rbindlist(geneVSTList, idcol = "group")
+    geneVSTDF$Tissue <- stringr::str_to_title(gsub(geneVSTDF$group, pattern = "(.+) - (.+)", replacement = "\\1"))
+    geneVSTDF$sampleType <-  stringr::str_to_title(gsub(geneVSTDF$group, pattern = "(.+) - (.+)", replacement = "\\2"))
     if (mode == "cross_geneVsGene") {
-      geneTPMDF[,5] <- log2(geneTPMDF[,5] + 1)
-      geneTPMDF[,6] <- log2(geneTPMDF[,6] + 1)
-      geneTPMDFToPlot <- geneTPMDF[,c(1,2, 3, 5, 6)]
-      geneTPMDFToPlot <- geneTPMDFToPlot %>%
-        gather("Gene", "TPM", -.data$Group, -.data$Tissue, -.data$sampleType)
+      geneVSTDF <- geneVSTDF[, c(1, 5, 6, 2, 3, 4)]
+    } else {
+      geneVSTDF <- geneVSTDF[, c(1, 4, 5, 2, 3)]
+    }
+    colnames(geneVSTDF)[c(1:4)] <- c("Group", "Tissue", "sampleType", "Samples")
+
+    # Make VST plot
+    crossCompareResVST <- list()
+    if (mode == "cross_geneVsGene") {
+      geneVSTDF <- geneVSTDF[geneVSTDF$sampleType != "All",]
+      geneVSTDFToPlot <- geneVSTDF[,c(1,2, 3, 5, 6)]
+      geneVSTDFToPlot <- geneVSTDFToPlot %>%
+        gather("Gene", "VST", -.data$Group, -.data$Tissue, -.data$sampleType)
       geneOne <- geneUnique[1]
       geneTwo <- geneUnique[2]
-      if (Species == "mmusculus") {
-        fillStr <- "Tissue"
-      } else {
-        fillStr <- "Group"
-      }
-      geneTPMDFToPlot1 <- geneTPMDFToPlot[which(geneTPMDFToPlot$Gene == geneOne),]
-      plotOne <- ggpubr::ggboxplot(data = geneTPMDFToPlot1,
+      fillStr <- "Group"
+      geneVSTDFToPlot1 <- geneVSTDFToPlot[which(geneVSTDFToPlot$Gene == geneOne),]
+      groups <- unique(geneVSTDFToPlot1$Group)
+      groups <- groups[order(groups)]
+      plotOne <- ggpubr::ggboxplot(data = geneVSTDFToPlot1, order = groups,
                                    x = fillStr, #facet.by = "Gene",
                                    title = paste0(geneOne,
                                                   " expression across tissue groups"),
-                                   ylab = "log2(TPM + 1)",
+                                   ylab = "Expression (VST counts)",
                                    fill = fillStr,
-                                   y = "TPM") +
+                                   y = "VST") +
         ggpubr::rotate_x_text(angle = 45) +
+        ggplot2::theme(plot.margin = ggplot2::margin(10, 10, 10, 20)) +
         ggpubr::rremove("legend") +
         ggpubr::rremove("xlab")
-      geneTPMDFToPlot2 <- geneTPMDFToPlot[which(geneTPMDFToPlot$Gene == geneTwo),]
-      plotTwo <- ggpubr::ggboxplot(data = geneTPMDFToPlot2,
+      geneVSTDFToPlot2 <- geneVSTDFToPlot[which(geneVSTDFToPlot$Gene == geneTwo),]
+      plotTwo <- ggpubr::ggboxplot(data = geneVSTDFToPlot2, order = groups,
                                    x = fillStr, #facet.by = "Gene",
                                    title = paste0(geneTwo,
                                                   " expression across conditions"),
-                                   ylab = "log2(TPM + 1)",
+                                   ylab = "Expression (VST counts)",
                                    fill = fillStr,
-                                   y = "TPM") +
+                                   y = "VST") +
         ggpubr::rotate_x_text(angle = 45) +
+        ggplot2::theme(plot.margin = ggplot2::margin(10, 10, 10, 20)) +
         ggpubr::rremove("legend") +
         ggpubr::rremove("xlab")
-      colnames(geneTPMDF)[c(5:6)] <- paste0(colnames(geneTPMDF)[c(5:6)], "_log2TPM")
-      crossCompareResTPM[["TPM_boxPlotOne"]] <- plotOne
-      crossCompareResTPM[["TPM_boxPlotTwo"]] <- plotTwo
+      colnames(geneVSTDF)[c(5:6)] <- paste0(colnames(geneVSTDF)[c(5:6)], "_VST")
+      crossCompareResVST[["VST_boxPlotOne"]] <- plotOne
+      crossCompareResVST[["VST_boxPlotTwo"]] <- plotTwo
 
     } else {
-      geneTPMDF[,5] <- log2(geneTPMDF[,5] + 1)
-      geneTPMDFToPlot <- geneTPMDF
-      colnames(geneTPMDFToPlot)[length(colnames(geneTPMDFToPlot))] <- "TPM"
+      geneVSTDFToPlot <- geneVSTDF
+      colnames(geneVSTDFToPlot)[length(colnames(geneVSTDFToPlot))] <- "VST"
 
-      goodTiss <- unique(geneTPMDFToPlot$Tissue[which(geneTPMDFToPlot$sampleType == "Cancer")])
-      goodTiss2 <- unique(geneTPMDFToPlot$Tissue[which(geneTPMDFToPlot$sampleType == "Normal")])
+      goodTiss <- unique(geneVSTDFToPlot$Tissue[which(geneVSTDFToPlot$sampleType == "Cancer")])
+      goodTiss2 <- unique(geneVSTDFToPlot$Tissue[which(geneVSTDFToPlot$sampleType == "Normal")])
       goodTissFinal <- goodTiss[which(goodTiss %in% goodTiss2)]
-      geneTPMDF2 <- geneTPMDFToPlot[which(geneTPMDFToPlot$Tissue %in% goodTissFinal),]
-      maxHeight <- max(geneTPMDF2$TPM)
-      TPMBPproto <- ggpubr::ggboxplot(data = geneTPMDF2,
-                                      x = "Tissue",
+      geneVSTDF2 <- geneVSTDFToPlot[which(geneVSTDFToPlot$Tissue %in% goodTissFinal &
+                                            geneVSTDFToPlot$sampleType != "All"),]
+      maxHeight <- max(geneVSTDF2$VST)
+      meds <- sapply(unique(geneVSTDF2$Tissue), FUN = function(groupNow) {
+        stats::median(geneVSTDF2$VST[geneVSTDF2$Tissue == groupNow &
+                                  geneVSTDF2$sampleType == "Cancer"]) -
+          stats::median(geneVSTDF2$VST[geneVSTDF2$Tissue == groupNow &
+                                    geneVSTDF2$sampleType == "Normal"])
+      })
+      meds <- meds[order(abs(meds))]
+      VSTBPproto <- ggpubr::ggboxplot(data = geneVSTDF2,
+                                      x = "Tissue", order = names(meds),
                                       title = paste0(geneUnique[1],
                                                      " expression across tissues"),
-                                      ylab = "log2(TPM + 1)",
+                                      ylab = "Expression (VST counts)",
                                       fill = "sampleType", legend = "right",
-                                      y = "TPM") +
+                                      y = "VST") +
         ggpubr::stat_compare_means(ggplot2::aes_string(group = "sampleType"),
                                    label.y = (maxHeight * 1.15),
                                    hide.ns = TRUE, label = "p.signif")
-      plot <- TPMBPproto +
+      plot <- VSTBPproto +
         ggpubr::rotate_x_text(angle = 45) +
+        ggplot2::theme(
+          axis.title.y = ggplot2::element_text(size = 16),
+          title = ggplot2::element_text(size = 22),
+          plot.margin = ggplot2::margin(10, 25, 10, 25)
+        ) +
         ggpubr::rremove("xlab") + ggpubr::rremove("legend.title")
-      colnames(geneTPMDF)[c(5)] <- paste0(colnames(geneTPMDF)[c(5)], "_log2TPM")
-      crossCompareResTPM[["TPM_boxPlot"]] <- plot
+      colnames(geneVSTDF)[c(5)] <- paste0(colnames(geneVSTDF)[c(5)], "_VST")
+      crossCompareResVST[["VST_boxPlot"]] <- plot
     }
 
-    crossCompareResTPM[["TPM_DF"]] <- geneTPMDF
+    crossCompareResVST[["VST_DF"]] <- geneVSTDF
 
     # Do paired to get correlation data
     pairRes <- correlationAnalyzeR::analyzeSingleGenes(
@@ -293,15 +291,34 @@ analyzeGenePairs <- function(genesOfInterest,
       returnDataOnly = returnDataOnly, topPlots = topPlots,
       outputPrefix = outputPrefix, runGSEA = FALSE,
       Sample_Type = Sample_Type, Tissue = Tissue,
-      Species = Species, GSEA_Type = GSEA_Type
+      #Species = Species,
+      GSEA_Type = GSEA_Type
     )
     n <- length(names(pairRes))
-    oldNames <- names(pairRes)[1:(n-2)]
-    newNames <- gsub(oldNames, pattern = ", ", replacement = "_")
-    newNames <- gsub(newNames, pattern = " - ", replacement = "_")
-    newNames <- gsub(newNames, pattern = " ", replacement = "0")
     correlations <- pairRes$correlations
     pVals <- pairRes[["P values"]]
+    if (mode != 'cross_geneVsGene') {
+      newNames <- gsub(names(pairRes), pattern = ".*, |- ", replacement = "")
+      oldNames <- gsub(names(pairRes), pattern = ".*, ", replacement = "")
+      newNames <- gsub(newNames, pattern = " ", replacement = "_")
+      newNames <- newNames[! newNames %in% c("correlations", "P_values", "P values")]
+      oldNames <- oldNames[! oldNames %in% c("correlations", "P_values", "P values")]
+    } else {
+      newNames <- gsub(names(pairRes), pattern = ", | - ", replacement = "_")
+      tissueFull <- gsub(names(pairRes), pattern = ".*, |- ", replacement = "")
+      tissueFull <- gsub(tissueFull, pattern = "_", replacement = " ")
+      oldNames <- gsub(names(pairRes), pattern = ",.*", replacement = "")
+      tissueFull <- tissueFull[! tissueFull %in% c("correlations", "P_values", "P values")]
+      newNames <- newNames[! newNames %in% c("correlations", "P_values", "P values")]
+      oldNames <- oldNames[! oldNames %in% c("correlations", "P_values", "P values")]
+      newOrder <- order(tissueFull)
+      tissueFull <- tissueFull[newOrder]
+      newNames <- newNames[newOrder]
+      oldNames <- oldNames[newOrder]
+      correlations <- correlations[,newOrder]
+      pVals <- pVals[,newOrder]
+    }
+
     colnames(correlations) <- newNames
     colnames(pVals) <- newNames
     resList <- list()
@@ -312,15 +329,17 @@ analyzeGenePairs <- function(genesOfInterest,
         dfRaw <- correlations[,c((i-1), i)]
         df <- dfRaw
         tempList <- list()
-        tissue <- stringr::str_match(colnames(df)[1], pattern = "_(.*)")[,2]
-        tissue <- gsub(tissue, pattern = "_", replacement = " - ")
-        tissue <- gsub(tissue, pattern = "0", replacement = " ")
-        tissueSmall <- gsub(tissue, pattern = " - .*", replacement = "")
+        sampleType <- stringr::str_match(colnames(df)[1], pattern = "^.+_([a-zA-Z]+$)")[,2]
+        tissueSmall <- stringr::str_match(colnames(df)[1], pattern = "^(.+)_[a-zA-Z]+$")[,2]
+        tissueSmall <- gsub(tissueSmall, pattern = "_", replacement = " ")
+        tissue <- paste0(tissueSmall, " - ", sampleType)
+        if (genesOfInterest[1] != genesOfInterest[2]) {
+          tissue <- tissueFull[i]
+        }
         df$Gene <- F
         df$Gene[which(rownames(df) %in% unique(genesVec))] <- T
         titleStr <- ifelse(genesOfInterest[1] == genesOfInterest[2], yes = tissueSmall,
                            no = tissue)
-
         labb <- lm_eqn(df)
         # xtex <- eval(parse(text = colnames(df)[1]))
         # ytex <- eval(parse(text = colnames(df)[2]))
@@ -337,6 +356,10 @@ analyzeGenePairs <- function(genesOfInterest,
                             label = labb,
                             parse = TRUE) +
           ggpubr::theme_pubr() +
+          ggplot2::theme(axis.title = ggplot2::element_text(size = 20),
+                         title = ggplot2::element_text(size = 22),
+                         plot.margin = ggplot2::margin(10, 10, 10, 10),
+                         axis.text = ggplot2::element_text(size = 16)) +
           ggplot2::theme(legend.position = "none")
         tempList[["scatterPlot"]] <- gp
         dfRaw$Variance <- matrixStats::rowVars(as.matrix(dfRaw))
@@ -353,14 +376,14 @@ analyzeGenePairs <- function(genesOfInterest,
         if (mode == "cross_geneVsGene") {
           breaks <- getPhBreaks(dfPh)
           ph <- pheatmap::pheatmap(dfPh, cluster_cols = FALSE,
-                                   breaks = breaks[[2]],
+                                   breaks = breaks[[2]],# fontsize = 18, fontsize_row = 16, fontsize_col = 18,
                                    silent = TRUE, angle_col = 0, main = titleStr,
                                    labels_col = c(genesOfInterest[1],
                                                   genesOfInterest[2]))
         } else {
           breaks <- getPhBreaks(dfPh)
           ph <- pheatmap::pheatmap(dfPh, cluster_cols = FALSE,
-                                   breaks = breaks[[2]],
+                                   breaks = breaks[[2]], # fontsize = 18, fontsize_row = 16, fontsize_col = 18,
                                    silent = TRUE, angle_col = 0, main = titleStr,
                                    labels_col = c("Normal", "Cancer"))
         }
@@ -378,7 +401,7 @@ analyzeGenePairs <- function(genesOfInterest,
                                        decreasing = TRUE),]
     resList[["Correlations"]] <- correlations
     resList[["P values"]] <- pVals
-    resList[["crossCompareTPM"]] <- crossCompareResTPM
+    resList[["crossCompareVST"]] <- crossCompareResVST
     resList[["mode"]] <- mode
     return(resList)
 
@@ -392,7 +415,8 @@ analyzeGenePairs <- function(genesOfInterest,
       outputPrefix = outputPrefix, TERM2GENE = TERM2GENE,
       runGSEA = runGSEA, nperm = nperm, sampler = sampler,
       Sample_Type = Sample_Type, Tissue = Tissue,
-      Species = Species, GSEA_Type = GSEA_Type
+      #Species = Species,
+      GSEA_Type = GSEA_Type
     )
 
   } else {
@@ -613,73 +637,130 @@ analyzeGenePairs <- function(genesOfInterest,
 
 
 
-  # Get TPM
+  # Get VST
   tissueOneNow <- gsub(tissueOne, pattern = " ", replacement = "0")
   tissueTwoNow <- gsub(tissueTwo, pattern = " ", replacement = "0")
-  TPMList <- correlationAnalyzeR::getTissueTPM(genesOfInterest = c(geneOne, geneTwo),
-                                               Species = Species, pool = pool,
+  VSTList <- correlationAnalyzeR::getTissueVST(genesOfInterest = c(geneOne, geneTwo),
+                                               #Species = Species,
+                                               pool = pool,
                                                Tissues = c(tissueOneNow, tissueTwoNow),
                                                Sample_Type = c(sampleOne, sampleTwo),
                                                useBlackList = FALSE)
-  TPMDF <- data.table::rbindlist(TPMList, idcol = "Group")
-  TPMDF$Group <- gsub(TPMDF$Group, pattern = "0", replacement = " ")
-  TPMDFOne <- TPMDF[grep(TPMDF$Group,
-                         pattern = paste0("_", tissueOne)),]
-  TPMDFOne <- TPMDFOne[grep(TPMDFOne$Group,
-                         pattern = paste0(sampleOne, "_")),]
-
-  TPMDFTwo <- TPMDF[grep(TPMDF$Group,
-                         pattern = paste0("_", tissueTwo)),]
-  TPMDFTwo <- TPMDFTwo[grep(TPMDFTwo$Group,
-                            pattern = paste0(sampleTwo, "_")),]
-  if (geneOne != geneTwo) {
-    uiNameOne <- paste0(
-      stringr::str_to_title(tissueOne), "-",
-      stringr::str_to_title(sampleOne))
-    uiNameTwo <- paste0(
-      stringr::str_to_title(tissueTwo), "-",
-      stringr::str_to_title(sampleTwo))
-    TPMDFOne <- TPMDFOne[,c(-4)]
-    TPMDFOne$Gene <- colnames(TPMDFOne)[3]
-    TPMDFTwo <- TPMDFTwo[,c(-3)]
-    TPMDFTwo$Gene <- colnames(TPMDFTwo)[3]
-    TPMDFOne[,3] <- log2(TPMDFOne[,3] + 1)
-    TPMDFTwo[,3] <- log2(TPMDFTwo[,3] + 1)
-    colnames(TPMDFTwo)[3] <- "Log2TPM"
-    colnames(TPMDFOne)[3] <- "Log2TPM"
-    titleStr <- paste0(geneOne, " vs. ",
-                       geneTwo, " expression")
-    if (uiNameOne != uiNameTwo) {
-      capStr <- paste0("In ", tolower(uiNameOne), " vs ", tolower(uiNameTwo), " samples")
-    } else {
-      capStr <- paste0("In ", tolower(uiNameOne), " samples")
-    }
-    fillStr <- "Gene"
+  VSTDF <- data.table::rbindlist(VSTList, idcol = "Group")
+  if (tissueOne == "all" & tissueTwo == "all" &
+      geneOne == geneTwo) {
+    colnames(VSTDF)[3] <- "value"
+    VSTDF$tissue <- gsub(VSTDF$Group,
+                         pattern = "(.*) - (.*)",
+                         replacement = "\\1")
+    VSTDF$sample <- gsub(VSTDF$Group,
+                         pattern = "(.*) - (.*)",
+                         replacement = "\\2")
+    goodTiss <- unique(VSTDF$tissue[which(VSTDF$sample == "cancer")])
+    goodTiss2 <- unique(VSTDF$tissue[which(VSTDF$sample == "normal")])
+    goodTissFinal <- goodTiss[which(goodTiss %in% goodTiss2)]
+    VSTDF2 <- VSTDF[which(VSTDF$tissue %in% goodTissFinal),]
+    VSTDF2 <- VSTDF2[VSTDF2$sample != "all",]
+    maxHeight <- max(VSTDF2$value)
+    meds <- sapply(unique(VSTDF2$tissue), FUN = function(groupNow) {
+      stats::median(VSTDF2$value[VSTDF2$tissue == groupNow &
+                                   VSTDF2$sample == "cancer"]) -
+        stats::median(VSTDF2$value[VSTDF2$tissue == groupNow &
+                                     VSTDF2$sample == "normal"])
+    })
+    meds <- meds[order(abs(meds))]
+    VSTBPproto <- ggpubr::ggboxplot(data = VSTDF2,
+                                    x = "tissue", order = names(meds),
+                                    title = paste0(geneOne, " expression"),
+                                    ylab = "Expression (VST counts)",
+                                    fill = "sample", legend = "right",
+                                    y = "value") +
+      ggpubr::stat_compare_means(ggplot2::aes_string(group = "sample"),
+                                 label.y = (maxHeight * 1.15),
+                                 hide.ns = TRUE, label = "p.signif")
+    VSTplot <- VSTBPproto +
+      ggpubr::rotate_x_text(angle = 45) +
+      ggplot2::theme(
+        axis.title.y = ggplot2::element_text(size = 16),
+        title = ggplot2::element_text(size = 22),
+        plot.margin = ggplot2::margin(10, 25, 10, 25)
+      ) +
+      ggpubr::rremove("xlab") + ggpubr::rremove("legend.title")
+    VSTDFFinal <- VSTDF2
   } else {
-    capStr <- NULL
-    TPMDFOne$Gene <- paste0(colnames(TPMDFOne)[3], "_", TPMDFOne$Group)
-    TPMDFTwo$Gene <- paste0(colnames(TPMDFTwo)[3], "_", TPMDFTwo$Group)
-    TPMDFOne[,3] <- log2(TPMDFOne[,3] + 1)
-    TPMDFTwo[,3] <- log2(TPMDFTwo[,3] + 1)
-    colnames(TPMDFTwo)[3] <- "Log2TPM"
-    colnames(TPMDFOne)[3] <- "Log2TPM"
-    titleStr <- paste0(geneOne, " expression")
-    fillStr <- "Group"
+    if (tissueOne != "all") {
+      VSTDFOne <- VSTDF[grep(VSTDF$Group,
+                             pattern = tissueOne),]
+    } else {
+      VSTDFOne <- VSTDF
+    }
+
+    VSTDFOne <- VSTDFOne[grep(VSTDFOne$Group,
+                              pattern = sampleOne),]
+
+    if (tissueTwo != "all") {
+      VSTDFTwo <- VSTDF[grep(VSTDF$Group,
+                             pattern = tissueTwo),]
+    } else {
+      VSTDFTwo <- VSTDF
+    }
+    VSTDFTwo <- VSTDFTwo[grep(VSTDFTwo$Group,
+                              pattern = sampleTwo),]
+
+    if (geneOne != geneTwo) {
+      uiNameOne <- paste0(
+        stringr::str_to_title(tissueOne), "-",
+        stringr::str_to_title(sampleOne))
+      uiNameTwo <- paste0(
+        stringr::str_to_title(tissueTwo), "-",
+        stringr::str_to_title(sampleTwo))
+      VSTDFOne <- VSTDFOne[,c(-4)]
+      VSTDFOne$Gene <- colnames(VSTDFOne)[3]
+      VSTDFTwo <- VSTDFTwo[,c(-3)]
+      VSTDFTwo$Gene <- colnames(VSTDFTwo)[3]
+      colnames(VSTDFTwo)[3] <- "VST"
+      colnames(VSTDFOne)[3] <- "VST"
+      titleStr <- paste0(geneOne, " vs. ",
+                         geneTwo, " expression")
+      if (uiNameOne != uiNameTwo) {
+        capStr <- paste0("In ", tolower(uiNameOne), " vs ", tolower(uiNameTwo), " samples")
+      } else {
+        capStr <- paste0("In ", tolower(uiNameOne), " samples")
+      }
+      fillStr <- "Gene"
+    } else {
+      capStr <- NULL
+      VSTDFOne$Gene <- paste0(colnames(VSTDFOne)[3], "_", VSTDFOne$Group)
+      VSTDFTwo$Gene <- paste0(colnames(VSTDFTwo)[3], "_", VSTDFTwo$Group)
+      colnames(VSTDFTwo)[3] <- "VST"
+      colnames(VSTDFOne)[3] <- "VST"
+      titleStr <- paste0(geneOne, " expression")
+      fillStr <- "Group"
+    }
+    VSTDFFinal <- rbind(VSTDFOne, VSTDFTwo)
+    VSTDFFinal$Group <- stringr::str_to_title(gsub(VSTDFFinal$Group, pattern = "_",
+                                                   replacement = " - "))
+    VSTplot <- ggpubr::ggboxplot(data = VSTDFFinal,
+                                 x = fillStr, #facet.by = "Gene",
+                                 title = titleStr,
+                                 caption = capStr,
+                                 ylab = "Expression (VST counts)",
+                                 fill = fillStr,
+                                 y = "VST") +
+      ggpubr::rremove("legend") +
+      ggpubr::rremove("xlab") +
+      ggplot2::scale_y_continuous(limits = c(.95*min(VSTDFFinal$VST), 1.1*max(VSTDFFinal$VST))) +
+      ggplot2::theme(axis.title.y = ggplot2::element_text(size = 20),
+                     title = ggplot2::element_text(size = 22),
+                     plot.margin = ggplot2::margin(10, 10, 10, 10),
+                     axis.text.x = ggplot2::element_text(size = 16)) +
+      ggpubr::stat_compare_means(comparisons = list(unique(as.data.frame(VSTDFFinal)[, which(colnames(VSTDFFinal) == fillStr)])),
+                                 size = 5)
   }
-  TPMDFFinal <- rbind(TPMDFOne, TPMDFTwo)
-  TPMDFFinal$Group <- stringr::str_to_title(gsub(TPMDFFinal$Group, pattern = "_",
-                                                     replacement = " - "))
-  TPMplot <- ggpubr::ggboxplot(data = TPMDFFinal,
-                               x = fillStr, #facet.by = "Gene",
-                               title = titleStr,
-                               caption = capStr,
-                               ylab = "log2(TPM + 1)",
-                               fill = fillStr,
-                               y = "Log2TPM") +
-    ggpubr::rremove("legend") +
-    ggpubr::rremove("xlab")
-  pairRes[["compared"]][["TPM_boxPlot"]] <- TPMplot
-  pairRes[["compared"]][["TPM_Data"]] <- TPMDFFinal
+
+
+  pairRes[["compared"]][["VST_boxPlot"]] <- VSTplot
+  pairRes[["compared"]][["VST_Data"]] <- VSTDFFinal
 
 
 
@@ -709,7 +790,11 @@ analyzeGenePairs <- function(genesOfInterest,
                           font.label = c(12, "bold", "black"),
                           label.select = unique(c(geneOne, geneTwo)),
                           add = "reg.line") +
-    ggpubr::stat_cor(label.y = 1.2)
+    ggplot2::theme(axis.title = ggplot2::element_text(size = 20),
+                   title = ggplot2::element_text(size = 22),
+                   plot.margin = ggplot2::margin(10, 10, 10, 10),
+                   axis.text = ggplot2::element_text(size = 16)) +
+    ggpubr::stat_cor(label.y = 1.2, size = 5)
   pairRes[["compared"]][["correlationPlot"]] <- gs
 
   df <- correlationsScatter
@@ -735,9 +820,13 @@ analyzeGenePairs <- function(genesOfInterest,
     ggplot2::ylab(geneTwoTitleGP) +
     ggplot2::xlab(geneOneTitleGP) +
     ggplot2::annotate("text", x = 0, y = 1.2,
-                      label = labb,
+                      label = labb, size = 5,
                       parse = TRUE) +
     ggpubr::theme_pubr() +
+    ggplot2::theme(axis.title = ggplot2::element_text(size = 20),
+                   title = ggplot2::element_text(size = 22),
+                   plot.margin = ggplot2::margin(10, 10, 10, 10),
+                   axis.text = ggplot2::element_text(size = 16)) +
     ggplot2::theme(legend.position = "none")
   pairRes[["compared"]][["correlationPlotBin"]] <- gp
 
@@ -745,7 +834,7 @@ analyzeGenePairs <- function(genesOfInterest,
 
   breaks <- getPhBreaks(corHeatVar)
   phCorVar <- pheatmap::pheatmap(corHeatVar, silent = TRUE, angle_col = 45,
-                                 breaks = breaks[[2]],
+                                 breaks = breaks[[2]], # fontsize = 18, fontsize_row = 16, fontsize_col = 18,
                                  main = "Top differentially correlated genes",
                                  labels_col = c(geneOneTitleHeat, geneTwoTitleHeat),
                                  cluster_rows = TRUE, cluster_cols = FALSE)
@@ -753,7 +842,7 @@ analyzeGenePairs <- function(genesOfInterest,
   if (runGSEA) {
     breaks <- getPhBreaks(compHeatVar)
     phGSEAVar <- pheatmap::pheatmap(compHeatVar, silent = TRUE, angle_col = 45,
-                                    breaks = breaks[[2]],
+                                    breaks = breaks[[2]], # fontsize = 18, fontsize_row = 16, fontsize_col = 18,
                                     main = "Top differentially correlated pathways",
                                     labels_col = c(geneOneTitleHeat, geneTwoTitleHeat),
                                     cluster_rows = TRUE,
@@ -763,7 +852,7 @@ analyzeGenePairs <- function(genesOfInterest,
 
   breaks <- getPhBreaks(corHeatSim)
   phCorSim <- pheatmap::pheatmap(corHeatSim, silent = TRUE, angle_col = 45,
-                                 breaks = breaks[[2]],
+                                 breaks = breaks[[2]], # fontsize = 18, fontsize_row = 16, fontsize_col = 18,
                                  main = "Top similarly correlated genes",
                                  labels_col = c(geneOneTitleHeat, geneTwoTitleHeat),
                                  cluster_rows = TRUE, cluster_cols = FALSE)
@@ -771,7 +860,7 @@ analyzeGenePairs <- function(genesOfInterest,
   if (runGSEA) {
     breaks <- getPhBreaks(compHeatSim)
     phGSEASim <- pheatmap::pheatmap(compHeatSim, silent = TRUE, angle_col = 45,
-                                    breaks = breaks[[2]],
+                                    breaks = breaks[[2]], # fontsize = 18, fontsize_row = 16, fontsize_col = 18,
                                     main = "Top similarly correlated pathways",
                                     labels_col = c(geneOneTitleHeat, geneTwoTitleHeat),
                                     cluster_rows = TRUE,

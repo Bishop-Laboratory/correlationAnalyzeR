@@ -11,6 +11,8 @@
 #' @param sampler If TRUE, will only return 100,000 random genesets from either
 #' simple or complex TERM2GENEs. Useful for reducing GSEA computational burden.
 #'
+#' @param listReturn If TRUE, will return annotations as a list object.
+#'
 #' @return A tbl object with columns "gs_name" and "gene_symbol"
 #'
 #' @details GSEA_Type category names and their MSIGDB description:
@@ -83,8 +85,8 @@
 #' \strong{complex}: This includes all possible gene sets.
 #'
 #' @examples
-#' correlationAnalyzeR::getTERM2GENE(Species = "hsapiens", GSEA_Type = "simple")
-#' correlationAnalyzeR::getTERM2GENE(Species = "hsapiens", GSEA_Type = c("Hallmark", "KEGG"))
+#' correlationAnalyzeR::getTERM2GENE(GSEA_Type = "simple")
+#' correlationAnalyzeR::getTERM2GENE(GSEA_Type = c("Hallmark", "KEGG"))
 #'
 #' @importFrom rlang .data
 #' @import dplyr
@@ -94,13 +96,13 @@
 #' @export
 getTERM2GENE <- function(GSEA_Type = c("simple"),
                          Species = c("hsapiens", "mmusculus"),
-                         sampler = FALSE) {
+                         sampler = FALSE, listReturn = FALSE) {
 
   # Species = "hsapiens"
   # GSEA_Type = "simple"
   # sampler = FALSE
 
-  if (Species == "hsapiens") {
+  if (Species[1] == "hsapiens") {
     msigSpec <- "Homo sapiens"
   } else {
     msigSpec <- "Mus musculus"
@@ -108,6 +110,13 @@ getTERM2GENE <- function(GSEA_Type = c("simple"),
 
   # Get data object
   MDF <- msigdbr::msigdbr(species = msigSpec)
+  if (listReturn) {
+    MDFThin <- MDF[,c(1, 8)]
+    cats <- paste0(MDF$gs_cat, ":", MDF$gs_subcat)
+    MDFL <- split(MDFThin, f = cats)
+    names(MDFL) <- gsub(names(MDFL), pattern = "(.+):$", replacement = "\\1")
+    return(MDFL)
+  }
   MDF$gs_subcat <- gsub(MDF$gs_subcat, pattern = "CP:", replacement = "", perl = TRUE)
   MDF$gs_cat <- paste0(MDF$gs_cat, ":", MDF$gs_subcat)
   MDF$gs_cat <- gsub(MDF$gs_cat, pattern = ":$", replacement = "", perl = TRUE)
