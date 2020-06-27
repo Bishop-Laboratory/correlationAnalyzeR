@@ -1,5 +1,5 @@
 ## correlationAnalyzeR
-[![releaseVersion](https://img.shields.io/badge/Development%20Version-0.9.0-orange.svg)](https://github.com/millerh1/correlationAnalyzeR)
+[![releaseVersion](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/millerh1/correlationAnalyzeR)
 
 The correlationAnalyzeR package uses correlation data derived from the [ARCHS4](https://amp.pharm.mssm.edu/archs4/index.html) RNA Seq repository to generate biological insights about a gene or genes of interest.
 
@@ -20,7 +20,7 @@ and continue to develop as a useful tool for anyone who wants to understand more
 
 ## Installation
 
-First release coming soon... For now, correlationAnalyzeR can be installed from the development verion:
+First CRAN release coming soon... For now, correlationAnalyzeR can be installed from the development verion:
 
 ``` r
 ## install.packages("devtools")
