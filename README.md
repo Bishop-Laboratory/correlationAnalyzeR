@@ -30,11 +30,29 @@ devtools::install_github("millerh1/correlationAnalyzeR")
 ## Software/tools cited
 [![Rdoc](http://www.rdocumentation.org/badges/version/sva)](http://www.rdocumentation.org/packages/sva)
 
-- Yu G, Wang L, Han Y, He Q (2012). “clusterProfiler: an R package for comparing biological themes among gene clusters.” OMICS: A Journal of Integrative Biology, 16(5), 284-287. doi: 10.1089/omi.2011.0118.
-- Lachmann A, Torre D, Keenan AB, Jagodnik KM, Lee HJ, Wang L, Silverstein MC, Ma’ayan A. Massive mining of publicly available RNA-seq data from human and mouse. Nature Communications 9. Article number: 1366 (2018), doi:10.1038/s41467-018-03751-6
-- Leek JT, Johnson WE, Parker HS, Fertig EJ, Jaffe AE, Storey JD, Zhang Y, Torres LC (2019). sva: Surrogate Variable Analysis. R package version 3.32.0.
-- Wickham H (2016). ggplot2: Elegant Graphics for Data Analysis. Springer-Verlag New York. ISBN 978-3-319-24277-4, http://ggplot2.org.
-- Kassambara A (2018). ggpubr: 'ggplot2' Based Publication Ready Plots. https://rpkgs.datanovia.com/ggpubr/
+- Bairoch,A. (2018) The cellosaurus, a cell-line knowledge resource. J. Biomol. Tech.
+- Bengtsson,H. (2019) matrixStats: Functions that Apply to Rows and Columns of Matrices (and to Vectors).
+- Canty,A. and Ripley,B. (2019) boot: Bootstrap Functions (Originally by Angelo Canty for S).
+- Chang,W. et al. (2019) shiny: Web Application Framework for R.
+- Dolgalev,I. (2018) msigdbr: MSigDB Gene Sets for Multiple Organisms in a Tidy Data Format.
+- Galili et al. (2017) heatmaply: an R package for creating interactive cluster heatmaps for online publishing. Bioinformatics.
+- Kassambara,A. (2019) ggpubr: ‘ggplot2’ Based Publication Ready Plots.
+- Kolde,R. (2019) pheatmap: Pretty Heatmaps.
+- Krijthe,J. and Maaten,L. van der (2018) Rtsne: T-Distributed Stochastic Neighbor Embedding using a Barnes-Hut Implementation.
+- Lachmann,A. et al. (2018) Massive mining of publicly available RNA-seq data from human and mouse. Nat. Commun., 9.
+- Langfelder,P. and Horvath,S. (2008) WGCNA: An R package for weighted correlation network analysis. BMC Bioinformatics.
+- Liberzon,A. et al. (2011) Molecular signatures database (MSigDB) 3.0. Bioinformatics.
+- Liberzon,A. et al. (2015) The Molecular Signatures Database Hallmark Gene Set Collection. Cell Syst.
+- Love,M.I. et al. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biol.
+- R Core Team (2019) R: A Language and Environment for Statistical Computing.
+- Sergushichev,A.A. (2016) An algorithm for fast preranked gene set enrichment analysis using cumulative statistic calculation. bioRxiv.
+- Sievert,C. (2018) plotly for R.
+- Subramanian,A. et al. (2005) Gene set enrichment analysis: A knowledge-based approach for interpreting genome-wide expression profiles. Proc. Natl. Acad. Sci. U. S. A.
+- Wickham,H. (2016) ggplot2: Elegant Graphics for Data Analysis Springer-Verlag New York.
+- Xie,Y. et al. (2019) DT: A Wrapper of the JavaScript Library ‘DataTables’.
+- Yu,G. et al. (2012) ClusterProfiler: An R package for comparing biological themes among gene clusters. Omi. A J. Integr. Biol.
+
+
 
 
 
