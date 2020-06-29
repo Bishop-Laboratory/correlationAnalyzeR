@@ -28,7 +28,6 @@ devtools::install_github("millerh1/correlationAnalyzeR")
 ```
 
 ## Software/tools cited
-[![Rdoc](http://www.rdocumentation.org/badges/version/sva)](http://www.rdocumentation.org/packages/sva)
 
 - Bairoch,A. (2018) The cellosaurus, a cell-line knowledge resource. J. Biomol. Tech.
 - Bengtsson,H. (2019) matrixStats: Functions that Apply to Rows and Columns of Matrices (and to Vectors).
