@@ -731,9 +731,9 @@ analyzeGenePairs <- function(genesOfInterest,
       titleStr <- paste0(geneOne, " vs. ",
                          geneTwo, " expression")
       if (uiNameOne != uiNameTwo) {
-        capStr <- paste0("In ", tolower(uiNameOne), " vs ", tolower(uiNameTwo), " samples")
+        capStr <- paste0("In ", tolower(uiNameOne), " vs ", tolower(uiNameTwo), " samples. *VST may be inaccurate for comparing different genes. TPM will be used in future versions.")
       } else {
-        capStr <- paste0("In ", tolower(uiNameOne), " samples")
+        capStr <- paste0("In ", tolower(uiNameOne), " samples. *VST may be inaccurate for comparing different genes. TPM will be used in future versions.")
       }
       fillStr <- "Gene"
       VSTDFFinal <- rbind(VSTDFOne, VSTDFTwo)

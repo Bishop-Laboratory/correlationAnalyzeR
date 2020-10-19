@@ -5,24 +5,53 @@ BRCA1_ARCHS4 <- cc["BRCA1",]
 BRCA1_ARCHS4 <- data.frame(geneName = names(BRCA1_ARCHS4),
                            ARCHS4 = BRCA1_ARCHS4)
 
-library(org.Hs.eg.db) 
+library(org.Hs.eg.db)
 
 aa <- listAttributes(ensembl)
 entrez2gene <- getBM()
 file <- list.files("Data/Hsa-u.v18-12.G26050-S164823.combat_pca_subagging.mrgeo.d/",
                    pattern = "^672$", full.names = T)
 BRCA1_COXPR <- read.table(file)
-info4gene = select(org.Hs.eg.db, keys = as.character(BRCA1_COXPR$V1), 
+info4gene = select(org.Hs.eg.db, keys = as.character(BRCA1_COXPR$V1),
                    columns =  c("SYMBOL"))
 BRCA1_COXPR <- data.frame(geneName = info4gene$SYMBOL, COXPRESdb = rev(BRCA1_COXPR$V2))
 
 
 corCompare <- merge(x = BRCA1_ARCHS4, y = BRCA1_COXPR, by = "geneName")
-BRCA1_me <- correlationAnalyzeR::getCorrelationData(Species = "hsapiens", Sample_Type = "normal",
+BRCA1_me <- correlationAnalyzeR::getCorrelationData(Sample_Type = "normal",
                                                     Tissue = "all", geneList = "BRCA1")
 BRCA1_me$geneName <- rownames(BRCA1_me)
 colnames(BRCA1_me)[1] <- "correlationAnalyzeR"
 corCompare <- merge(x = BRCA1_me, y = corCompare, by = "geneName")
+
+
+## Compare BRCA1 top 100 to biogrid
+library(tidyverse)
+biogrid <- read_tsv("misc/BIOGRID-GENE-107140-4.1.190.tab3.txt")
+
+top50 <- BRCA1_me %>%
+  top_n(wt = BRCA1, n = 500)
+
+interacts <- biogrid %>%
+  select(`Official Symbol Interactor B`) %>%
+  distinct()
+
+library(VennDiagram)
+vl <- list(
+  "Co-expression" = top50$geneName,
+  "Interaction" = interacts$`Official Symbol Interactor B`
+)
+ol <- calculate.overlap(vl)
+source("https://raw.githubusercontent.com/millerh1/Ewing-sarcoma-paper-Miller-2020/master/helpers_v2.R")
+calculate.overlap.and.pvalue(list1 = vl$`Co-expression`, list2 = vl$Interaction,
+                             total.size = unique(length(BRCA1_me$geneName)),
+                             lower.tail = FALSE)
+vd <- venn.diagram(vl, filename = NULL, fill = c("forestgreen", "firebrick"),
+                   margin = .05)
+
+dev.off()
+grid.draw(vd)
+
 
 
 
@@ -45,7 +74,6 @@ grid.draw(vd)
 
 
 
-
 # AURKB
 
 AURKB_ARCHS4 <- cc["AURKB",]
@@ -55,13 +83,13 @@ AURKB_ARCHS4 <- data.frame(geneName = names(AURKB_ARCHS4),
 file <- list.files("Data/Hsa-u.v18-12.G26050-S164823.combat_pca_subagging.mrgeo.d/",
                    pattern = "^9212$", full.names = T)
 AURKB_COXPR <- read.table(file)
-info4gene = select(org.Hs.eg.db, keys = as.character(AURKB_COXPR$V1), 
+info4gene = select(org.Hs.eg.db, keys = as.character(AURKB_COXPR$V1),
                    columns =  c("SYMBOL"))
 AURKB_COXPR <- data.frame(geneName = info4gene$SYMBOL, COXPRESdb = rev(AURKB_COXPR$V2))
 
 
 corCompare <- merge(x = AURKB_ARCHS4, y = AURKB_COXPR, by = "geneName")
-AURKB_me <- correlationAnalyzeR::getCorrelationData(Species = "hsapiens", Sample_Type = "normal",
+AURKB_me <- correlationAnalyzeR::getCorrelationData(Sample_Type = "normal",
                                                     Tissue = "all", geneList = "AURKB")
 AURKB_me$geneName <- rownames(AURKB_me)
 colnames(AURKB_me)[1] <- "correlationAnalyzeR"
@@ -83,7 +111,32 @@ vd <- venn.diagram(topList, filename = NULL, fill = c("cornflowerblue", "salmon"
 grid.draw(vd)
 
 
+## Compare AURKB top 100 to biogrid
+library(tidyverse)
+biogrid <- read_tsv("misc/BIOGRID-GENE-114646-4.1.190.tab3.txt")
 
+top50 <- AURKB_me %>%
+  top_n(wt = AURKB, n = 500)
+
+interacts <- biogrid %>%
+  select(`Official Symbol Interactor B`) %>%
+  distinct()
+
+library(VennDiagram)
+vl <- list(
+  "Co-expression" = top50$geneName,
+  "Interaction" = interacts$`Official Symbol Interactor B`
+)
+ol <- calculate.overlap(vl)
+source("https://raw.githubusercontent.com/millerh1/Ewing-sarcoma-paper-Miller-2020/master/helpers_v2.R")
+calculate.overlap.and.pvalue(list1 = vl$`Co-expression`, list2 = vl$Interaction,
+                             total.size = unique(length(BRCA1_me$geneName)),
+                             lower.tail = FALSE)
+vd <- venn.diagram(vl, filename = NULL, fill = c("forestgreen", "firebrick"),
+                   margin = .05)
+
+dev.off()
+grid.draw(vd)
 
 
 # HSP90AA1
@@ -95,13 +148,13 @@ HSP90AA1_ARCHS4 <- data.frame(geneName = names(HSP90AA1_ARCHS4),
 file <- list.files("Data/Hsa-u.v18-12.G26050-S164823.combat_pca_subagging.mrgeo.d/",
                    pattern = "^3320$", full.names = T)
 HSP90AA1_COXPR <- read.table(file)
-info4gene = select(org.Hs.eg.db, keys = as.character(HSP90AA1_COXPR$V1), 
+info4gene = select(org.Hs.eg.db, keys = as.character(HSP90AA1_COXPR$V1),
                    columns =  c("SYMBOL"))
 HSP90AA1_COXPR <- data.frame(geneName = info4gene$SYMBOL, COXPRESdb = rev(HSP90AA1_COXPR$V2))
 
 
 corCompare <- merge(x = HSP90AA1_ARCHS4, y = HSP90AA1_COXPR, by = "geneName")
-HSP90AA1_me <- correlationAnalyzeR::getCorrelationData(Species = "hsapiens", Sample_Type = "normal",
+HSP90AA1_me <- correlationAnalyzeR::getCorrelationData(Sample_Type = "normal",
                                                     Tissue = "all", geneList = "HSP90AA1")
 HSP90AA1_me$geneName <- rownames(HSP90AA1_me)
 colnames(HSP90AA1_me)[1] <- "correlationAnalyzeR"
@@ -124,8 +177,32 @@ grid.draw(vd)
 
 
 
+## Compare AURKB top 100 to biogrid
+library(tidyverse)
+biogrid <- read_tsv("misc/BIOGRID-GENE-109552-4.1.190.tab3.txt")
 
+top50 <- HSP90AA1_me %>%
+  top_n(wt = HSP90AA1, n = 500)
 
+interacts <- biogrid %>%
+  select(`Official Symbol Interactor B`) %>%
+  distinct()
+
+library(VennDiagram)
+vl <- list(
+  "Co-expression" = top50$geneName,
+  "Interaction" = interacts$`Official Symbol Interactor B`
+)
+ol <- calculate.overlap(vl)
+source("https://raw.githubusercontent.com/millerh1/Ewing-sarcoma-paper-Miller-2020/master/helpers_v2.R")
+calculate.overlap.and.pvalue(list1 = vl$`Co-expression`, list2 = vl$Interaction,
+                             total.size = unique(length(BRCA1_me$geneName)),
+                             lower.tail = FALSE)
+vd <- venn.diagram(vl, filename = NULL, fill = c("forestgreen", "firebrick"),
+                   margin = .05)
+
+dev.off()
+grid.draw(vd)
 
 
 

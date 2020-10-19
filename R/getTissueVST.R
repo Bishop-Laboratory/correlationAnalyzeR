@@ -29,10 +29,10 @@ getTissueVST <- function(genesOfInterest,
                          Sample_Type = c("normal", "cancer"),
                          useBlackList = TRUE, pool = NULL) {
 
-  # genesOfInterest = c("ATM")
+  # genesOfInterest = c("BRCA1")
   # Species = "hsapiens"
-  # Tissues = c("male_reproductive")
-  # Sample_Type = c("all")
+  # Tissues = "all"
+  # Sample_Type = c("normal")
   # useBlackList = TRUE
   # pool = NULL
 
@@ -151,10 +151,9 @@ getTissueVST <- function(genesOfInterest,
     resFrameList[[i]] <- frameNow
     names(resFrameList)[i] <- groupNow
   }
-
+  groupNow2 <- gsub(groupNow2, pattern = "-", replacement = "_")
   keepInd <- which(groupNow2 %in% ofInterest)
   resFrameList <- resFrameList[keepInd]
-
   return(resFrameList)
 }
 
