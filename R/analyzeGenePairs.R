@@ -73,7 +73,7 @@ analyzeGenePairs <- function(genesOfInterest,
   # outputPrefix = "CorrelationAnalyzeR_Output_Paired"
   # runGSEA = TRUE
   # topPlots = FALSE
-  # Sample_Type = c("normal", "cancer")
+  # Sample_Type = c("normal", "normal")
   # Tissue = c("all", "all")
   # TERM2GENE = NULL
   # GSEA_Type = c("simple")
@@ -82,7 +82,15 @@ analyzeGenePairs <- function(genesOfInterest,
   # nperm = 2000
   # makePool = FALSE
   # Sample_Type = c("normal", "cancer")
-  # Tissue = c("brain", "male_reproductive")
+  # Tissue = c("brain", "brain")
+
+  # Validate inputs
+  unGene <- unique(genesOfInterest)
+  unTissue <- unique(Tissue)
+  unSample <- unique(Sample_Type)
+  if (length(unGene) == 1 && length(unTissue) == 1 && length(unSample) == 1) {
+    stop("Genes, Tissues, or Samples must be different in gene vs gene mode!")
+  }
 
 
   getPhBreaks <- function(mat, palette = NULL) {
@@ -731,9 +739,9 @@ analyzeGenePairs <- function(genesOfInterest,
       titleStr <- paste0(geneOne, " vs. ",
                          geneTwo, " expression")
       if (uiNameOne != uiNameTwo) {
-        capStr <- paste0("In ", tolower(uiNameOne), " vs ", tolower(uiNameTwo), " samples. *VST may be inaccurate for comparing different genes. TPM will be used in future versions.")
+        capStr <- paste0("In ", tolower(uiNameOne), " vs ", tolower(uiNameTwo), " samples.\n(*VST may be inaccurate for comparing different genes. TPM will be used in future versions.)")
       } else {
-        capStr <- paste0("In ", tolower(uiNameOne), " samples. *VST may be inaccurate for comparing different genes. TPM will be used in future versions.")
+        capStr <- paste0("In ", tolower(uiNameOne), " samples.\n(*VST may be inaccurate for comparing different genes. TPM will be used in future versions.)")
       }
       fillStr <- "Gene"
       VSTDFFinal <- rbind(VSTDFOne, VSTDFTwo)
@@ -752,9 +760,7 @@ analyzeGenePairs <- function(genesOfInterest,
         ggplot2::theme(axis.title.y = ggplot2::element_text(size = 20),
                        title = ggplot2::element_text(size = 22),
                        plot.margin = ggplot2::margin(10, 10, 10, 10),
-                       axis.text.x = ggplot2::element_text(size = 16)) +
-        ggpubr::stat_compare_means(comparisons = list(unique(as.data.frame(VSTDFFinal)[, which(colnames(VSTDFFinal) == fillStr)])),
-                                   size = 5)
+                       axis.text.x = ggplot2::element_text(size = 16))
     } else {
       capStr <- NULL
       VSTDFOne$Gene <- paste0(colnames(VSTDFOne)[3], "_", VSTDFOne$Group)
@@ -781,7 +787,9 @@ analyzeGenePairs <- function(genesOfInterest,
         ggplot2::theme(axis.title.y = ggplot2::element_text(size = 20),
                        title = ggplot2::element_text(size = 22),
                        plot.margin = ggplot2::margin(10, 10, 10, 25),
-                       axis.text.x = ggplot2::element_text(size = 16))
+                       axis.text.x = ggplot2::element_text(size = 16)) +
+        ggpubr::stat_compare_means(comparisons = list(unique(as.data.frame(VSTDFFinal)[, which(colnames(VSTDFFinal) == fillStr)])),
+                                   size = 5, method = "t.test", label = "p.signif")
     }
 
   }
