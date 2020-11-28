@@ -24,7 +24,7 @@ First CRAN release coming soon... For now, correlationAnalyzeR can be installed 
 
 ``` r
 ## install.packages("devtools")
-devtools::install_github("millerh1/correlationAnalyzeR")
+devtools::install_github("Bishop-Laboratory/correlationAnalyzeR")
 ```
 
 ## Software/tools cited
