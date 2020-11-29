@@ -16,10 +16,10 @@ Description: Correlation AnalyzeR is a powerful tool for understanding how genes
     other genes. Finally, 'Topology' mode examines correlation data for a
     defined gene group to generate a robust gene-level topology.
 Depends: R (>= 3.6)
-License: GPL-3
+License: MIT
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 Imports: 
     clusterProfiler,
     ggplot2,
