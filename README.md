@@ -7,6 +7,14 @@ The correlationAnalyzeR package uses correlation data derived from the [ARCHS4](
 ## Quickstart
 To get started with `correlationAnalyzeR`, please view the vignette for this package [here](https://misc-items-to-share.s3-us-west-2.amazonaws.com/correlationAnalyzeR.html).
 
+### Installation
+correlationAnalyzeR using `install_github()` from the `devtools` package.
+
+``` r
+## install.packages("devtools")
+devtools::install_github("Bishop-Laboratory/correlationAnalyzeR")
+```
+
 ## Motivation
 This project is motivated by a recurring issue that arises during exploratory bioinformatics: *Sometimes little to no information exists about a gene or gene(s) of interest.* 
 One way to address this problem is to compute gene expression correlations. These values indicate how genes vary in relation to eachother.
@@ -21,15 +29,6 @@ and hierarchical clustering.
 ## Contributing [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/millerh1/correlationAnalyzeR/issues)
 Please report issues and feel free to contribute! I hope this project can some day incorporate other sources of data such as ppi networks
 and continue to develop as a useful tool for anyone who wants to understand more about their HTS data.
-
-## Installation
-
-correlationAnalyzeR using `install_github()` from the `devtools` package.
-
-``` r
-## install.packages("devtools")
-devtools::install_github("Bishop-Laboratory/correlationAnalyzeR")
-```
 
 ## Software/tools cited
 
