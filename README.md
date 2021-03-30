@@ -24,7 +24,7 @@ and continue to develop as a useful tool for anyone who wants to understand more
 
 ## Installation
 
-First CRAN release coming soon... For now, correlationAnalyzeR can be installed from the development verion:
+correlationAnalyzeR using `install_github()` from the `devtools` package.
 
 ``` r
 ## install.packages("devtools")
