@@ -4,6 +4,9 @@
 
 The correlationAnalyzeR package uses correlation data derived from the [ARCHS4](https://amp.pharm.mssm.edu/archs4/index.html) RNA Seq repository to generate biological insights about a gene or genes of interest.
 
+## Quickstart
+To get started with `correlationAnalyzeR`, please view the vignette for this package [here](https://misc-items-to-share.s3-us-west-2.amazonaws.com/correlationAnalyzeR.html).
+
 ## Motivation
 This project is motivated by a recurring issue that arises during exploratory bioinformatics: *Sometimes little to no information exists about a gene or gene(s) of interest.* 
 One way to address this problem is to compute gene expression correlations. These values indicate how genes vary in relation to eachother.
