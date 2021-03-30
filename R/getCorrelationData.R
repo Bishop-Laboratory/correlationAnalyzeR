@@ -17,7 +17,7 @@
 #' @return A correlation data frame object
 #'
 #' @examples
-#'correlationAnalyzeR::getCorrelationData(Sample_Type = "normal",
+#' correlationAnalyzeR::getCorrelationData(Sample_Type = "normal",
 #'                                        Tissue = "kidney",
 #'                                        geneList = c("ATM", "BRCA1"))
 #'

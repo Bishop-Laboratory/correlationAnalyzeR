@@ -2,3 +2,5 @@
 ^\.Rproj\.user$
 ^doc$
 ^Meta$
+misc
+.travis.yml
