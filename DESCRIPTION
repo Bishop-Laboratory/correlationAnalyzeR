@@ -29,6 +29,7 @@ Imports:
     data.table,
     gridExtra,
     grid,
+    shiny,
     dplyr,
     tidyr,
     tibble,
