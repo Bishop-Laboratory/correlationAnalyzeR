@@ -1,3 +1,5 @@
 language: r
 r: bioc-release
 bundler_args: --retry 5
+install: |-
+  Rscript -e 'deps <- remotes::dev_package_deps(dependencies = NA);remotes::install_deps(dependencies = TRUE);if (!all(deps$package %in% installed.packages())) { message("missing: ", paste(setdiff(deps$package, installed.packages()), collapse=", ")); q(status = 1, save = "no")}'

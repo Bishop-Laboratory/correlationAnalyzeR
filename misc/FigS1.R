@@ -1,4 +1,3 @@
-
 # Get the ARCHS4 correlation data
 load("Data/human_correlation.rda")
 BRCA1_ARCHS4 <- cc["BRCA1",]
