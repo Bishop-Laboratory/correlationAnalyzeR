@@ -109,7 +109,7 @@ getTERM2GENE <- function(GSEA_Type = c("simple"),
   }
 
   # Get data object
-  MDF <- msigdbr::msigdbr(species = msigSpec)
+  MDFraw <- msigdbr::msigdbr(species = msigSpec)
   if (listReturn) {
     MDFThin <- MDF[,c(1, 8)]
     cats <- paste0(MDF$gs_cat, ":", MDF$gs_subcat)
@@ -117,21 +117,24 @@ getTERM2GENE <- function(GSEA_Type = c("simple"),
     names(MDFL) <- gsub(names(MDFL), pattern = "(.+):$", replacement = "\\1")
     return(MDFL)
   }
+
+  MDF <- MDFraw
   MDF$gs_subcat <- gsub(MDF$gs_subcat, pattern = "CP:", replacement = "", perl = TRUE)
   MDF$gs_cat <- paste0(MDF$gs_cat, ":", MDF$gs_subcat)
   MDF$gs_cat <- gsub(MDF$gs_cat, pattern = ":$", replacement = "", perl = TRUE)
   MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C1", replacement = "Cytogenic bands", perl = TRUE)
   MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C6", replacement = "Oncogenic signatures", perl = TRUE)
   MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C7", replacement = "Immunological signatures", perl = TRUE)
+  MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C8", replacement = "Cell Type signatures", perl = TRUE)
   MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C2:", replacement = "", perl = TRUE)
-  MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C5", replacement = "GO", perl = TRUE)
-  MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "H", replacement = "Hallmark", perl = TRUE)
+  MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C5:", replacement = "", perl = TRUE)
+  MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "H$", replacement = "Hallmark", perl = TRUE)
   MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "CP", replacement = "Canonical pathways", perl = TRUE)
   MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "CGP", replacement = "Perturbations", perl = TRUE)
   MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C4:CGN", replacement = "Cancer gene neighborhoods", perl = TRUE)
   MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C4:CM", replacement = "Cancer modules", perl = TRUE)
-  MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C3:MIR", replacement = "miRNA targets", perl = TRUE)
-  MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C3:TFT", replacement = "TF targets", perl = TRUE)
+  MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C3:MIR:MIRDB", replacement = "miRNA targets", perl = TRUE)
+  MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "C3:TFT:GTRD", replacement = "TF targets", perl = TRUE)
   MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "BIOCARTA", replacement = "BioCarta", perl = TRUE)
   MDF$gs_cat <- gsub(MDF$gs_cat, pattern = "REACTOME", replacement = "Reactome", perl = TRUE)
 
@@ -140,25 +143,28 @@ getTERM2GENE <- function(GSEA_Type = c("simple"),
   if (! all(GSEA_Type %in% optionsNow)) {
     stop("\nPlease enter a valid GSEA_Type. Use ?getTERM2GENE to see available options.\n")
   }
+
   categories <- c()
   if ("simple" %in% GSEA_Type) {
     categories <- c(categories, "Hallmark", "Perturbations", "BioCarta",
                     "GO:BP", "KEGG", "Canonical pathways", "Reactome", "GO:MF", "GO:CC", "PID")
   }
+
   if ("complex" %in% GSEA_Type) {
     categories <- c(categories, optionsNow)
   }
+
   categories <- unique(c(categories, GSEA_Type))
   TERM2GENE <- MDF %>%
     filter(.data$gs_cat %in% categories) %>%
     select(.data$gs_name, .data$gene_symbol)
-
 
   if (sampler) {
     print("Using sampler!")
     set.seed(1)
     TERM2GENE <- TERM2GENE[sample(nrow(TERM2GENE), size = 100000),]
   }
+
   return(TERM2GENE)
 }
 

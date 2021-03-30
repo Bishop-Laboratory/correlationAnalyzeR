@@ -1,0 +1,530 @@
+---
+title: "Using correlationAnalyzeR"
+author: "Henry Miller"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_document:
+    highlight: pygments
+    toc: true
+    fig_width: 6
+vignette: >
+  %\VignetteIndexEntry{correlationAnalyzeR Quickstart}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  tidy = FALSE,
+  cache = TRUE,
+  dev = "png",
+  message = FALSE, error = FALSE, warning = TRUE
+)
+```
+
+`correlationAnalyzeR` is the R interface to the Correlation AnalyzeR database
+and web application. The web version can be accessed [here](http://gccri.bishop-lab.uthscsa.edu/correlation-analyzer).
+
+This package is designed to allow greater customization and control over 
+the functions in the web interface. This vignette will demonstrate each 
+function using an example. Additional info can be found in the reference manual.
+
+## Analyze Single Genes
+
+### Basic Analysis
+
+`correlationAnalyzeR` can be used to predict gene function using `analyzeSingleGenes()` 
+(the equivalent of Single Gene Mode in the web application). In this example, `Tissue` and `Sample_Type` arguments were set in order to limit the analysis to co-expression correlations in normal brain samples. 
+
+```{r}
+library(correlationAnalyzeR)
+res <- analyzeSingleGenes(genesOfInterest = c("BRCA1"), 
+                          Tissue = "brain", Sample_Type = "normal")
+```
+This runs most of the core tasks for predicting gene functionality using this analysis mode. This includes running "corGSEA", an implementation of GSEA developed in this package for use on genome-wide co-expression correlations. 
+
+The results are a list containing several items:
+
+#### Tables
+
+1. The genome-wide correlations (Pearson's R) for BRCA1:
+
+```{r}
+head(res$correlations)
+```
+
+2. The associated correlation P values:
+
+```{r}
+head(res$`P values`)
+```
+
+3. The table of corGSEA results:
+
+```{r}
+head(res$`BRCA1, Brain - Normal`$GSEA$eres)
+```
+
+#### Figures
+
+1. A histogram showing the genome-wide correlation value (R) distribution:
+
+```{r, fig.height=4, fig.width=7.5}
+res$`BRCA1, Brain - Normal`$corrHist
+```
+
+2. The top increasing corGSEA hits:
+
+```{r, fig.height=14, fig.width=22}
+res$`BRCA1, Brain - Normal`$GSEA$GSEA_up
+```
+
+3. The top decreasing corGSEA hits:
+
+```{r, fig.height=14, fig.width=22}
+res$`BRCA1, Brain - Normal`$GSEA$GSEA_down
+```
+
+### Supplying a custom dataset
+
+`correlationAnalyzeR` relies on pre-calculated datasets which are stored in a cloud database. However, it is also possible for users to generate predictions from their own datasets. To generate a correlation matrix you can supply a read count matrix to `generateCorrelations()`
+
+Here is an example using the `airway` dataset. We first wrangle the dataset into a raw read count matrix:
+
+```{r get_airway}
+library(airway)
+library(EnsDb.Hsapiens.v86)
+library(dplyr)
+
+data(airway)
+cts <- assay(airway)
+ens2gene <- ensembldb::select(EnsDb.Hsapiens.v86, keys = rownames(cts),
+                              columns = c("SYMBOL"), keytype = "GENEID") %>%
+  dplyr::distinct(SYMBOL, .keep_all = TRUE) %>%
+  dplyr::inner_join(y = data.frame("GENEID" = rownames(cts)))
+cts <- cts[ens2gene$GENEID,]
+rownames(cts) <- ens2gene$SYMBOL
+```
+
+We then generate the correlation matrix with the `generateCorrelations()` function:
+```{r generate_correlations, cache=FALSE}
+corrMat <- generateCorrelations(cts)
+```
+
+Once the correlation matrix is generated, it can be used as the input to `analyzeSingleGenes()` via the `corrMat` argument with a `corrMat_label` set (this is the custom label used during plotting functions).
+
+```{r analyzeSingleGenes_custom}
+res <- analyzeSingleGenes(genesOfInterest = c("BRCA1"), corrMat = corrMat,
+                          corrMat_label = "User-supplied DataSet")
+```
+
+Here is the correlation histogram produced with the custom dataset:
+
+```{r, fig.height=4, fig.width=7.5}
+res$`BRCA1, User-supplied DataSet`$corrHist
+```
+
+It is important to note that user-supplied datasets should provide enough samples to ensure robust co-expression calculations. In the above example, it is clear that there are not enough samples within the `airway` dataset to support this calculation. In our experience, it is necessary to have at least 30 samples in most cases.
+
+### Cross-compare mode
+
+`crossCompareMode` allows a user to examine the correlations across multiple tissue and disease conditions. For example, to analyze the correlations of BRCA1 across all tissues, we could do the following:
+
+```{r}
+res <- analyzeSingleGenes(genesOfInterest = c("BRCA1"), crossCompareMode = TRUE)
+```
+
+The output is a list containing several tables:
+
+1. The co-expression correlations for BRCA1 across all tissues:
+
+```{r}
+head(res$BRCA1$correlations, n = 3)
+```
+
+2. All the VST-transformed counts for BRCA1 across all samples:
+
+```{r}
+head(res$BRCA1$VST_DF)
+```
+
+The output list also contains several plots:
+
+1. A box plot comparing cancer and normal samples by VST
+
+```{r, fig.height=5, fig.width=8}
+res$BRCA1$VST_boxPlot
+```
+
+2. A heatmap of the top 30 co-correlated genes with BRCA1 (genes which show similar
+co-expression correlations to BRCA1). The accompanying values for this plot are in 
+`res$BRCA1$heatmapSmallDataCo`.
+
+```{r, fig.height=6, fig.width=10}
+res$BRCA1$heatmapSmallCo
+```
+
+3. A heatmap of the top 200 co-correlated genes with BRCA1. The accompanying values for this plot are in `res$BRCA1$heatmapBigDataCo`.
+
+```{r, fig.height=6, fig.width=10}
+res$BRCA1$heatmapBigCo
+```
+
+4. A heatmap of the top 30 variably-correlated genes with BRCA1 (genes which show divergent
+co-expression correlations compared to BRCA1). The accompanying values for this plot are in 
+`res$BRCA1$heatmapSmallDataCo`.
+
+```{r, fig.height=6, fig.width=10}
+res$BRCA1$heatmapSmallVar
+```
+
+5. A heatmap of the top 200 variably-correlated genes with BRCA1. The accompanying values for this plot are in `res$BRCA1$heatmapBigDataVar`.
+
+```{r, fig.height=6, fig.width=10}
+res$BRCA1$heatmapBigVar
+```
+
+## Analyze Gene Pairs 
+
+### Basic Analysis
+
+`correlationAnalyzeR` can be used to analyze differences between two genes using `analyzeGenePairs()` (the equivalent of Gene vs Gene Mode in the web application).
+
+
+```{r}
+res <- analyzeGenePairs(genesOfInterest = c("BRCA1", "BRCA2"))
+```
+
+The `analyzeGenePairs()` function performs `analyzeSingleGenes()` on both of the supplied genes and then compares the results, generating several tables and figures:
+
+1. The gene co-expression correlations with the average Pearson R and variance included. Note that, with only two data points, variance is just 2x the squared deviation from the mean.  
+
+```{r}
+res$compared$correlations %>%
+       arrange(desc(average)) %>%
+  head()
+```
+
+2. The p values of the correlation calculation.
+```{r}
+head(res$compared$`P values`)
+```
+
+3. The combined results of corGSEA for BRCA1 and BRCA2
+```{r}
+head(res$compared$correlatedPathwaysDataFrame)
+```
+
+4. The VST-transformed counts for BRCA1 and BRCA2 across all tissues
+```{r}
+head(res$compared$VST_Data)
+```
+
+5. A scatter plot comparing the genome-wide co-expression correlations for BRCA1 and BRCA2.
+```{r, fig.height=6, fig.width=7.5}
+res$compared$correlationPlot
+```
+
+6. The same plot, binned to reduce the computational requirements for plotting:
+```{r, fig.height=6, fig.width=7.5}
+res$compared$correlationPlotBin
+```
+
+7. A heatmap showing the genes with the top variance between BRCA1 and BRCA2 by co-expression correlation. This is simply a measure of the absolute difference between them. 
+```{r, fig.height=6, fig.width=10}
+res$compared$correlationVarianceHeatmap
+```
+
+8. A heatmap showing the genes with the top similarity in co-expression correlation between BRCA1 and BRCA2.
+
+```{r, fig.height=6, fig.width=10}
+res$compared$correlationSimilarityHeatmap
+```
+
+9. A heatmap showing the pathways with the top variance between BRCA1 and BRCA2 by corGSEA score.
+
+```{r, fig.height=6, fig.width=10}
+res$compared$pathwayVarianceHeatmap
+```
+
+10. A heatmap showing the pathways with the top similarity in corGSEA score between BRCA1 and BRCA2.
+
+```{r, fig.height=6, fig.width=10}
+res$compared$pathwaySimilarityHeatmap
+```
+
+### Cross-compare mode
+
+In `analyzeGenePairs()`, cross-compare mode allows the user to analyze the co-expression of two genes across all tissue-disease conditions (`geneVsGene`) or one gene in cancer vs normal (`normalVsCancer`). 
+
+#### Gene vs Gene
+
+When `genesOfInterest` is supplied with two different genes and `crossCompareMode=TRUE`, then `geneVsGene` mode is executed.
+
+```{r}
+res <- analyzeGenePairs(genesOfInterest = c("BRCA1", "BRCA2"), 
+                        crossCompareMode = TRUE)
+```
+
+This analysis produces a list containing several figures and tables:
+
+1. The co-expression correlation results within each tissue-disease condition, along with the average co-expression values and variance for each gene. 
+
+```{r}
+res$Correlations %>%
+       arrange(desc(average)) %>%
+  head(n=3)
+```
+
+2. The correlation p values for each condition.
+
+```{r}
+head(res$`P values`, n=3)
+```
+
+3. The VST box plots for each gene across conditions:
+```{r, fig.height=8, fig.width=12}
+ggpubr::ggarrange(res$crossCompareVST$VST_boxPlotOne, res$crossCompareVST$VST_boxPlotTwo,
+                  nrow = 2)
+```
+
+4. The data which the expression boxplots are based upon:
+```{r}
+head(res$crossCompareVST$VST_DF)
+```
+
+5. For each tissue-disease condition, a scatter plot of the genome-wide co-expression correlations between BRCA1 and BRCA2. 
+
+```{r, fig.height=6, fig.width=7.5}
+res$pairResList$`Bone Cancer`$scatterPlot
+```
+
+6. For each tissue-disease condition, a heatmap showing the top variable genes between BRCA1 and BRCA2. 
+
+```{r, fig.height=6, fig.width=7.5}
+res$pairResList$`Bone Cancer`$heatMap
+```
+
+#### Normal vs Cancer
+
+When `genesOfInterest` is supplied with only one gene, `Tissue` includes `Cancer` and `Normal`, and `crossCompareMode=TRUE`, then `normalVsCancer` mode is executed.
+
+```{r}
+res <- analyzeGenePairs(genesOfInterest = c("BRCA1", "BRCA1"), 
+                        Tissue = c("Cancer", "Normal"),
+                        crossCompareMode = TRUE)
+```
+
+The primary difference betwen `normalVsCancer` and `geneVsGene` is that `analyzeGenePairs` will output:
+
+1. A comparative boxplot showing the difference between cancer and normal conditions across tissues with respect to BRCA1 expression:
+
+```{r, fig.height=5, fig.width=10}
+res$crossCompareVST$VST_boxPlot
+```
+
+2. A list of scatter plots in which the genome-wide co-expression correlations for BRCA1 are compared between cancer and normal conditions:
+
+```{r, fig.height=6, fig.width=7.5}
+res$pairResList$`Immune - Normal`$scatterPlot
+```
+3. And the list also contains heatmaps showing the top variable genes with respect to BRCA1 gene co-expression between cancer and normal:
+
+```{r, fig.height=6, fig.width=7.5}
+res$pairResList$`Immune - Normal`$heatMap
+```
+
+## Gene vs Gene List Analysis
+
+This mode provides an empirical approach for determining whether a gene is significantly correlated with a list of genes. This is an alternative to the typical Pearson correlation p value which can only determine whether any two genes are significantly co-expressed. To run this mode, use the `geneVsGeneListAnalyze()` function:
+
+```{r}
+res <- geneVsGeneListAnalyze(pairedGenesList = list("BRCA1" = c("BRCA2", "EZH2", "CCND1",
+                                                         "SLC7A11", "GCLC", "CDKN1A")),
+                              Sample_Type = "cancer",
+                              Tissue = "bone")
+```
+This returns several plots and tables:
+
+1. It returns to genome-wide correlations for BRCA1
+
+```{r}
+head(res$correlations)
+```
+
+2. Along with the p values corresponding to these Pearson correlations.
+
+```{r}
+head(res$`P values`)
+```
+
+3. It returns a histogram showing the genome-wide co-expression correlations for BRCA1 along with the secondary gene list annotated on top:
+
+```{r, fig.height=6, fig.width=7.5}
+res$BRCA1$Correlation_histogram
+```
+
+4. A plot showing the distribution of p values from bootstrapping with the observed p values for the specified gene list. NOTE that the summit represents the point with the highest density from the empirical distribution, not necessarily a specific observation. 
+
+```{r, fig.height=5, fig.width=7.5}
+res$BRCA1$sigTest$tTest_pvalsPlot
+```
+
+5. A plot show the empirical distribution of bootstrapped mean and median correlation values with the observed correlation for the specified gene list shown, along with a p value that indicates significance. NOTE that this uses a simplistic approach to finding significance (anything > .95 is significant) and the method used above is preferred.
+
+```{r, fig.height=5, fig.width=7.5}
+res$BRCA1$sigTest$meansPlot
+res$BRCA1$sigTest$mediansPlot
+```
+
+6. The data accompanying each plot:
+```{r, fig.height=5, fig.width=7.5}
+data.frame(means = res$BRCA1$sigTest$means, 
+           medians = res$BRCA1$sigTest$medians,
+           pvals = res$BRCA1$sigTest$tTest_pvals) %>% head()
+```
+
+## Gene List Topology Analysis
+
+Many methods for dimensionality reduction exist, but most are focused on sample-level comparisons and few methods for analyzing feature-space topology exist. In the final analysis mode, `correlationAnalyzeR` uses gene co-expression correlation values as a metric for dimensionality reduction via `PCA` and `tSNE` with agglomerative clustering to determine the topology of a list of genes. 
+
+The analysis can be accessed using the `analyzeGenesetTopology()` function from this package:
+
+```{r}
+genesOfInterest <- c("CDK12", "AURKB", "SFPQ", "NFKB1", "BRCC3", "BRCA2", "PARP1",
+                     "EZH2", "CCND1", "SLC7A11", "GCLC", "CDKN1A", "MTAP",
+                     "DHX9", "SON", "AURKA", "SETX", "BRCA1", "ATMIN")
+res <- analyzeGenesetTopology(genesOfInterest = genesOfInterest,
+                              Sample_Type = "cancer", Tissue = "bone")
+```
+This produces several tables and figures:
+
+1. The co-expression correlations for each gene in the supplied gene list:
+
+```{r}
+head(res$Correlation_Data)
+```
+
+2. The p values corresponding to these co-expression correlations:
+
+```{r}
+head(res$`P values`)
+```
+
+3. A heatmap of the top 50 variant genes across the gene list by co-expression values:
+
+```{r, fig.height=6, fig.width=10}
+res$variantGenesHeatmap_Top
+```
+
+4. The data matrix accompanying this heatmap:
+
+```{r}
+head(res$variantGenesHeatmap_Top_MAT)
+```
+
+5. A heatmap of the top 500 variant genes across the gene list by co-expression values:
+
+```{r, fig.height=6, fig.width=10}
+res$variantGenesHeatmap
+```
+
+6. The data matrix accompanying this heatmap:
+
+```{r}
+head(res$variantGenesHeatmap_MAT)
+```
+
+7. The same as (5), but with co-correlative genes (genes which are similarly co-correlated across each gene in the supplied list) instead of variant genes. 
+
+```{r, fig.height=6, fig.width=10}
+res$cocorrelativeGenesHeatmap
+```
+
+8. And the corresponding data matrix:
+
+```{r}
+head(res$cocorrelativeGenesHeatmap_MAT)
+```
+
+9. The PCA plot showing the gene list members projected in PC1 and PC2, labeled, and colored by hierarchical cluster membership:
+
+```{r}
+res$PCA_plot
+```
+
+10. The data frame corresponding to (9):
+
+```{r}
+res$PCA_data
+```
+
+11. The pathway enrichment of the input gene list displayed as a dotplot:
+
+```{r, fig.height=5, fig.width=10}
+res$inputGenes_pathwayEnrich_dotplot
+```
+
+12. The pathway enrichment results in a data frame:
+
+```{r}
+head(res$inputGenes_pathwayEnrich_data)
+```
+
+13. The object generated by `clusterProfiler` during pathway enrichment (this is compatible with the other functions in the `clusterProfiler` package):
+
+```{r}
+res$inputGenes_pathwayEnrich
+```
+
+### Enriching with large gene lists
+
+Unlike the web application version of Correlation AnalyzeR, the R package is capable of handling arbitrarily-large gene lists for `analyzeGenesetTopology()`. One instance where one might wish to perform an analysis like this could be in parsing an existing gene set from curated sources like Gene Ontology. 
+
+To obtain the list of genes for this analysis, it is convenient to use the `msigdbr` package in the following manner:
+
+```{r}
+library(tidyverse)
+MDF <- msigdbr::msigdbr(category = "C2", subcategory = "CGP")
+geneList <- MDF %>%
+  filter(gs_name == "RIGGI_EWING_SARCOMA_PROGENITOR_UP") %>%
+  pull(gene_symbol)
+```
+
+We have now obtained a vector with the 434 genes in the "RIGGI_EWING_SARCOMA_PROGENITOR_UP" gene set from the Chemical and Genetic Perturbations (CGP) database in the "C2" collection of MSigDB. A link to the info page for this gene set can be found [here](http://www.gsea-msigdb.org/gsea/msigdb/cards/RIGGI_EWING_SARCOMA_PROGENITOR_UP.html). Now, we can use this list as the input for `analyzeGenesetTopology()`. NOTE: when a gene in our gene list is not found in the correlation data, it will automatically be skipped. 
+
+```{r}
+res <- analyzeGenesetTopology(genesOfInterest = geneList, 
+                              Sample_Type = "cancer",
+                              Tissue = "bone")
+```
+Because of the large number of genes supplied, a tSNE was calculated instead of PCA. This behavior can be prevented by setting the `alternativeTSNE` parameter to `FALSE`. The visualization is designed to allow easier cluster interpretation and does not include gene labels:
+
+```{r}
+res$TSNE_plot
+```
+
+However, the underlying plot data is supplied as well:
+
+```{r}
+head(res$TSNE_data)
+```
+Which means that, using `plotly`, it is straightforward to create an interactive visualization that includes gene name information:
+
+```{r}
+plt <- (res$TSNE_data %>%
+  ggplot(aes(x = tsne1, y = tsne2, color = hclust, label = geneNames)) +
+  geom_point()) %>%
+  plotly::ggplotly()
+```
+
+# Session info
+
+```{r sessionInfo}
+sessionInfo()
+```
+
+# Questions
+
+Feel free to email Henry Miller (millerh1@uthscsa.edu) any time with questions, bug reports, or if you want to contribute!
+

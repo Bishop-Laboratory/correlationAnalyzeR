@@ -1,7 +1,7 @@
 Package: correlationAnalyzeR
 Type: Package
 Title: Generate Novel Insights from Gene Correlation Data
-Date: 2019-04-24
+Date: 2021-03-29
 Version: 1.0.0
 Authors@R: person("Henry", "Miller", email = "millerh1@livemail.uthscsa.edu",
     role = c("aut", "cre"))
@@ -19,7 +19,9 @@ Depends: R (>= 3.6)
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.0
+VignetteBuilder: knitr
+RoxygenNote: 7.1.1
+Suggests: knitr, rmarkdown
 Imports: 
     clusterProfiler,
     ggplot2,
