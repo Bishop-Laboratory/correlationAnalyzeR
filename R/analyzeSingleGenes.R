@@ -42,12 +42,10 @@
 #' to use instead of pre-supplied databases.
 #' @param corrMat_label If corrMat is provided, this label will be used for plotting.
 #' @param pool an object created by pool::dbPool to accessing SQL database.
-#' It will be created if not supplied.
-#' @param makePool Logical. Should a pool be created if one is not supplied? Default: FALSE.
+#' It will be created if not supplied as long as makePool is TRUE.
+#' @param makePool Logical. Should a database pool be created if one is not supplied? Default: FALSE.
 #' @return A named list of correlation values, corGSEA results,
 #' and visualizations for each gene of interest.
-#'
-#' @details analyzeSingleGenes()
 #'
 #' @examples
 #' genesOfInterest <- c("ATM", "SLC7A11")
