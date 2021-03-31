@@ -65,10 +65,9 @@ analyzeGenePairs <- function(genesOfInterest,
                              pool = NULL,
                              makePool = FALSE) {
 
-  # genesOfInterest <- c("STAG2", "STAG2")
+  # genesOfInterest <- c("BRCA1", "NQO1")
   # Species <- "hsapiens"
   # crossCompareMode = FALSE
-  # returnDataOnly = TRUE
   # returnDataOnly = TRUE
   # outputPrefix = "CorrelationAnalyzeR_Output_Paired"
   # runGSEA = TRUE
@@ -81,8 +80,8 @@ analyzeGenePairs <- function(genesOfInterest,
   # sampler = FALSE
   # nperm = 2000
   # makePool = FALSE
-  # Sample_Type = c("normal", "cancer")
-  # Tissue = c("brain", "brain")
+  # Sample_Type = c("cancer", "cancer")
+  # Tissue = c("bone", "bone")
 
   # Validate inputs
   unGene <- unique(genesOfInterest)
@@ -790,6 +789,7 @@ analyzeGenePairs <- function(genesOfInterest,
                        axis.text.x = ggplot2::element_text(size = 16)) +
         ggpubr::stat_compare_means(comparisons = list(unique(as.data.frame(VSTDFFinal)[, which(colnames(VSTDFFinal) == fillStr)])),
                                    size = 5, method = "t.test", label = "p.signif")
+
     }
 
   }
@@ -906,10 +906,62 @@ analyzeGenePairs <- function(genesOfInterest,
 
   }
 
+  # Get the corrPlot
+  to_sample <- ifelse(length(VSTDFFinal$samples) > 10000, 10000, length(VSTDFFinal$samples))
+  VSTWide <- tidyr::pivot_wider(dplyr::filter(VSTDFFinal, samples %in% sample(samples, to_sample)),
+                                values_from = VST, names_from = Gene)
+  VSTWide <- dplyr::inner_join(VSTWide, y = correlationAnalyzeR::human_coldata, by = "samples")
+  geneOne_Corr <- correlations[, geneOne, drop = FALSE]
+  pDF <- apply(geneOne_Corr, MARGIN = 1:2, n = length(geneOne_Corr[,1]), FUN = function(x, n) {
+    stats::dt(abs(x)/sqrt((1-x^2)/(n-2)), df = 2)
+  })
+  padj <- p.adjust(pDF[,1], method = "BH")
+  Rval <- geneOne_Corr[geneTwo,]
+  Padj <- padj[geneTwo]
+  plt1 <- ggplot2::ggplot(VSTWide, aes_string(x = geneOne, y = geneTwo,
+                                              group="Group",
+                                              text = "samples")) +
+    ggplot2::geom_point(alpha = .5) +
+    ggplot2::labs(title = titleStr,
+                  subtitle = paste0("Pearson's R = ", round(Rval, 3),
+                                    " (padj = ", signif(Padj, 3), ")")) +
+    ggplot2::theme_bw(base_size = 16) +
+    ggplot2::xlab(paste0(geneOne, " Expression (VST)")) +
+    ggplot2::ylab(paste0(geneTwo, " Expression (VST)"))
+  plt2 <- ggplot2::ggplot(VSTWide, aes_string(x = geneOne, y = geneTwo,
+                                              group="Group", color = "Tissue",
+                                              text = "samples")) +
+    ggplot2::geom_point(alpha = .5) +
+    ggplot2::labs(title = titleStr,
+                  subtitle = paste0("Pearson's R = ", round(Rval, 3),
+                                    " (padj = ", signif(Padj, 3), ")")) +
+    ggplot2::theme_bw(base_size = 16) +
+    ggplot2::xlab(paste0(geneOne, " Expression (VST)")) +
+    ggplot2::ylab(paste0(geneTwo, " Expression (VST)"))
+  plt3 <- ggplot2::ggplot(VSTWide, aes_string(x = geneOne, y = geneTwo,
+                                              group="Group", color = "disease",
+                                              text = "samples")) +
+    ggplot2::geom_point(alpha = .5) +
+    ggplot2::labs(title = titleStr,
+                  subtitle = paste0("Pearson's R = ", round(Rval, 3),
+                                    " (padj = ", signif(Padj, 3), ")")) +
+    ggplot2::theme_bw(base_size = 16) +
+    ggplot2::scale_color_manual(name = "Disease", values = c("Cancer" = "firebrick",
+                                                             "Normal" = "forestgreen")) +
+    ggplot2::xlab(paste0(geneOne, " Expression (VST)")) +
+    ggplot2::ylab(paste0(geneTwo, " Expression (VST)"))
+
+
+  pairRes[["compared"]][["VST_corrPlot"]] <- list(
+    "corrPlot_all" = plt1,
+    "corrPlot_tissue" = plt2,
+    "corrPlot_disease" = plt3,
+    "Rval" = Rval,
+    "Padj" = Padj
+  )
 
   # Return results
   return(pairRes)
-
 }
 
 

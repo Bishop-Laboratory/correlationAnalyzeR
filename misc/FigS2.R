@@ -6,30 +6,28 @@ library(tidyverse)
 set.seed(42)
 
 gene1 <- "BRCA1"
-gene2 <- "NFE2L2"
-vstB <- getTissueVST(genesOfInterest = c(gene1, gene2)) %>%
+gene2 <- "NQO1"
+Sample_Type <- "cancer"
+Tissue <- "bone"
+
+vstB <- getTissueVST(genesOfInterest = c(gene1, gene2),
+                     Sample_Type = Sample_Type,
+                     Tissues = Tissue) %>%
   bind_rows() %>%
   inner_join(correlationAnalyzeR::human_coldata, by = "samples")
-B1_corr <- getCorrelationData(geneList = "BRCA1", Sample_Type = "all", Tissue = "all")
+B1_corr <- getCorrelationData(geneList = gene1,
+                              Sample_Type = Sample_Type, Tissue = Tissue)
 pDF <- apply(B1_corr, MARGIN = 1:2, n = length(B1_corr[,1]), FUN = function(x, n) {
-
-  ## Using R to Z conversion method
-  # z <- 0.5 * log((1+x)/(1-x))
-  # zse <- 1/sqrt(colLengths-3)
-  # p <- min(pnorm(z, sd=zse), pnorm(z, lower.tail=F, sd=zse))*2
-
-  # Using the t statistic method
   stats::dt(abs(x)/sqrt((1-x^2)/(n-2)), df = 2)
 })
 padj <- p.adjust(pDF[,1], method = "BH")
-B1B2r <- B1_corr["BRCA2",]
-B1B2p <- pDF["BRCA2",]
-B1B2padj <- padj["BRCA2"]
+B1B2r <- B1_corr[gene2,]
+B1B2p <- pDF[gene2,]
+B1B2padj <- padj[gene2]
 to_sample <- ifelse(length(vstB$samples) > 5000, 5000, length(vstB$samples))
-
 plt <- vstB %>%
   filter(samples %in% sample(samples, to_sample)) %>%
-  ggplot(aes_string(x = gene1, y = gene2, color = "disease",
+  ggplot(aes(x = !!sym(gene1), y = !!sym(gene2), color = disease,
              text = paste0("samples", "\n", "disease", "\n", "Tissue"))) +
   geom_point(alpha = .5) +
   labs(title = paste0(gene1, " vs ", gene2),

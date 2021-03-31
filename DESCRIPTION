@@ -23,13 +23,13 @@ VignetteBuilder: knitr
 Suggests: knitr, rmarkdown, EnsDb.Hsapiens.v86, airway, tidyverse
 RoxygenNote: 7.1.1
 Imports: 
+    shiny,
     clusterProfiler,
     ggplot2,
     ggpubr,
     data.table,
     gridExtra,
     grid,
-    shiny,
     dplyr,
     tidyr,
     tibble,
