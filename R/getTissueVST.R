@@ -26,7 +26,7 @@
 getTissueVST <- function(genesOfInterest,
                          # Species = c("hsapiens", "mmusculus"),
                          Tissues = "all",
-                         Sample_Type = c("normal", "cancer"),
+                         Sample_Type = c("all", "normal", "cancer"),
                          useBlackList = TRUE, pool = NULL) {
 
   # genesOfInterest = c("BRCA1")

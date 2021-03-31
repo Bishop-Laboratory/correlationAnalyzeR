@@ -18,7 +18,8 @@ BRCA1_COXPR <- data.frame(geneName = info4gene$SYMBOL, COXPRESdb = rev(BRCA1_COX
 
 corCompare <- merge(x = BRCA1_ARCHS4, y = BRCA1_COXPR, by = "geneName")
 BRCA1_me <- correlationAnalyzeR::getCorrelationData(Sample_Type = "normal",
-                                                    Tissue = "all", geneList = "BRCA1")
+                                                    Tissue = "all",
+                                                    geneList = "BRCA1")
 BRCA1_me$geneName <- rownames(BRCA1_me)
 colnames(BRCA1_me)[1] <- "correlationAnalyzeR"
 corCompare <- merge(x = BRCA1_me, y = corCompare, by = "geneName")

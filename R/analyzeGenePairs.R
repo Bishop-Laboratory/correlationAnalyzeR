@@ -957,7 +957,8 @@ analyzeGenePairs <- function(genesOfInterest,
     "corrPlot_tissue" = plt2,
     "corrPlot_disease" = plt3,
     "Rval" = Rval,
-    "Padj" = Padj
+    "Padj" = Padj,
+    "corrPlot_VST_data" = VSTWide
   )
 
   # Return results
