@@ -4,7 +4,7 @@
 [![Build Status](https://travis-ci.com/Bishop-Laboratory/correlationAnalyzeR.svg?branch=master)](https://travis-ci.com/Bishop-Laboratory/correlationAnalyzeR)
 -->
 
-The correlationAnalyzeR package uses correlation data derived from the [ARCHS4](https://amp.pharm.mssm.edu/archs4/index.html) RNA Seq repository to generate biological insights about a gene or genes of interest.
+The correlationAnalyzeR package uses correlation data derived from the [ARCHS4](https://amp.pharm.mssm.edu/archs4/index.html) RNA Seq repository to generate biological insights about a gene or genes of interest. The web implementation can be found [here](http://gccri.bishop-lab.uthscsa.edu/correlation-analyzer).
 
 ## Quickstart
 To get started with `correlationAnalyzeR`, please view the vignette for this package [here](https://misc-items-to-share.s3-us-west-2.amazonaws.com/correlationAnalyzeR.html).
