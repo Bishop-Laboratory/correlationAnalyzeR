@@ -7,7 +7,7 @@
 getTissueVST(
   genesOfInterest,
   Tissues = "all",
-  Sample_Type = c("normal", "cancer"),
+  Sample_Type = c("all", "normal", "cancer"),
   useBlackList = TRUE,
   pool = NULL
 )
@@ -35,7 +35,7 @@ List of VST matrices for each selected tissue-disease combination.
 Downloads VST values for tissues of interest
 }
 \examples{
-res <- getTissueVST(genesOfInterest = c("BRCA1", "ATM"),
+VSTdata <- getTissueVST(genesOfInterest = c("BRCA1", "ATM"),
                     Tissues = c("brain", "respiratory"),
                     Sample_Type = "all",
                     useBlackList = TRUE)

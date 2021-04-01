@@ -4,16 +4,15 @@
 #'
 #' @param pairedGenesList A list, named with primary genes of interest with
 #' vectors of secondary genes to test against OR a string containing the
-#' official MSIGDB name for a gene set of interest.
+#' official MSIGDB name for a gene set of interest. See examples.
 #'
 #' @param Sample_Type Type of RNA Seq samples used to create correlation data.
 #' Either "all", "normal", or "cancer". Can be a single value for all genes,
-#' or a vector corresponding to genesOfInterest.
+#' or a vector corresponding to the entries in pairedGenesList. Default: "normal".
 #'
 #' @param Tissue Which tissue type should gene correlations be derived from?
-#' Default = "all". Can be a single value for all genes,
-#' or a vector corresponding to genesOfInterest.
-#' Run getTissueTypes() to see available tissues.
+#' Can be a single value for all genes, or a vector corresponding to the entries in pairedGenesList.
+#' Run getTissueTypes() to see available tissues. Default: "all"
 #'
 #' @param outputPrefix Prefix for saved files. Should include directory info.
 #'
@@ -29,7 +28,7 @@
 #' If list of secondary genes is large, set this to FALSE or onlyTop to TRUE
 #' to avoid cluttering the plot. Default: TRUE.
 #'
-#' @param plotTitle Logical. If TRUE, plot title will be added to visualizations. Default: TRUE.
+#' @param plotTitle If TRUE, plot title will be added to visualizations. Default: TRUE.
 #'
 #' @param onlyTop For larger secondary gene lists -- This will filter the
 #' number of secondary genes which are plotted to avoid clutter if plotLabels = TRUE.
@@ -42,19 +41,30 @@
 #'
 #' @param returnDataOnly if TRUE will only return a list containing correlations
 #' and significance testing results if applicable. Default: TRUE.
+#'
 #' @param pool an object created by pool::dbPool to accessing SQL database.
 #' It will be created if not supplied.
+#'
 #' @param makePool Logical. Should a pool be created if one is not supplied? Default: FALSE.
+#'
 #' @return A list containing correlation values and signficance testing results
+#'
+#' @details
+#' Gene vs Gene List mode allows users to determine how similarly correlated a gene
+#' is with a list of secondary genes. Please view the vignette for more information and
+#' examples.
 #'
 #' @examples
 #' pairedGenesList <- list("TP53" = c("BRCA1", "CDK12", "PARP1"),
 #'                         "SON" = c("AURKB", "SFPQ", "DHX9"))
 #'
-#'correlationAnalyzeR::geneVsGeneListAnalyze(pairedGenesList = pairedGenesList,
-#'                               returnDataOnly = TRUE,
-#'                               Sample_Type = "normal",
-#'                               Tissue = "brain")
+#' res <- correlationAnalyzeR::geneVsGeneListAnalyze(pairedGenesList = pairedGenesList,
+#'                                                   returnDataOnly = TRUE,
+#'                                                   Sample_Type = "normal",
+#'                                                   Tissue = "brain")
+#'
+#' geneset <- list("BRCA1" = "KEGG_CELL_CYCLE")
+#' res <- correlationAnalyzeR::geneVsGeneListAnalyze(pairedGenesList = geneset)
 #'
 #' @export
 geneVsGeneListAnalyze <- function(pairedGenesList,
@@ -470,7 +480,7 @@ geneVsGeneListAnalyze <- function(pairedGenesList,
         ggplot2::geom_vline(ggplot2::aes(xintercept = pValTTest, color = pValStr)) +
         ggplot2::scale_colour_manual("",
                             breaks = pValStr,
-                            values = c("grey")) +
+                            values = c("firebrick")) +
         ggplot2::scale_y_continuous(expand = c(0,0))
 
       # Plot if not returnDataOnly

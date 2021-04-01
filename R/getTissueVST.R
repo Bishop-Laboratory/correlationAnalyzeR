@@ -18,7 +18,7 @@
 #' @return List of VST matrices for each selected tissue-disease combination.
 #'
 #' @examples
-#' res <- getTissueVST(genesOfInterest = c("BRCA1", "ATM"),
+#' VSTdata <- getTissueVST(genesOfInterest = c("BRCA1", "ATM"),
 #'                     Tissues = c("brain", "respiratory"),
 #'                     Sample_Type = "all",
 #'                     useBlackList = TRUE)

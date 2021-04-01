@@ -10,7 +10,7 @@
 #' @return Vector containing available tissue types.
 #'
 #' @examples
-#' correlationAnalyzeR::getTissueTypes()
+#' tissueTypes <- correlationAnalyzeR::getTissueTypes()
 #'
 #' @export
 getTissueTypes <- function(#Species = c("hsapiens", "mmusculus"),

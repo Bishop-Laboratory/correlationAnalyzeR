@@ -1,48 +1,73 @@
 #' Analyze Gene Pairs
 #'
-#' Comaprison of two genes of interest using correlation values.
-#' This can be 2 different genes in the same tissue or sample type or
-#' the same gene accross two sample or tissue types. Alternatively, specify 'crossCompareMode'
-#' to view compared correrlations across all available tissue types.
+#' Compares correlations and corGSEA results for two genes of interest.
+#'
 #' @param genesOfInterest A length-two vector with genes to compare.
+#'
 #' @param Sample_Type A length-two vector of sample types corresponding to genesOfInterest.
 #' Choose "all", "normal", or "cancer". Default: c("normal", "normal")
+#'
 #' @param Tissue A length-two vector of tissue types corresponding to genesOfInterest.
 #' Run getTissueTypes() to see available list. Default: c("all", "all")
-#' @param GSEA_Type Which GSEA annotations should be considered? Options listed in
-#' correlationAnalyzeR::pathwayCategories -- See details of getTERM2GENE for more info.
+#'
+#' @param GSEA_Type Character vector listing the gene set databases to use.
+#' Options are listed in correlationAnalyzeR::pathwayCategories --
+#' See details of ?getTERM2GENE for more info.
+#'
 #' @param nperm Number of permutations to run in GSEA. Default is 2000
-#' @param sampler If TRUE, will only return 100,000 random genesets. Useful for reducing GSEA computational burden.
+#'
 #' @param crossCompareMode Use this mode to generate comparisons
 #' across all tissue and disease types. If both genes for genesOfInterest are the
 #' same -- will compare normal vs cancer for that gene in each available tissue. Else, will
 #' perform comparison of two different genes in all tissue-disease groups.
 #' Will only consider user input for returnDataOnly, outputPrefix, and genesOfInterest.
-#' @param outputPrefix Prefix for saved files -- the directory name to store output files in. If
-#' folder does not exist, it will be created.
-#' @param runGSEA If TRUE will run GSEA using gene correlation values.
-#' @param TERM2GENE Mapping of geneset IDs to gene names. If NULL, it will be
-#' generated automatically. Only applicable if GSEA is to be run.
+#'
+#' @param runGSEA If TRUE will run GSEA using gene correlation values. Default: TRUE.
+#'
+#' @param TERM2GENE Mapping of geneset IDs to gene names. If not supplied, it will be
+#' generated automatically. Only applicable if GSEA is to be run. TERM2GENE objects
+#' can be generated manually using the getTERM2GENE() function.
+#'
 #' @param returnDataOnly if TRUE will return result list object
-#' and will not generate any folders or files.
+#' and will not generate any folders or files. Default: TRUE.
+#'
 #' @param topPlots Logical. If TRUE, myGSEA() will build gsea plots for top correlated genesets.
+#' Default: TRUE.
+#'
 #' @param pool an object created by pool::dbPool to accessing SQL database.
 #' It will be created if not supplied.
+#'
 #' @param makePool Logical. Should a pool be created if one is not supplied? Default: FALSE.
+#'
+#' @param outputPrefix Prefix for saved files -- the directory name to store output files in.
+#' This is ignored unless returnDataOnly is FALSE.
+#'
+#' @param sampler Logical. If TRUE, will only return 100,000 random genesets from either
+#' simple or complex TERM2GENEs. Useful for reducing GSEA computational burden.
+#'
 #' @return A named list containing visualizations and correlation data from paired analysis.
+#'
+#' @details
+#' Comaprison of two genes of interest using correlation values.
+#' This can be 2 different genes in the same tissue or sample type or
+#' the same gene accross two sample or tissue types. Alternatively, specify 'crossCompareMode'
+#' to view compared correrlations across all available tissue types.
+#' Please view the vignette for more detail about this function,
+#' including the structure of the ouput data list.
+#'
 #' @examples
 #' genesOfInterest <- c("ATM", "SLC7A11")
-#' correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
+#' res <- correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
 #'                               GSEA_Type = "simple", returnDataOnly = TRUE,
 #'                               Sample_Type = c("normal", "normal"),
 #'                               Tissue = c("brain", "brain"))
 #' genesOfInterest <- c("BRCA1", "BRCA1")
-#' correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
+#' res <- correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
 #'                               GSEA_Type = "simple", returnDataOnly = TRUE,
 #'                               Sample_Type = c("normal", "cancer"),
 #'                               Tissue = c("respiratory", "respiratory"))
 #' genesOfInterest <- c("NFKB1", "SOX10")
-#' correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
+#' res <- correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
 #'                               returnDataOnly = TRUE,
 #'                               crossCompareMode = TRUE)
 #' @importFrom rlang .data
@@ -65,7 +90,7 @@ analyzeGenePairs <- function(genesOfInterest,
                              pool = NULL,
                              makePool = FALSE) {
 
-  # genesOfInterest <- c("BRCA1", "NQO1")
+  # genesOfInterest <- c("BRCA1", "BRCA2")
   # Species <- "hsapiens"
   # crossCompareMode = FALSE
   # returnDataOnly = TRUE
@@ -73,15 +98,13 @@ analyzeGenePairs <- function(genesOfInterest,
   # runGSEA = TRUE
   # topPlots = FALSE
   # Sample_Type = c("normal", "normal")
-  # Tissue = c("all", "all")
-  # TERM2GENE = NULL
+  # Tissue = "all"
+  # TERM2GENE = TERM2GENE
   # GSEA_Type = c("simple")
   # pool = NULL
   # sampler = FALSE
   # nperm = 2000
   # makePool = FALSE
-  # Sample_Type = c("cancer", "cancer")
-  # Tissue = c("bone", "bone")
 
   # Validate inputs
   unGene <- unique(genesOfInterest)
@@ -89,6 +112,13 @@ analyzeGenePairs <- function(genesOfInterest,
   unSample <- unique(Sample_Type)
   if (length(unGene) == 1 && length(unTissue) == 1 && length(unSample) == 1) {
     stop("Genes, Tissues, or Samples must be different in gene vs gene mode!")
+  }
+
+  if (length(Tissue) == 1) {
+    Tissue <- rep(Tissue, 2)
+  }
+  if (length(Sample_Type) == 1) {
+    Sample_Type <- rep(Sample_Type, 2)
   }
 
 
@@ -918,7 +948,7 @@ analyzeGenePairs <- function(genesOfInterest,
   padj <- p.adjust(pDF[,1], method = "BH")
   Rval <- geneOne_Corr[geneTwo,]
   Padj <- padj[geneTwo]
-  plt1 <- ggplot2::ggplot(VSTWide, aes_string(x = geneOne, y = geneTwo,
+  plt1 <- ggplot2::ggplot(VSTWide, ggplot2::aes_string(x = geneOne, y = geneTwo,
                                               group="Group",
                                               text = "samples")) +
     ggplot2::geom_point(alpha = .5) +
@@ -928,7 +958,7 @@ analyzeGenePairs <- function(genesOfInterest,
     ggplot2::theme_bw(base_size = 16) +
     ggplot2::xlab(paste0(geneOne, " Expression (VST)")) +
     ggplot2::ylab(paste0(geneTwo, " Expression (VST)"))
-  plt2 <- ggplot2::ggplot(VSTWide, aes_string(x = geneOne, y = geneTwo,
+  plt2 <- ggplot2::ggplot(VSTWide, ggplot2::aes_string(x = geneOne, y = geneTwo,
                                               group="Group", color = "Tissue",
                                               text = "samples")) +
     ggplot2::geom_point(alpha = .5) +
@@ -938,7 +968,7 @@ analyzeGenePairs <- function(genesOfInterest,
     ggplot2::theme_bw(base_size = 16) +
     ggplot2::xlab(paste0(geneOne, " Expression (VST)")) +
     ggplot2::ylab(paste0(geneTwo, " Expression (VST)"))
-  plt3 <- ggplot2::ggplot(VSTWide, aes_string(x = geneOne, y = geneTwo,
+  plt3 <- ggplot2::ggplot(VSTWide, ggplot2::aes_string(x = geneOne, y = geneTwo,
                                               group="Group", color = "disease",
                                               text = "samples")) +
     ggplot2::geom_point(alpha = .5) +

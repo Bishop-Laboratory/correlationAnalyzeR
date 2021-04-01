@@ -2,7 +2,7 @@
 % Please edit documentation in R/getAvailableGenes.R
 \name{getAvailableGenes}
 \alias{getAvailableGenes}
-\title{Get Available Genes}
+\title{Get Available Genes (helper function)}
 \usage{
 getAvailableGenes(pool = NULL)
 }
@@ -17,6 +17,6 @@ A vector of genes with associated correlation data
 Finds available genes within correlation data
 }
 \examples{
-correlationAnalyzeR::getAvailableGenes()
+genes <- correlationAnalyzeR::getAvailableGenes()
 
 }

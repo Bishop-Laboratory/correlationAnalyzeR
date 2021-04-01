@@ -1,4 +1,4 @@
-#' Get Available Genes
+#' Get Available Genes (helper function)
 #'
 #' Finds available genes within correlation data
 #'
@@ -7,7 +7,7 @@
 #' @return A vector of genes with associated correlation data
 #'
 #' @examples
-#' correlationAnalyzeR::getAvailableGenes()
+#' genes <- correlationAnalyzeR::getAvailableGenes()
 #'
 #' @export
 getAvailableGenes <- function(# Species = c("hsapiens", "mmusculus"),

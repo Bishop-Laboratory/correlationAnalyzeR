@@ -30,11 +30,12 @@ Choose "all", "normal", or "cancer". Default: c("normal", "normal")}
 \item{Tissue}{A length-two vector of tissue types corresponding to genesOfInterest.
 Run getTissueTypes() to see available list. Default: c("all", "all")}
 
-\item{GSEA_Type}{Which GSEA annotations should be considered? Options listed in
-correlationAnalyzeR::pathwayCategories -- See details of getTERM2GENE for more info.}
+\item{GSEA_Type}{Character vector listing the gene set databases to use.
+Options are listed in correlationAnalyzeR::pathwayCategories --
+See details of ?getTERM2GENE for more info.}
 
-\item{outputPrefix}{Prefix for saved files -- the directory name to store output files in. If
-folder does not exist, it will be created.}
+\item{outputPrefix}{Prefix for saved files -- the directory name to store output files in.
+This is ignored unless returnDataOnly is FALSE.}
 
 \item{crossCompareMode}{Use this mode to generate comparisons
 across all tissue and disease types. If both genes for genesOfInterest are the
@@ -42,19 +43,22 @@ same -- will compare normal vs cancer for that gene in each available tissue. El
 perform comparison of two different genes in all tissue-disease groups.
 Will only consider user input for returnDataOnly, outputPrefix, and genesOfInterest.}
 
-\item{runGSEA}{If TRUE will run GSEA using gene correlation values.}
+\item{runGSEA}{If TRUE will run GSEA using gene correlation values. Default: TRUE.}
 
-\item{TERM2GENE}{Mapping of geneset IDs to gene names. If NULL, it will be
-generated automatically. Only applicable if GSEA is to be run.}
+\item{TERM2GENE}{Mapping of geneset IDs to gene names. If not supplied, it will be
+generated automatically. Only applicable if GSEA is to be run. TERM2GENE objects
+can be generated manually using the getTERM2GENE() function.}
 
 \item{nperm}{Number of permutations to run in GSEA. Default is 2000}
 
-\item{sampler}{If TRUE, will only return 100,000 random genesets. Useful for reducing GSEA computational burden.}
+\item{sampler}{Logical. If TRUE, will only return 100,000 random genesets from either
+simple or complex TERM2GENEs. Useful for reducing GSEA computational burden.}
 
-\item{topPlots}{Logical. If TRUE, myGSEA() will build gsea plots for top correlated genesets.}
+\item{topPlots}{Logical. If TRUE, myGSEA() will build gsea plots for top correlated genesets.
+Default: TRUE.}
 
 \item{returnDataOnly}{if TRUE will return result list object
-and will not generate any folders or files.}
+and will not generate any folders or files. Default: TRUE.}
 
 \item{pool}{an object created by pool::dbPool to accessing SQL database.
 It will be created if not supplied.}
@@ -65,24 +69,29 @@ It will be created if not supplied.}
 A named list containing visualizations and correlation data from paired analysis.
 }
 \description{
+Compares correlations and corGSEA results for two genes of interest.
+}
+\details{
 Comaprison of two genes of interest using correlation values.
 This can be 2 different genes in the same tissue or sample type or
 the same gene accross two sample or tissue types. Alternatively, specify 'crossCompareMode'
 to view compared correrlations across all available tissue types.
+Please view the vignette for more detail about this function,
+including the structure of the ouput data list.
 }
 \examples{
 genesOfInterest <- c("ATM", "SLC7A11")
-correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
+res <- correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
                               GSEA_Type = "simple", returnDataOnly = TRUE,
                               Sample_Type = c("normal", "normal"),
                               Tissue = c("brain", "brain"))
 genesOfInterest <- c("BRCA1", "BRCA1")
-correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
+res <- correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
                               GSEA_Type = "simple", returnDataOnly = TRUE,
                               Sample_Type = c("normal", "cancer"),
                               Tissue = c("respiratory", "respiratory"))
 genesOfInterest <- c("NFKB1", "SOX10")
-correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
+res <- correlationAnalyzeR::analyzeGenePairs(genesOfInterest = genesOfInterest,
                               returnDataOnly = TRUE,
                               crossCompareMode = TRUE)
 }

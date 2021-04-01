@@ -16,7 +16,8 @@ vignette: >
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   tidy = FALSE,
-  cache = TRUE,
+  cache = FALSE,
+  dpi = 72,
   dev = "png",
   message = FALSE, error = FALSE, warning = TRUE
 )
@@ -31,15 +32,22 @@ function using an example. Additional info can be found in the reference manual.
 
 ## Analyze Single Genes
 
-### Basic Analysis
-
-`correlationAnalyzeR` can be used to predict gene function using `analyzeSingleGenes()` 
-(the equivalent of Single Gene Mode in the web application). In this example, `Tissue` and `Sample_Type` arguments were set in order to limit the analysis to co-expression correlations in normal brain samples. 
-
+To speed up the analysis, it is useful to generate a `TERM2GENE` object ahead of time. 
+The `GSEA_Type` argument specifies which gene set databases to pull annotations from. 
+See the details of `?getTERM2GENE` to see the different options.
 ```{r}
 library(correlationAnalyzeR)
+TERM2GENE <- getTERM2GENE(GSEA_Type = c("GO:BP"))  # GO Biological Process
+```
+
+### Basic Analysis
+
+`correlationAnalyzeR` can be used to predict gene function using `analyzeSingleGenes()` (the equivalent of Single Gene Mode in the web application). In this example, `Tissue` and `Sample_Type` arguments were set in order to limit the analysis to co-expression correlations in normal brain samples. 
+
+```{r}
 res <- analyzeSingleGenes(genesOfInterest = c("BRCA1"), 
-                          Tissue = "brain", Sample_Type = "normal")
+                          Tissue = "brain", Sample_Type = "normal",
+                          TERM2GENE = TERM2GENE)
 ```
 This runs most of the core tasks for predicting gene functionality using this analysis mode. This includes running "corGSEA", an implementation of GSEA developed in this package for use on genome-wide co-expression correlations. 
 
@@ -115,7 +123,8 @@ Once the correlation matrix is generated, it can be used as the input to `analyz
 
 ```{r analyzeSingleGenes_custom}
 res <- analyzeSingleGenes(genesOfInterest = c("BRCA1"), corrMat = corrMat,
-                          corrMat_label = "User-supplied DataSet")
+                          corrMat_label = "User-supplied DataSet",
+                          TERM2GENE = TERM2GENE)
 ```
 
 Here is the correlation histogram produced with the custom dataset:
@@ -192,12 +201,27 @@ res$BRCA1$heatmapBigVar
 
 
 ```{r}
-res <- analyzeGenePairs(genesOfInterest = c("BRCA1", "BRCA2"))
+res <- analyzeGenePairs(genesOfInterest = c("BRCA1", "BRCA2"),
+                        Tissue = "all", Sample_Type = "all",
+                        TERM2GENE = TERM2GENE)
 ```
 
 The `analyzeGenePairs()` function performs `analyzeSingleGenes()` on both of the supplied genes and then compares the results, generating several tables and figures:
 
-1. The gene co-expression correlations with the average Pearson R and variance included. Note that, with only two data points, variance is just 2x the squared deviation from the mean.  
+1. The correlation between the two genes is visualized using a scatter plot of 
+their VST-transformed expression values. 
+
+- By Disease:
+```{r, fig.height=5, fig.width=8}
+res$compared$VST_corrPlot$corrPlot_disease
+```
+
+- By Tissue:
+```{r, fig.height=5, fig.width=10}
+res$compared$VST_corrPlot$corrPlot_tissue
+```
+
+2. The gene co-expression correlations with the average Pearson R and variance included. Note that, with only two data points, variance is just 2x the squared deviation from the mean.  
 
 ```{r}
 res$compared$correlations %>%
@@ -205,49 +229,49 @@ res$compared$correlations %>%
   head()
 ```
 
-2. The p values of the correlation calculation.
+3. The p values of the correlation calculation.
 ```{r}
 head(res$compared$`P values`)
 ```
 
-3. The combined results of corGSEA for BRCA1 and BRCA2
+4. The combined results of corGSEA for BRCA1 and BRCA2
 ```{r}
 head(res$compared$correlatedPathwaysDataFrame)
 ```
 
-4. The VST-transformed counts for BRCA1 and BRCA2 across all tissues
+5. The VST-transformed counts for BRCA1 and BRCA2 across all tissues
 ```{r}
 head(res$compared$VST_Data)
 ```
 
-5. A scatter plot comparing the genome-wide co-expression correlations for BRCA1 and BRCA2.
+6. A scatter plot comparing the genome-wide co-expression correlations for BRCA1 and BRCA2.
 ```{r, fig.height=6, fig.width=7.5}
 res$compared$correlationPlot
 ```
 
-6. The same plot, binned to reduce the computational requirements for plotting:
+7. The same plot, binned to reduce the computational requirements for plotting:
 ```{r, fig.height=6, fig.width=7.5}
 res$compared$correlationPlotBin
 ```
 
-7. A heatmap showing the genes with the top variance between BRCA1 and BRCA2 by co-expression correlation. This is simply a measure of the absolute difference between them. 
+8. A heatmap showing the genes with the top variance between BRCA1 and BRCA2 by co-expression correlation. This is simply a measure of the absolute difference between them. 
 ```{r, fig.height=6, fig.width=10}
 res$compared$correlationVarianceHeatmap
 ```
 
-8. A heatmap showing the genes with the top similarity in co-expression correlation between BRCA1 and BRCA2.
+9. A heatmap showing the genes with the top similarity in co-expression correlation between BRCA1 and BRCA2.
 
 ```{r, fig.height=6, fig.width=10}
 res$compared$correlationSimilarityHeatmap
 ```
 
-9. A heatmap showing the pathways with the top variance between BRCA1 and BRCA2 by corGSEA score.
+10. A heatmap showing the pathways with the top variance between BRCA1 and BRCA2 by corGSEA score.
 
 ```{r, fig.height=6, fig.width=10}
 res$compared$pathwayVarianceHeatmap
 ```
 
-10. A heatmap showing the pathways with the top similarity in corGSEA score between BRCA1 and BRCA2.
+11. A heatmap showing the pathways with the top similarity in corGSEA score between BRCA1 and BRCA2.
 
 ```{r, fig.height=6, fig.width=10}
 res$compared$pathwaySimilarityHeatmap
@@ -328,6 +352,7 @@ res$crossCompareVST$VST_boxPlot
 ```{r, fig.height=6, fig.width=7.5}
 res$pairResList$`Immune - Normal`$scatterPlot
 ```
+
 3. And the list also contains heatmaps showing the top variable genes with respect to BRCA1 gene co-expression between cancer and normal:
 
 ```{r, fig.height=6, fig.width=7.5}

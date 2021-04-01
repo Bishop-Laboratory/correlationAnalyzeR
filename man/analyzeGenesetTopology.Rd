@@ -6,7 +6,7 @@
 \usage{
 analyzeGenesetTopology(
   genesOfInterest,
-  Sample_Type = c("normal", "cancer"),
+  Sample_Type = "normal",
   Tissue = "all",
   crossComparisonType = c("PCA", "variantGenes", "coCorrelativeGenes", "pathwayEnrich"),
   pathwayType = c("simple"),
@@ -27,35 +27,41 @@ analyzeGenesetTopology(
 
 \item{Sample_Type}{Type of RNA Seq samples used to create correlation data.
 Either "all", "normal", or "cancer". Can be a single value for all genes,
-or a vector corresponding to genesOfInterest.}
+or a vector corresponding to genesOfInterest. Default: "normal"}
 
 \item{Tissue}{Which tissue type should gene correlations be derived from?
-Default = "all". Can be a single value for all genes,
-or a vector corresponding to genesOfInterest.
-Run getTissueTypes() to see available tissues.}
+Can be a single value for all genes, or a vector corresponding to genesOfInterest.
+Run getTissueTypes() to see available tissues. Default: "all"}
 
-\item{crossComparisonType}{The type of topology tests to run. (see details)}
+\item{crossComparisonType}{The type of topology tests to run. (see details).
+Default: c("PCA", "variantGenes", "coCorrelativeGenes", "pathwayEnrich")}
 
 \item{pathwayType}{Which pathway annotations should be considered? Options listed in
-correlationAnalyzeR::GSEA_categories. See details of getTERM2GENE for more info.}
+correlationAnalyzeR::MSIGDB_Geneset_Names See details of ?getTERM2GENE for more info.
+Default: "simple".}
 
 \item{setComparisonCutoff}{Only relevant for co-correlation analysis -- the number of genes which
-must aggree for a gene to be considered co-correlative within the input gene list.}
+must aggree for a gene to be considered co-correlative within the input gene list.
+Default: "Auto"}
 
 \item{pathwayEnrichment}{Logic. If TRUE, pathway enrichment will be performed on variant genes --
-if 'variantGenes' selected -- and/or on co-correlative genes -- if "coCorrelativeGenes" selected.}
+if 'variantGenes' selected -- and/or on co-correlative genes -- if "coCorrelativeGenes" selected.
+Default: FALSE.}
 
-\item{pValueCutoff}{Numeric. The p value cutoff applied when running all pathway enrichment tests.}
+\item{pValueCutoff}{Numeric. The p value cutoff applied when running all pathway enrichment tests.
+Default: .05.}
 
 \item{numTopGenesToPlot}{When creating a heatmap of the top co-correlative or top variant genes,
 how many genes should be plotted on the y axis? Default: "Auto"}
 
 \item{alternativeTSNE}{Logical. If TRUE, then a TSNE will be run as an alternative to PCA for visualizing
-large input gene lists. This is highly recommended as 100+ member gene lists cannot be visualized otherwise.}
+large input gene lists. This is highly recommended as 100+ member gene lists cannot be visualized otherwise.
+Default: TRUE.}
 
-\item{numClusters}{The number of clusters to create with hclust or TSNE analysis. Default: "Auto"}
+\item{numClusters}{The number of clusters to create with hclust or TSNE analysis.}
 
-\item{outputPrefix}{Prefix for saved files. Should include directory info.}
+\item{outputPrefix}{Prefix for saved files. Should include directory info.
+Ignored if returnDataOnly = TRUE. Default: "CorrelationAnalyzeR_Output"}
 
 \item{returnDataOnly}{if TRUE will return only a list of analysis results. Default: TRUE}
 
@@ -71,6 +77,10 @@ A list of correlations for input genes, and the results of chosen analysis + vis
 Analyzes the topology of a gene list using gene correlation data and dimension-reduction techniques.
 }
 \details{
+analyzeGenesetTopology() uses the matrix of co-expression correlations to perform
+dimensionality reduction, clustering, and it also performs pathway enrichment. See the
+vignette for usage examples and information about the output format.
+
 Cross Comparison Types:
 - variantGenes: These are the genes which best explain variation between genes within the input list.
                 These genes can divide a list into functional groups.
@@ -84,9 +94,12 @@ Cross Comparison Types:
 \examples{
 genesOfInterest <- c("CDK12", "AURKB", "SFPQ", "NFKB1", "BRCC3", "BRCA2", "PARP1",
                      "DHX9", "SON", "AURKA", "SETX", "BRCA1", "ATMIN")
-correlationAnalyzeR::analyzeGenesetTopology(genesOfInterest = genesOfInterest,
+res <- correlationAnalyzeR::analyzeGenesetTopology(genesOfInterest = genesOfInterest,
                                  Sample_Type = "cancer", returnDataOnly = TRUE,
                                  Tissue = "brain",
                                  crossComparisonType = c("variantGenes", "PCA"))
+
+
+res <- correlationAnalyzeR::analyzeGenesetTopology(genesOfInterest = "HALLMARK_ADIPOGENESIS")
 
 }

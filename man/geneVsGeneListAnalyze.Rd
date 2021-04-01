@@ -25,16 +25,15 @@ geneVsGeneListAnalyze(
 \arguments{
 \item{pairedGenesList}{A list, named with primary genes of interest with
 vectors of secondary genes to test against OR a string containing the
-official MSIGDB name for a gene set of interest.}
+official MSIGDB name for a gene set of interest. See examples.}
 
 \item{Sample_Type}{Type of RNA Seq samples used to create correlation data.
 Either "all", "normal", or "cancer". Can be a single value for all genes,
-or a vector corresponding to genesOfInterest.}
+or a vector corresponding to the entries in pairedGenesList. Default: "normal".}
 
 \item{Tissue}{Which tissue type should gene correlations be derived from?
-Default = "all". Can be a single value for all genes,
-or a vector corresponding to genesOfInterest.
-Run getTissueTypes() to see available tissues.}
+Can be a single value for all genes, or a vector corresponding to the entries in pairedGenesList.
+Run getTissueTypes() to see available tissues. Default: "all"}
 
 \item{outputPrefix}{Prefix for saved files. Should include directory info.}
 
@@ -59,7 +58,7 @@ Default: FALSE.}
 \item{autoRug}{If the size of a secondary gene list > 50, plot lines will be replaced
 by an auto-generated rug. Default: TRUE.}
 
-\item{plotTitle}{Logical. If TRUE, plot title will be added to visualizations. Default: TRUE.}
+\item{plotTitle}{If TRUE, plot title will be added to visualizations. Default: TRUE.}
 
 \item{returnDataOnly}{if TRUE will only return a list containing correlations
 and significance testing results if applicable. Default: TRUE.}
@@ -75,13 +74,21 @@ A list containing correlation values and signficance testing results
 \description{
 Explores how a list of secondary genes relates to a primary gene of interest
 }
+\details{
+Gene vs Gene List mode allows users to determine how similarly correlated a gene
+is with a list of secondary genes. Please view the vignette for more information and
+examples.
+}
 \examples{
 pairedGenesList <- list("TP53" = c("BRCA1", "CDK12", "PARP1"),
                         "SON" = c("AURKB", "SFPQ", "DHX9"))
 
-correlationAnalyzeR::geneVsGeneListAnalyze(pairedGenesList = pairedGenesList,
-                              returnDataOnly = TRUE,
-                              Sample_Type = "normal",
-                              Tissue = "brain")
+res <- correlationAnalyzeR::geneVsGeneListAnalyze(pairedGenesList = pairedGenesList,
+                                                  returnDataOnly = TRUE,
+                                                  Sample_Type = "normal",
+                                                  Tissue = "brain")
+
+geneset <- list("BRCA1" = "KEGG_CELL_CYCLE")
+res <- correlationAnalyzeR::geneVsGeneListAnalyze(pairedGenesList = geneset)
 
 }

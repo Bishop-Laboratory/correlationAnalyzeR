@@ -46,7 +46,7 @@ Imports:
     stringr,
     matrixStats,
     metaMA,
-    msigdbr,
+    msigdbr (>= 7.2.1),
     pheatmap,
     preprocessCore,
     enrichplot,

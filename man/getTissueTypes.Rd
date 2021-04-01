@@ -21,6 +21,6 @@ Vector containing available tissue types.
 Finds tissue types with available correlation data for a given species
 }
 \examples{
-correlationAnalyzeR::getTissueTypes()
+tissueTypes <- correlationAnalyzeR::getTissueTypes()
 
 }
