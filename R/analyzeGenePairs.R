@@ -110,7 +110,8 @@ analyzeGenePairs <- function(genesOfInterest,
   unGene <- unique(genesOfInterest)
   unTissue <- unique(Tissue)
   unSample <- unique(Sample_Type)
-  if (length(unGene) == 1 && length(unTissue) == 1 && length(unSample) == 1) {
+  if (length(unGene) == 1 && length(unTissue) == 1 && length(unSample) == 1 &&
+      ! crossCompareMode) {
     stop("Genes, Tissues, or Samples must be different in gene vs gene mode!")
   }
 
