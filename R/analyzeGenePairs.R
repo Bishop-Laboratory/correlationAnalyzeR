@@ -174,7 +174,7 @@ analyzeGenePairs <- function(genesOfInterest,
   lm_eqn <- function(df){
     m <- stats::lm(eval(parse(text = colnames(df)[2])) ~ eval(parse(text = colnames(df)[1])), df)
     r <- sqrt(summary(m)$r.squared) * sign(unname(stats::coef(m)[2]))
-    eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(R)~"="~r,
+    eq <- substitute(italic(y) == a + b * italic(x)*","~~italic(R)~"="~r,
                      list(a = format(unname(stats::coef(m)[1]), digits = 2),
                           b = format(unname(stats::coef(m)[2]), digits = 2),
                           r = format(r, digits = 2)))
@@ -869,7 +869,7 @@ analyzeGenePairs <- function(genesOfInterest,
   lm_eqn <- function(df){
     m <- stats::lm(eval(parse(text = colnames(df)[2])) ~ eval(parse(text = colnames(df)[1])), df)
     r <- sqrt(summary(m)$r.squared) * sign(unname(stats::coef(m)[2]))
-    eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(R)~"="~r,
+    eq <- substitute(italic(y) == a + b * italic(x)*","~~italic(R)~"="~r,
                      list(a = format(unname(stats::coef(m)[1]), digits = 2),
                           b = format(unname(stats::coef(m)[2]), digits = 2),
                           r = format(r, digits = 2)))
@@ -936,60 +936,63 @@ analyzeGenePairs <- function(genesOfInterest,
 
   }
 
-  # Get the corrPlot
-  to_sample <- ifelse(length(VSTDFFinal$samples) > 10000, 10000, length(VSTDFFinal$samples))
-  VSTWide <- tidyr::pivot_wider(dplyr::filter(VSTDFFinal, samples %in% sample(samples, to_sample)),
-                                values_from = VST, names_from = Gene)
-  VSTWide <- dplyr::inner_join(VSTWide, y = correlationAnalyzeR::human_coldata, by = "samples")
-  geneOne_Corr <- correlations[, geneOne, drop = FALSE]
-  pDF <- apply(geneOne_Corr, MARGIN = 1:2, n = length(geneOne_Corr[,1]), FUN = function(x, n) {
-    stats::dt(abs(x)/sqrt((1-x^2)/(n-2)), df = 2)
-  })
-  padj <- p.adjust(pDF[,1], method = "BH")
-  Rval <- geneOne_Corr[geneTwo,]
-  Padj <- padj[geneTwo]
-  plt1 <- ggplot2::ggplot(VSTWide, ggplot2::aes_string(x = geneOne, y = geneTwo,
-                                              group="Group",
-                                              text = "samples")) +
-    ggplot2::geom_point(alpha = .5) +
-    ggplot2::labs(title = titleStr,
-                  subtitle = paste0("Pearson's R = ", round(Rval, 3),
-                                    " (padj = ", signif(Padj, 3), ")")) +
-    ggplot2::theme_bw(base_size = 16) +
-    ggplot2::xlab(paste0(geneOne, " Expression (VST)")) +
-    ggplot2::ylab(paste0(geneTwo, " Expression (VST)"))
-  plt2 <- ggplot2::ggplot(VSTWide, ggplot2::aes_string(x = geneOne, y = geneTwo,
-                                              group="Group", color = "Tissue",
-                                              text = "samples")) +
-    ggplot2::geom_point(alpha = .5) +
-    ggplot2::labs(title = titleStr,
-                  subtitle = paste0("Pearson's R = ", round(Rval, 3),
-                                    " (padj = ", signif(Padj, 3), ")")) +
-    ggplot2::theme_bw(base_size = 16) +
-    ggplot2::xlab(paste0(geneOne, " Expression (VST)")) +
-    ggplot2::ylab(paste0(geneTwo, " Expression (VST)"))
-  plt3 <- ggplot2::ggplot(VSTWide, ggplot2::aes_string(x = geneOne, y = geneTwo,
-                                              group="Group", color = "disease",
-                                              text = "samples")) +
-    ggplot2::geom_point(alpha = .5) +
-    ggplot2::labs(title = titleStr,
-                  subtitle = paste0("Pearson's R = ", round(Rval, 3),
-                                    " (padj = ", signif(Padj, 3), ")")) +
-    ggplot2::theme_bw(base_size = 16) +
-    ggplot2::scale_color_manual(name = "Disease", values = c("Cancer" = "firebrick",
-                                                             "Normal" = "forestgreen")) +
-    ggplot2::xlab(paste0(geneOne, " Expression (VST)")) +
-    ggplot2::ylab(paste0(geneTwo, " Expression (VST)"))
+  if (geneOne != geneTwo) {
 
+    # Get the corrPlot
+    to_sample <- ifelse(length(VSTDFFinal$samples) > 10000, 10000, length(VSTDFFinal$samples))
+    VSTWide <- tidyr::pivot_wider(dplyr::filter(VSTDFFinal, samples %in% sample(samples, to_sample)),
+                                  values_from = VST, names_from = Gene)
+    VSTWide <- dplyr::inner_join(VSTWide, y = correlationAnalyzeR::human_coldata, by = "samples")
+    geneOne_Corr <- correlations[, geneOne, drop = FALSE]
+    pDF <- apply(geneOne_Corr, MARGIN = 1:2, n = length(geneOne_Corr[,1]), FUN = function(x, n) {
+      stats::dt(abs(x)/sqrt((1-x^2)/(n-2)), df = 2)
+    })
+    padj <- p.adjust(pDF[,1], method = "BH")
+    Rval <- geneOne_Corr[geneTwo,]
+    Padj <- padj[geneTwo]
+    plt1 <- ggplot2::ggplot(VSTWide, ggplot2::aes_string(x = geneOne, y = geneTwo,
+                                                         group="Group",
+                                                         text = "samples")) +
+      ggplot2::geom_point(alpha = .5) +
+      ggplot2::labs(title = titleStr,
+                    subtitle = paste0("Pearson's R = ", round(Rval, 3),
+                                      " (padj = ", signif(Padj, 3), ")")) +
+      ggplot2::theme_bw(base_size = 16) +
+      ggplot2::xlab(paste0(geneOne, " Expression (VST)")) +
+      ggplot2::ylab(paste0(geneTwo, " Expression (VST)"))
+    plt2 <- ggplot2::ggplot(VSTWide, ggplot2::aes_string(x = geneOne, y = geneTwo,
+                                                         group="Group", color = "Tissue",
+                                                         text = "samples")) +
+      ggplot2::geom_point(alpha = .5) +
+      ggplot2::labs(title = titleStr,
+                    subtitle = paste0("Pearson's R = ", round(Rval, 3),
+                                      " (padj = ", signif(Padj, 3), ")")) +
+      ggplot2::theme_bw(base_size = 16) +
+      ggplot2::xlab(paste0(geneOne, " Expression (VST)")) +
+      ggplot2::ylab(paste0(geneTwo, " Expression (VST)"))
+    plt3 <- ggplot2::ggplot(VSTWide, ggplot2::aes_string(x = geneOne, y = geneTwo,
+                                                         group="Group", color = "disease",
+                                                         text = "samples")) +
+      ggplot2::geom_point(alpha = .5) +
+      ggplot2::labs(title = titleStr,
+                    subtitle = paste0("Pearson's R = ", round(Rval, 3),
+                                      " (padj = ", signif(Padj, 3), ")")) +
+      ggplot2::theme_bw(base_size = 16) +
+      ggplot2::scale_color_manual(name = "Disease", values = c("Cancer" = "firebrick",
+                                                               "Normal" = "forestgreen")) +
+      ggplot2::xlab(paste0(geneOne, " Expression (VST)")) +
+      ggplot2::ylab(paste0(geneTwo, " Expression (VST)"))
 
-  pairRes[["compared"]][["VST_corrPlot"]] <- list(
-    "corrPlot_all" = plt1,
-    "corrPlot_tissue" = plt2,
-    "corrPlot_disease" = plt3,
-    "Rval" = Rval,
-    "Padj" = Padj,
-    "corrPlot_VST_data" = VSTWide
-  )
+    pairRes[["compared"]][["VST_corrPlot"]] <- list(
+      "corrPlot_all" = plt1,
+      "corrPlot_tissue" = plt2,
+      "corrPlot_disease" = plt3,
+      "Rval" = Rval,
+      "Padj" = Padj,
+      "corrPlot_VST_data" = VSTWide
+    )
+
+  }
 
   # Return results
   return(pairRes)
