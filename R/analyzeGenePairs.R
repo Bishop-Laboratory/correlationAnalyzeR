@@ -940,6 +940,8 @@ analyzeGenePairs <- function(genesOfInterest,
   if (geneOne != geneTwo) {
 
     # Get the corrPlot
+    titleStr <- paste0(geneOne, " vs. ",
+                       geneTwo, " expression")
     to_sample <- ifelse(length(VSTDFFinal$samples) > 10000, 10000, length(VSTDFFinal$samples))
     VSTWide <- tidyr::pivot_wider(dplyr::filter(VSTDFFinal, samples %in% sample(samples, to_sample)),
                                   values_from = VST, names_from = Gene)
